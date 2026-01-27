@@ -1,0 +1,3 @@
+{
+  "extends": "@project-minato/config/tsconfig.base.json"
+}
