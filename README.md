@@ -33,7 +33,7 @@ A high-performance torrent scraping and indexing suite with a Torznab-compatible
 
 **Search & Persistence:**
 - **Primary Database**: PostgreSQL (Source of truth for metadata, API keys, and BetterAuth tables).
-- **Search Engine**: Elasticsearch (powering full-text search across millions of indexed titles).
+- **Search Engine**: Elasticsearch (powering full-text search across millions of indexed titles), find files by names inside the indexed metadata.
 - **Persistence Strategy**: No external cache (Redis) required; PostgreSQL handles relational state, while Elasticsearch handles high-concurrency search queries.
 
 **DevOps & Tooling:**

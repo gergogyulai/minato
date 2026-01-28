@@ -11,6 +11,7 @@
   },
   "scripts": {},
   "dependencies": {
+    "@better-auth/passkey": "^1.4.17",
     "@project-minato/db": "workspace:*",
     "@project-minato/env": "workspace:*",
     "better-auth": "catalog:",

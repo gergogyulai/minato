@@ -1,0 +1,27 @@
+{
+  "name": "@project-minato/elastic",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {
+    "elastic:start": "docker compose up -d",
+    "elastic:watch": "docker compose up",
+    "elastic:stop": "docker compose stop",
+    "elastic:down": "docker compose down"
+  },
+  "dependencies": {
+    "@project-minato/env": "workspace:*",
+    "dotenv": "catalog:",
+    "@elastic/elasticsearch": "^9.2.1"
+  },
+  "devDependencies": {
+    "@project-minato/config": "workspace:*",
+    "typescript": "catalog:"
+  }
+}

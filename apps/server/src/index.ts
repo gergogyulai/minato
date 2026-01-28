@@ -1,10 +1,12 @@
-import { auth } from "@project-minato/auth";
 import { env } from "@project-minato/env/server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
+import authRoutes from "./routes/auth";
+import torrents from "./routes/torrents";
+import torzban from "./routes/torznab";
 
-const app = new Hono();
+const app = new Hono().basePath("/api/v1");
 
 app.use(logger());
 app.use(
@@ -17,10 +19,12 @@ app.use(
   }),
 );
 
-app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw));
+app.route("/auth", authRoutes);
+app.route("/torrents", torrents);
+app.route("/torznab", torzban);
 
-app.get("/", (c) => {
-  return c.text("OK");
+app.get("/ping", (c) => {
+  return c.text("pong");
 });
 
 export default app;

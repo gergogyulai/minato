@@ -3,6 +3,8 @@ import * as schema from "@project-minato/db/schema/auth";
 import { env } from "@project-minato/env/server";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { nextCookies } from "better-auth/next-js";
+import { apiKey, admin } from "better-auth/plugins"
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -21,5 +23,5 @@ export const auth = betterAuth({
       httpOnly: true,
     },
   },
-  plugins: [],
+  plugins: [nextCookies(), apiKey(), admin()],
 });

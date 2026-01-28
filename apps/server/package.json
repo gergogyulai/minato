@@ -13,9 +13,13 @@
     "@project-minato/auth": "workspace:*",
     "@project-minato/db": "workspace:*",
     "@project-minato/env": "workspace:*",
+    "@project-minato/elastic": "workspace:*",
+    "@scalar/hono-api-reference": "^0.9.37",
     "better-auth": "catalog:",
     "dotenv": "catalog:",
+    "drizzle-orm": "^0.45.1",
     "hono": "^4.8.2",
+    "xmlbuilder2": "^4.0.3",
     "zod": "catalog:"
   },
   "devDependencies": {

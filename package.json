@@ -30,6 +30,10 @@
     "db:watch": "turbo -F @project-minato/db db:watch",
     "db:stop": "turbo -F @project-minato/db db:stop",
     "db:down": "turbo -F @project-minato/db db:down",
+    "elastic:start": "turbo -F @project-minato/elastic elastic:start",
+    "elastic:watch": "turbo -F @project-minato/elastic elastic:watch",
+    "elastic:stop": "turbo -F @project-minato/elastic elastic:stop",
+    "elastic:down": "turbo -F @project-minato/elastic elastic:down",
     "check": "biome check --write ."
   },
   "dependencies": {

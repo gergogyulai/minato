@@ -43,6 +43,20 @@
     },
     "db:down": {
       "cache": false
+    },
+    "elastic:start": {
+      "cache": false,
+      "persistent": true
+    },
+    "elastic:watch": {
+      "cache": false,
+      "persistent": true
+    },
+    "elastic:stop": {
+      "cache": false
+    },
+    "elastic:down": {
+      "cache": false
     }
   }
 }
