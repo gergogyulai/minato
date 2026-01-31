@@ -46,36 +46,63 @@ CREATE TABLE "verification" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "classifications" (
-	"info_hash" text PRIMARY KEY NOT NULL,
-	"content_type" varchar(50) NOT NULL,
-	"confidence_score" integer DEFAULT 0,
-	"metadata" jsonb,
+CREATE TABLE "enrichments" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"media_type" text,
+	"genres" text[],
+	"poster_url" text,
+	"backdrop_url" text,
+	"logo_url" text,
+	"description" text,
+	"tagline" text,
+	"year" integer,
+	"release_date" timestamp,
+	"status" text,
+	"runtime" integer,
+	"tmdb_id" integer,
+	"imdb_id" varchar(20),
+	"tvdb_id" integer,
+	"anilist_id" integer,
+	"mal_id" integer,
+	"content_rating" varchar(10),
+	"total_seasons" integer,
+	"total_episodes" integer,
 	"created_at" timestamp DEFAULT now() NOT NULL,
-	"updated_at" timestamp DEFAULT now() NOT NULL
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "enrichments_tmdb_id_unique" UNIQUE("tmdb_id")
 );
 --> statement-breakpoint
 CREATE TABLE "torrents" (
 	"info_hash" text PRIMARY KEY NOT NULL,
-	"title" text NOT NULL,
-	"size" bigint NOT NULL,
-	"category" text,
+	"tracker_title" text NOT NULL,
+	"size" numeric NOT NULL,
+	"seeders" integer DEFAULT 0,
+	"leechers" integer DEFAULT 0,
+	"tracker_category" text,
 	"files" jsonb,
-	"magnet" text NOT NULL,
-	"source_name" text NOT NULL,
-	"source_url" text,
+	"magnet" text,
+	"sources" jsonb DEFAULT '[]'::jsonb NOT NULL,
+	"is_dirty" boolean DEFAULT true,
+	"type" text,
+	"group" text,
+	"resolution" text,
+	"release_title" text,
+	"release_data" jsonb,
+	"enrichment_id" uuid,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "torrents_info_hash_unique" UNIQUE("info_hash")
+	"indexed_at" timestamp,
+	"enriched_at" timestamp
 );
 --> statement-breakpoint
 ALTER TABLE "account" ADD CONSTRAINT "account_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "session" ADD CONSTRAINT "session_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "classifications" ADD CONSTRAINT "classifications_info_hash_torrents_info_hash_fk" FOREIGN KEY ("info_hash") REFERENCES "public"."torrents"("info_hash") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "torrents" ADD CONSTRAINT "torrents_enrichment_id_enrichments_id_fk" FOREIGN KEY ("enrichment_id") REFERENCES "public"."enrichments"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "account_userId_idx" ON "account" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "session_userId_idx" ON "session" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "verification_identifier_idx" ON "verification" USING btree ("identifier");--> statement-breakpoint
-CREATE INDEX "type_idx" ON "classifications" USING btree ("content_type");--> statement-breakpoint
-CREATE INDEX "title_idx" ON "torrents" USING btree ("title");--> statement-breakpoint
-CREATE INDEX "category_idx" ON "torrents" USING btree ("category");--> statement-breakpoint
-CREATE INDEX "created_at_idx" ON "torrents" USING btree ("created_at");
+CREATE INDEX "tracker_title_idx" ON "torrents" USING btree ("tracker_title");--> statement-breakpoint
+CREATE INDEX "type_idx" ON "torrents" USING btree ("type");--> statement-breakpoint
+CREATE INDEX "created_at_idx" ON "torrents" USING btree ("created_at");--> statement-breakpoint
+CREATE INDEX "sources_gin_idx" ON "torrents" USING gin ("sources");--> statement-breakpoint
+CREATE INDEX "dirty_idx" ON "torrents" USING btree ("is_dirty");

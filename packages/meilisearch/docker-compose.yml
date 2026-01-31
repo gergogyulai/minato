@@ -1,0 +1,23 @@
+name: project-minato
+
+services:
+  meilisearch:
+    image: getmeili/meilisearch:v1.6
+    container_name: project-minato-meilisearch
+    environment:
+      - MEILI_HOST=0.0.0.0
+      - MEILI_MASTER_KEY=masterKey_change_me_in_production
+      - MEILI_NO_ANALYTICS=true
+    ports:
+      - "7700:7700"
+    volumes:
+      - project-minato_meili_data:/meili_data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  project-minato_meili_data:

@@ -1,4 +1,4 @@
-export const categoryMap: Record<number, string> = {
+export const categoryMap = {
   1000: "Console",
   1010: "Console/NDS",
   1020: "Console/PSP",
@@ -71,4 +71,27 @@ export const categoryMap: Record<number, string> = {
   8010: "Other/Misc",
   8020: "Other/Hashed",
   100000: "Custom",
+} as const;
+
+// Types derived from the map
+export type CategoryMap = typeof categoryMap;
+export type CategoryID = keyof typeof categoryMap;
+export type CategoryName = (typeof categoryMap)[CategoryID];
+
+/**
+ * Strictly typed Reverse Map
+ * Maps "Console/NDS" -> 1010
+ */
+export type ReverseCategoryMap = {
+  [K in CategoryID as (typeof categoryMap)[K]]: K;
 };
+
+function buildReverseCategoryMap(): ReverseCategoryMap {
+  const reverseMap = {} as any;
+  for (const [key, value] of Object.entries(categoryMap)) {
+    reverseMap[value] = parseInt(key);
+  }
+  return reverseMap;
+}
+
+export const reverseCategoryMap = buildReverseCategoryMap();

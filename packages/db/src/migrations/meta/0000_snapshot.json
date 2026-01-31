@@ -1,5 +1,5 @@
 {
-  "id": "1f3c2079-2b7a-4fd2-a9a8-481e6ced4ea3",
+  "id": "834cbaa8-49a4-43a4-a811-42ca890395b1",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -359,32 +359,128 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.classifications": {
-      "name": "classifications",
+    "public.enrichments": {
+      "name": "enrichments",
       "schema": "",
       "columns": {
-        "info_hash": {
-          "name": "info_hash",
-          "type": "text",
+        "id": {
+          "name": "id",
+          "type": "uuid",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
-        "content_type": {
-          "name": "content_type",
-          "type": "varchar(50)",
+        "media_type": {
+          "name": "media_type",
+          "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
-        "confidence_score": {
-          "name": "confidence_score",
+        "genres": {
+          "name": "genres",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "poster_url": {
+          "name": "poster_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "backdrop_url": {
+          "name": "backdrop_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "logo_url": {
+          "name": "logo_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tagline": {
+          "name": "tagline",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "year": {
+          "name": "year",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false,
-          "default": 0
+          "notNull": false
         },
-        "metadata": {
-          "name": "metadata",
-          "type": "jsonb",
+        "release_date": {
+          "name": "release_date",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "runtime": {
+          "name": "runtime",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tmdb_id": {
+          "name": "tmdb_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "imdb_id": {
+          "name": "imdb_id",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tvdb_id": {
+          "name": "tvdb_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "anilist_id": {
+          "name": "anilist_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mal_id": {
+          "name": "mal_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "content_rating": {
+          "name": "content_rating",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "total_seasons": {
+          "name": "total_seasons",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "total_episodes": {
+          "name": "total_episodes",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false
         },
@@ -403,40 +499,18 @@
           "default": "now()"
         }
       },
-      "indexes": {
-        "type_idx": {
-          "name": "type_idx",
-          "columns": [
-            {
-              "expression": "content_type",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "classifications_info_hash_torrents_info_hash_fk": {
-          "name": "classifications_info_hash_torrents_info_hash_fk",
-          "tableFrom": "classifications",
-          "tableTo": "torrents",
-          "columnsFrom": [
-            "info_hash"
-          ],
-          "columnsTo": [
-            "info_hash"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "indexes": {},
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "enrichments_tmdb_id_unique": {
+          "name": "enrichments_tmdb_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "tmdb_id"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -451,20 +525,34 @@
           "primaryKey": true,
           "notNull": true
         },
-        "title": {
-          "name": "title",
+        "tracker_title": {
+          "name": "tracker_title",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
         "size": {
           "name": "size",
-          "type": "bigint",
+          "type": "numeric",
           "primaryKey": false,
           "notNull": true
         },
-        "category": {
-          "name": "category",
+        "seeders": {
+          "name": "seeders",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "leechers": {
+          "name": "leechers",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "tracker_category": {
+          "name": "tracker_category",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -479,17 +567,55 @@
           "name": "magnet",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
-        "source_name": {
-          "name": "source_name",
+        "sources": {
+          "name": "sources",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "is_dirty": {
+          "name": "is_dirty",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": true
+        },
+        "type": {
+          "name": "type",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
-        "source_url": {
-          "name": "source_url",
+        "group": {
+          "name": "group",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "resolution": {
+          "name": "resolution",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "release_title": {
+          "name": "release_title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "release_data": {
+          "name": "release_data",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "enrichment_id": {
+          "name": "enrichment_id",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
@@ -506,14 +632,26 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "indexed_at": {
+          "name": "indexed_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "enriched_at": {
+          "name": "enriched_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
-        "title_idx": {
-          "name": "title_idx",
+        "tracker_title_idx": {
+          "name": "tracker_title_idx",
           "columns": [
             {
-              "expression": "title",
+              "expression": "tracker_title",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -524,11 +662,11 @@
           "method": "btree",
           "with": {}
         },
-        "category_idx": {
-          "name": "category_idx",
+        "type_idx": {
+          "name": "type_idx",
           "columns": [
             {
-              "expression": "category",
+              "expression": "type",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -553,19 +691,55 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "torrents_info_hash_unique": {
-          "name": "torrents_info_hash_unique",
-          "nullsNotDistinct": false,
+        },
+        "sources_gin_idx": {
+          "name": "sources_gin_idx",
           "columns": [
-            "info_hash"
-          ]
+            {
+              "expression": "sources",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
+        },
+        "dirty_idx": {
+          "name": "dirty_idx",
+          "columns": [
+            {
+              "expression": "is_dirty",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
+      "foreignKeys": {
+        "torrents_enrichment_id_enrichments_id_fk": {
+          "name": "torrents_enrichment_id_enrichments_id_fk",
+          "tableFrom": "torrents",
+          "tableTo": "enrichments",
+          "columnsFrom": [
+            "enrichment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false

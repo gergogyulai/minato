@@ -28,7 +28,8 @@
       "cache": false
     },
     "db:generate": {
-      "cache": false
+      "cache": false,
+      "persistent": true
     },
     "db:start": {
       "cache": false,
@@ -44,18 +45,32 @@
     "db:down": {
       "cache": false
     },
-    "elastic:start": {
+    "meilisearch:start": {
       "cache": false,
       "persistent": true
     },
-    "elastic:watch": {
+    "meilisearch:watch": {
       "cache": false,
       "persistent": true
     },
-    "elastic:stop": {
+    "meilisearch:stop": {
       "cache": false
     },
-    "elastic:down": {
+    "meilisearch:down": {
+      "cache": false
+    },
+    "queue:start": {
+      "cache": false,
+      "persistent": true
+    },
+    "queue:watch": {
+      "cache": false,
+      "persistent": true
+    },
+    "queue:stop": {
+      "cache": false
+    },
+    "queue:down": {
       "cache": false
     }
   }

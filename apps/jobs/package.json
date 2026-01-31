@@ -1,0 +1,27 @@
+{
+  "name": "jobs",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "bun run --hot src/index.ts",
+    "start": "bun run src/index.ts"
+  },
+  "dependencies": {
+    "@project-minato/db": "workspace:*",
+    "@project-minato/env": "workspace:*",
+    "@project-minato/meilisearch": "workspace:*",
+    "@project-minato/queue": "workspace:*",
+    "bullmq": "catalog:",
+    "drizzle-orm": "catalog:",
+    "picocolors": "^1.1.1",
+    "postinstall-postinstall": "^2.1.0",
+    "release-parser": "^1.5.3",
+    "tmdb-ts": "^2.2.0"
+  },
+  "devDependencies": {
+    "@project-minato/config": "workspace:*",
+    "@types/bun": "catalog:",
+    "typescript": "catalog:",
+    "patch-package": "^8.0.1"
+  }
+}

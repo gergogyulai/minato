@@ -1,0 +1,28 @@
+{
+  "name": "@project-minato/queue",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {
+    "queue:start": "docker compose up -d",
+    "queue:watch": "docker compose up",
+    "queue:stop": "docker compose stop",
+    "queue:down": "docker compose down"
+  },
+  "dependencies": {
+    "@project-minato/env": "workspace:*",
+    "dotenv": "catalog:",
+    "bullmq": "^5.0.0",
+    "ioredis": "^5.3.2"
+  },
+  "devDependencies": {
+    "@project-minato/config": "workspace:*",
+    "typescript": "catalog:"
+  }
+}

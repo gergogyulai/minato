@@ -1,0 +1,96 @@
+diff --git a/ReleaseParser.js b/ReleaseParser.js
+index b087ab0ed1592595fc7611b0447a3970a1ec1df7..d415bacef4ae12d01c2b323d92c84062845fbe3a 100644
+--- a/ReleaseParser.js
++++ b/ReleaseParser.js
+@@ -13,13 +13,19 @@ import patterns from './ReleasePatterns.js'
+ 
+ const ReleaseParser = /** @lends module:ReleaseParser */ ( releaseName, section = '' ) =>
+ {
++	// Save original release name
++	const originalReleaseName = releaseName
++
++	// Replace spaces with dots for better parsing
++	releaseName = releaseName.replace( / /g, '.' )
++
+ 	/**
+ 	 * All parsed informations.
+ 	 *
+ 	 * @public
+ 	*/
+ 	let data = {
+-		'release'		: releaseName, // Original rls name
++		'release'		: originalReleaseName, // Original rls name
+ 		'title'			: null, // First part of title
+ 		'titleExtra'	: null, // Second part of title (optional) like Name of track/episode/book/xxx etc.
+ 		'group'			: null,
+@@ -716,8 +722,6 @@ const ReleaseParser = /** @lends module:ReleaseParser */ ( releaseName, section
+ 	 */
+ 	const isType = ( type = '' ) =>
+ 	{
+-		releaseName = get( 'release' )
+-
+ 		if ( type === 'sports' )
+ 		{
+ 			let isSports = false
+@@ -786,8 +790,8 @@ const ReleaseParser = /** @lends module:ReleaseParser */ ( releaseName, section
+ 		let type = guessTypeByParsedAttributes()
+ 		// 2nd: no type found? guess by section
+ 		type = !type ? guessTypeBySection( section ) : type
+-		// 3rd: set parsed type or default to Movie
+-		type = !type ? 'Movie' : type
++		// 3rd: set parsed type or default to Unknown
++		type = !type ? 'Unknown' : type
+ 
+ 		set( 'type', type )
+ 	}
+diff --git a/ReleasePatterns.js b/ReleasePatterns.js
+index 6301b495c980a5d92fd7b4f4ab708e05698fe98b..d782e726482123364039b1eacb85a0d18e05211d 100644
+--- a/ReleasePatterns.js
++++ b/ReleasePatterns.js
+@@ -468,6 +468,7 @@ const patterns =
+ 	// Release flags patterns
+ 	FLAGS : {
+ 		'3D': '3D',
++		'Ai upscale': 'Ai[._-]?upscaled?',
+ 		'Abridged': [ 'ABRIDGED', 'gekuerzte?(?:.(?:fassung|lesung))' ], // Audiobook
+ 		'Addon': 'ADDON', // software
+ 		'Anime': 'ANiME',
+@@ -751,14 +752,14 @@ const patterns =
+ 
+ 
+ 	// Flags for identifying release type ( guessTypeByParsedAttributes )
+-	flagsMovie : [ 'Dubbed', 'AC3 Dubbed', 'HDR', 'HDR10', 'HDR10+', 'IMAX', 'Line dubbed', 'Micro dubbed', 'THEATRICAL', 'UNCUT', 'Remux', 'Subbed', 'Directors Cut' ],
++	flagsMovie : [ 'Ai upscale', 'Dubbed', 'AC3 Dubbed', 'HDR', 'HDR10', 'HDR10+', 'IMAX', 'Line dubbed', 'Micro dubbed', 'THEATRICAL', 'UNCUT', 'Remux', 'Subbed', 'Directors Cut' ],
+ 	flagsEbook : [ 'Magazine', 'Comic', 'ePUB' ],
+ 	flagsMusic : [ 'CPOP', 'OST' ],
+ 	flagsApps : [ 'CRACKED', 'REGGED', 'KEYGEN', 'Incl. Patch', 'CRACKFIX', 'ISO', 'ARM', 'INTEL', 'x86', 'x64', 'Portable' ],
+ 	flagsGames : [ 'DLC', 'TRAiNER' ],
+ 	flagsAnime : [ 'Anime', 'OVA', 'ONA', 'OAD' ],
+ 	flagsXxx : [ 'XXX', 'JAV', 'Imageset', 'Hentai' ],
+-	flagsVideo : [ 'IVTC' ],
++	flagsVideo : [ 'Ai upscale', 'IVTC' ],
+ 	// Formats
+ 	formatsVideo : [ 'AVC', 'VCD', 'SVCD', 'CVCD', 'XViD', 'DiVX', 'x264', 'x265', 'h264', 'h265', 'HEVC', 'MP4', 'MPEG', 'MPEG2', 'VC1', 'WMV' ],
+ 	formatsMusic : [ 'FLAC', 'KONTAKT', 'MP3', 'OGG', 'WAV' ],
+diff --git a/index.d.ts b/index.d.ts
+index 5d5c10bcce50e064a62cafb736012192eb67ea72..c86f0b4b2f912f024738880b81426644514f691f 100644
+--- a/index.d.ts
++++ b/index.d.ts
+@@ -7,7 +7,7 @@
+  */
+ 
+ // Flags
+-type releaseFlag = '3D' | 'Abridged' | 'Addon' | 'Anime' | 'ARM' | 'Audiopack' | 'Beta' | 'Boxset' | 'Chapterfix' | 'Cheats' | 'Chrono' | 'Colorized' | 'Comic' | 'Complete' | 'Convert' | 'Cover' | 'CPOP' | 'Incl. Crack' | 'Cracked' | 'Crackfix' | 'Criterion' | 'Cuefix' | 'Digipack' | 'Directors Cut' | 'DIRFiX' | 'DIZFiX' | 'DLC' | 'DOX' | 'Docu' | 'Dolby Vision' | 'Dubbed' | 'Extended' | 'Final' | 'FiX' | 'Font' | 'Fontset' | 'Fullscreen' | 'FSK' | 'Hardcoded Subtitles' | 'HDLIGHT' | 'HDR' | 'HDR10' | 'HDR10+' | 'Hentai' | 'HLG' | 'HOTFiX' | 'HOU' | 'HR' | 'HSBS' | 'Hybrid' | 'Imageset' | 'IMAX' | 'Internal' | 'IVTC' | 'JAV' | 'KEY' | 'KEYGEN' | 'Intel' | 'Line dubbed' | 'Limited' | 'M2TS' | 'Magazine' | 'Menufix' | 'Micro dubbed' | 'MIPS' | 'New' | 'NFOFiX' | 'OAR' | 'OVA' | 'OAD' | 'ONA' | 'OEM' | 'OST' | 'PACK' | 'Incl. Patch' | 'Patchfix' | 'Paysite' | 'Portable' | 'Preair' | 'Proper' | 'Promo' | 'Prooffix' | 'Rated' | 'RARFix' | 'READNFO' | 'Redump' | 'Refill' | 'Reissue' | 'Regged' | 'Regraded' | 'Remastered' | 'Remux' | 'Repack' | 'RERiP' | 'Restored' | 'Retail' | 'Ringtone' | 'Samplefix' | 'Scrubbed' | 'Serial' | 'SFVFix' | 'SH3' | 'Sizefix' | 'Soundfix' | 'Special Edition' | 'STV' | 'Subbed' | 'Subfix' | 'Subpack' | 'Superbit' | 'Syncfix' | 'Theatrical' | 'Trackfix' | 'Trailer' | 'TRAiNER' | 'Tutorial' | 'TV Dubbed' | 'Unabridged' | 'Uncensored' | 'Uncut' | 'Unlicensed' | 'Unrated' | 'Untouched' | 'USK' | 'Update' | 'V1' | 'V2' | 'V3' | 'Vertical' | 'VR' | 'VR180' | 'Workprint' | 'Widescreen' | 'x64' | 'x86' | 'XSCale' | 'XXX';
++type releaseFlag = '3D' | 'Ai upscale' | 'Abridged' | 'Addon' | 'Anime' | 'ARM' | 'Audiopack' | 'Beta' | 'Boxset' | 'Chapterfix' | 'Cheats' | 'Chrono' | 'Colorized' | 'Comic' | 'Complete' | 'Convert' | 'Cover' | 'CPOP' | 'Incl. Crack' | 'Cracked' | 'Crackfix' | 'Criterion' | 'Cuefix' | 'Digipack' | 'Directors Cut' | 'DIRFiX' | 'DIZFiX' | 'DLC' | 'DOX' | 'Docu' | 'Dolby Vision' | 'Dubbed' | 'Extended' | 'Final' | 'FiX' | 'Font' | 'Fontset' | 'Fullscreen' | 'FSK' | 'Hardcoded Subtitles' | 'HDLIGHT' | 'HDR' | 'HDR10' | 'HDR10+' | 'Hentai' | 'HLG' | 'HOTFiX' | 'HOU' | 'HR' | 'HSBS' | 'Hybrid' | 'Imageset' | 'IMAX' | 'Internal' | 'IVTC' | 'JAV' | 'KEY' | 'KEYGEN' | 'Intel' | 'Line dubbed' | 'Limited' | 'M2TS' | 'Magazine' | 'Menufix' | 'Micro dubbed' | 'MIPS' | 'New' | 'NFOFiX' | 'OAR' | 'OVA' | 'OAD' | 'ONA' | 'OEM' | 'OST' | 'PACK' | 'Incl. Patch' | 'Patchfix' | 'Paysite' | 'Portable' | 'Preair' | 'Proper' | 'Promo' | 'Prooffix' | 'Rated' | 'RARFix' | 'READNFO' | 'Redump' | 'Refill' | 'Reissue' | 'Regged' | 'Regraded' | 'Remastered' | 'Remux' | 'Repack' | 'RERiP' | 'Restored' | 'Retail' | 'Ringtone' | 'Samplefix' | 'Scrubbed' | 'Serial' | 'SFVFix' | 'SH3' | 'Sizefix' | 'Soundfix' | 'Special Edition' | 'STV' | 'Subbed' | 'Subfix' | 'Subpack' | 'Superbit' | 'Syncfix' | 'Theatrical' | 'Trackfix' | 'Trailer' | 'TRAiNER' | 'Tutorial' | 'TV Dubbed' | 'Unabridged' | 'Uncensored' | 'Uncut' | 'Unlicensed' | 'Unrated' | 'Untouched' | 'USK' | 'Update' | 'V1' | 'V2' | 'V3' | 'Vertical' | 'VR' | 'VR180' | 'Workprint' | 'Widescreen' | 'x64' | 'x86' | 'XSCale' | 'XXX';
+ 
+ // Source
+ type releaseSource = 'MBluray' | 'MDVDR' | 'ABC' | 'Amazon' | 'Amazon Freevee' | 'ATVP' | 'AUD' | 'BBC iPlayer' | 'BDRip' | 'BookMyShow' | 'Bootleg' | 'CABLE' | 'CAM' | 'CBS' | 'CD Album' | 'CD EP' | 'CD Single' | 'Comedy Central' | 'Console Disc' | 'Crave' | 'Crunchyroll' | 'DAB' | 'DC Universe' | 'DD' | 'DDC' | 'DAT Tape' | 'Disney Plus' | 'Disney Networks' | 'Discovery Plus' | 'DSR' | 'DVB' | 'DVDA' | 'DVDS' | 'DVDRip' | 'EDTV' | 'FM' | 'Google Play' | 'HBO Max' | 'HDCAM' | 'HDDVD' | 'HDRip' | 'HDTC' | 'HDTV' | 'HLS' | 'Hotstar' | 'Hulu' | 'iTunes' | 'Lionsgate Play' | 'LP' | 'Maxi CD' | 'Maxi Single' | 'Movies Anywhere' | 'MP3 CD' | 'MTV Networks' | 'Mubi' | 'NBC' | 'Netflix' | 'Nintendo eShop' | 'Paramount Plus' | 'Peacock' | 'PDTV' | 'PPV' | 'PSN' | 'RAWRiP' | 'SAT' | 'Scan' | 'Screener' | 'Showtime' | 'SBD' | 'Stan' | 'Stream' | 'Starz' | 'Tape' | 'TBS' | 'Telecine' | 'Telesync' | 'UHDBD' | 'UHDTV' | 'VHS' | 'VLS' | 'Vinyl' | 'VODRip' | 'Web Single' | 'WEB' | 'WOW tv' | 'XBLA' | 'YouTube Red' | 'MiniDisc' | 'Line' | 'CD' | 'DVD' | 'Bluray' | 'SDTV' | 'RiP' | 'BBC' | 'EP';
+@@ -28,7 +28,7 @@ type releaseDevice = '3DO' | 'Analogue Pocket' | 'Atari Jaguar' | 'Bandai Wonde
+ type releaseOS = 'IBM AIX' | 'Android' | 'BlackBerry' | 'BSD' | 'HP-UX' | 'iOS' | 'Linux' | 'macOS' | 'PalmOS' | 'Solaris' | 'SunOS' | 'Symbian' | 'Ubuntu' | 'Unix' | 'WebOS' | 'Windows' | 'Windows CE' | 'Windows Mobile';
+ 
+ // Type
+-type releaseType = 'ABook' | 'Anime' | 'App' | 'Bookware' | 'eBook' | 'Font' | 'Game' | 'Music' | 'MusicVideo' | 'TV' | 'Sports' | 'XXX' | 'Movie';
++type releaseType = 'ABook' | 'Anime' | 'App' | 'Bookware' | 'eBook' | 'Font' | 'Game' | 'Music' | 'MusicVideo' | 'TV' | 'Sports' | 'XXX' | 'Movie' | 'Unknown';
+ 
+ // Language
+ type releaseLanguage = {
