@@ -11,7 +11,7 @@ A high-performance torrent scraping and indexing suite with a Torznab-compatible
 *   **Databases**: 
     *   **PostgreSQL**: Source of truth (Metadata, User Accounts, API Keys).
     *   **Meilisearch**: Full-text search engine for torrent titles.
-*   **Internal Proxy**: Nginx (Consolidates the UI and API onto port `7271`).
+*   **Internal Proxy**: Nginx (Consolidates the UI and API onto port `7271`)..
 
 ### 1.a Stack
 
