@@ -6,6 +6,7 @@ A high-performance torrent scraping and indexing suite with a Torznab-compatible
 
 *   **Frontend**: React, Tailwind, Lucide-React, TanStack Query.
 *   **API**: Hono/TypeScript running on Bun. Handles Torznab XML, user authentication, data ingestion, and dashboard logic.
+    **Worker**: BullMQ job queue for background tasks (indexing, search sync).
 *   **Scrapers**: Multiple Go services (utilizing `anacrolix/torrent` for DHT/P2P interactions).
 *   **Databases**: 
     *   **PostgreSQL**: Source of truth (Metadata, User Accounts, API Keys).
