@@ -9,7 +9,7 @@ A high-performance torrent scraping and indexing suite with a Torznab-compatible
 *   **Scrapers**: Multiple Go services (utilizing `anacrolix/torrent` for DHT/P2P interactions).
 *   **Databases**: 
     *   **PostgreSQL**: Source of truth (Metadata, User Accounts, API Keys).
-    *   **Elasticsearch**: Full-text search engine for torrent titles.
+    *   **Meilisearch**: Full-text search engine for torrent titles.
 *   **Internal Proxy**: Nginx (Consolidates the UI and API onto port `7271`).
 
 ### 1.a Stack
@@ -33,8 +33,8 @@ A high-performance torrent scraping and indexing suite with a Torznab-compatible
 
 **Search & Persistence:**
 - **Primary Database**: PostgreSQL (Source of truth for metadata, API keys, and BetterAuth tables).
-- **Search Engine**: Elasticsearch (powering full-text search across millions of indexed titles), find files by names inside the indexed metadata.
-- **Persistence Strategy**: No external cache (Redis) required; PostgreSQL handles relational state, while Elasticsearch handles high-concurrency search queries.
+- **Search Engine**: Meilisearch (powering full-text search across millions of indexed titles), find files by names inside the indexed metadata.
+- **Persistence Strategy**: No external cache (Redis) required; PostgreSQL handles relational state, while Meilisearch handles high-concurrency search queries.
 
 **DevOps & Tooling:**
 - **Monorepo**: Turborepo (managing the `apps/`, `services/`, and `packages/` workspaces).
@@ -93,7 +93,7 @@ A high-performance torrent scraping and indexing suite with a Torznab-compatible
 - SSO Authentication for admin access.
 - Secure API authentication between internal services using a generated `INTERNAL_AUTH_KEY`.
 - Admin capability to generate and revoke API keys.
-- Synchronization of PostgreSQL rows into Elasticsearch.
+- Synchronization of PostgreSQL rows into Meilisearch.
 - Ingestion of torrents scraped via custom methods (e.g., RARBG dumps or external SQLite DBs), External Ingestion API.
 - Export functionality for portable SQLite databases for backup or archival purposes.
 - Content classification (making the database searchable by TMDB or IMDb IDs).
@@ -115,7 +115,7 @@ services:
     image: gergogyulai/minato:latest
     environment:
       - DATABASE_URL=postgresql://user:${DB_PASSWORD}@postgres:5432/indexer
-      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - Meilisearch_URL=http://Meilisearch:9200
     volumes:
       - ./config:/app/config
     networks:
@@ -135,13 +135,13 @@ services:
     networks:
       - minato-internal
 
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
+  Meilisearch:
+    image: docker.elastic.co/Meilisearch/Meilisearch:8.12.0
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
     volumes:
-      - es_data:/usr/share/elasticsearch/data
+      - es_data:/usr/share/Meilisearch/data
     networks:
       - minato-internal
 
