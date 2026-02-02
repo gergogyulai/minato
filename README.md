@@ -154,7 +154,7 @@ v
 - Content classification (making the database searchable by TMDB or IMDb IDs).
 - Internal monitoring and Prometheus endpoints for Grafana integration.
 - Ability to mark the infoHash as blacklisted upon deletion this way even if a scraper sends it to the api, we never actually ingest it.
-
+- Adding FlareSolverr integration
 ---
 
 ## 5. Deployment (The "User" Experience)
