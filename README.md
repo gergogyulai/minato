@@ -27,6 +27,14 @@ A high-performance torrent scraping and indexing suite with a Torznab-compatible
 - **Authentication**: **BetterAuth** (authentication, handles SSO, session management).
 - **Database Layer**: Drizzle ORM (type-safe SQL builder for PostgreSQL).
 
+**Backend (Background Workers):**
+- **BullMQ** (Redis-backed distributed queue).
+- **Responsibilities**: Decouples heavy processing from the Hono API to ensure the endpoints remain responsive.
+- **Key Tasks**:
+    - **Search Sync**: Batching PostgreSQL updates and pushing them to Meilisearch to keep the full-text index current.
+    - **Metadata Enrichment**: Performing background lookups for TMDB/IMDb IDs and run Release Parser to classify content.
+    - **Database Maintenance**: Handling exports to SQLite and processing periodic cleanups.
+
 **Scrapers (The "Go" Engine):**
 - **Language**: Go (optimized for low-memory P2P networking).
 - **Libraries**: `anacrolix/torrent` for DHT/P2P; `colly` or `rod` for site-specific scraping.
