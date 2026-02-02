@@ -30,6 +30,7 @@ v
 [ BACKEND API (Bun/Hono) ]
 |
 |-- 1. Validate Access & Schema
+|-- 2. Check for blacklisted torrents
 |-- 2. SQL Upsert (PostgreSQL) -> Save core metadata (InfoHash, Name, Date)
 |-- 3. Push Job() to Queue (Redis/BullMQ) -> { "InfoHash": 123 }
 |
