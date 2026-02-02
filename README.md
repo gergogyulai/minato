@@ -148,10 +148,11 @@ v
 - Secure API authentication between internal services using a generated `INTERNAL_AUTH_KEY`.
 - Admin capability to generate and revoke API keys.
 - Synchronization of PostgreSQL rows into Meilisearch.
-- Ingestion of torrents scraped via custom methods (e.g., RARBG dumps or external SQLite DBs), External Ingestion API.
+- Ingestion of torrents scraped via custom methods (e.g., RARBG dumps or external SQLite DBs), External and Bulk Ingestion API.
 - Export functionality for portable SQLite databases for backup or archival purposes.
 - Content classification (making the database searchable by TMDB or IMDb IDs).
 - Internal monitoring and Prometheus endpoints for Grafana integration.
+- When deleting a torrent add the ability to mark the infoHash as blacklisted so even if a scraper sends it to the api, we never actually ingest it.
 
 ---
 
