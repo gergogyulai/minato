@@ -13,6 +13,51 @@ A high-performance torrent scraping and indexing suite with a Torznab-compatible
     *   **Meilisearch**: Full-text search engine for torrent titles.
 *   **Internal Proxy**: Nginx (Consolidates the UI and API onto port `7271`)..
 
+
+```text
+[ EXTERNAL SOURCES ]          [ GO SCRAPERS ]             [ BACKEND API ]
+      (The Web)                (The Muscle)               (The Brain)
+--------------------        -----------------           -----------------
+1337x / TPB Crawlers  --->  Standardize JSON  --+
+                                                |
+DHT Crawler (P2P)     --->  Metadata Resolve  --+-->  HTTP POST /ingest
+                                                |     (X-Internal-Secret)
+RSS Feed Polling      --->  XML/Feed Parsing  --+           |
+                                                            |
++-----------------------------------------------------------+
+|
+v
+[ BACKEND API (Bun/Hono) ]
+|
+|-- 1. Validate Access & Schema
+|-- 2. SQL Upsert (PostgreSQL) -> Save core metadata (InfoHash, Name, Date)
+|-- 3. Push Job() to Queue (Redis/BullMQ) -> { "InfoHash": 123 }
+|
++-----------------------------------------------------------+
+|
+v
+[ REDIS QUEUE ] <--- Holds the "Pending" tasks in memory.
+|
++-----------------------------------------------------------+
+|
+v
+[ BACKGROUND WORKER (Bun/TS) ]
+|
+|-- 1. Pull Jobs from Redis (1-by-1 or small batches)
+|-- 2. Metadata Enrichment (Optional)
+|      |--> Parse release title
+|      |--> Query TMDB / IMDb API
+|      |--> Update Postgres with Poster URL / Genre
+|-- 3. Aggregate into Local Buffer (Collect until 500 items OR 5 seconds)
+|
++-------| Flush Buffer (Bulk) |-----------------------------+
+        |
+        v
+[ SEARCH ENGINE (Meilisearch) ] <--- Full-Text Searchable Index
+        |
+        +-- Users can now search "4k Movie 2024" via Dashboard
+
+```
 ### 1.a Stack
 
 **Frontend:**
