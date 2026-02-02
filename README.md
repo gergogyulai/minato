@@ -59,6 +59,7 @@ v
         +-- Users can now search "4k Movie 2024" via Dashboard
 
 ```
+
 ### 1.a Stack
 
 **Frontend:**
@@ -155,6 +156,7 @@ v
 - Internal monitoring and Prometheus endpoints for Grafana integration.
 - Ability to mark the infoHash as blacklisted upon deletion this way even if a scraper sends it to the api, we never actually ingest it.
 - Adding FlareSolverr integration
+- Webhook and notification system
 ---
 
 ## 5. Deployment (The "User" Experience)
