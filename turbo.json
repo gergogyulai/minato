@@ -18,7 +18,8 @@
       "persistent": true
     },
     "db:push": {
-      "cache": false
+      "cache": false,
+      "persistent": true
     },
     "db:studio": {
       "cache": false,
@@ -31,47 +32,5 @@
       "cache": false,
       "persistent": true
     },
-    "db:start": {
-      "cache": false,
-      "persistent": true
-    },
-    "db:stop": {
-      "cache": false
-    },
-    "db:watch": {
-      "cache": false,
-      "persistent": true
-    },
-    "db:down": {
-      "cache": false
-    },
-    "meilisearch:start": {
-      "cache": false,
-      "persistent": true
-    },
-    "meilisearch:watch": {
-      "cache": false,
-      "persistent": true
-    },
-    "meilisearch:stop": {
-      "cache": false
-    },
-    "meilisearch:down": {
-      "cache": false
-    },
-    "queue:start": {
-      "cache": false,
-      "persistent": true
-    },
-    "queue:watch": {
-      "cache": false,
-      "persistent": true
-    },
-    "queue:stop": {
-      "cache": false
-    },
-    "queue:down": {
-      "cache": false
-    }
   }
 }
