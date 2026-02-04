@@ -4,11 +4,10 @@ Focus on the "source of truth" and how data flows between TypeScript and Go.
     - [x] Setup Turborepo with `apps/api`, `apps/web`, `packages/database`, and `packages/types`.
     - [ ] Initialize `go.work` to manage multiple Go scraper modules.
 - [X] **Drizzle Schema Definition**
-    - [x] Define `torrents` table with `info_hash` (Primary Key), `title`, `size`, `category`, and `magnet`.
 - [ ] **Elasticsearch Mapping**
     - [ ] Create an index template with a `n-gram` analyzer for "fuzzy" title matching (essential for torrent names like `Movie.Title.2024.1080p...`).
 
-### Milestone 2: The Go Ingestion Engine (Scrapers)
+### Milestone 2: The Go Scrapers
 Go excels at networking. These services should be "dumb" and simply push data to the API.
 - [ ] **The "Scraper-Core" Package**
     - [ ] Build a standard `Result` struct: `Title`, `InfoHash`, `Size`, `Seeders`, `Leechers`.
@@ -19,17 +18,28 @@ Go excels at networking. These services should be "dumb" and simply push data to
 - [ ] **Site Proxy Support**
     - [ ] Build a configuration loader that reads a list of mirrors for each site.
 
-### Milestone 3: The API & Torznab Gateway
+### Milestone 3: The API & Workers
 - [x] **Ingestion Pipeline**
     - [x] Create a `/api/ingest` POST endpoint.
+    - [ ] Create bulk ingestion `/api/ingest/bulk` POST endpoint.
+    - [ ] Create `.torrent` file ingestion `/api/ingest/file` POST endpoint to ingest torrent files into the database.
     - [x] **Upsert Logic**: If `info_hash` exists, update seeders/leechers; if not, create new record.
     - [x] **Sync to Meilisearch**: Trigger a background sync to Meilisearch after a successful DB write.
 - [ ] **Torznab XML Engine**
+    - [Api spec docs](https://torznab.github.io/spec-1.3-draft/torznab/index.html)
     - [ ] Implement the `caps` (Capabilities) endpoint so Sonarr/Radarr can "see" supported categories.
     - [ ] Implement the `search` function mapping Torznab query params to Elasticsearch DSL queries.
 - [ ] **BetterAuth Integration**
     - [ ] Configure the Admin login flow.
     - [ ] Protect all `/api/admin/*` routes with session checks.
+- [x] **The Classifier**
+    - [x] Parse torrent titles.
+    - [ ] Natural language processing for titles to handle weird formatting not parsable using regex
+    - [x] Extract Year, Resolution (1080p/4k), and Codec (x264/h265), etc.
+- [x] **Metadata Enrichment**
+    - [x] Integrate with TMDb API to link info-hashes to actual movie/show IDs for better filtering.
+    - [ ] Integrate with some kind of music metadata provider
+    - [ ] Integrate with anilist for Anime
 
 ### Milestone 4: The Next.js Dashboard
 A modern UI to visualize the massive amount of data being indexed.
@@ -42,12 +52,3 @@ A modern UI to visualize the massive amount of data being indexed.
 - [ ] **Management Tools**
     - [ ] Build the API Key generator UI.
     - [ ] Implement a "Manual Re-index" button that clears Elasticsearch and repopulates it from PostgreSQL.
-
-### Milestone 5: Optimization & Content Enrichment
-- [ ] **The "Classifier" Worker**
-    - [ ] Build a Go or TS worker that parses torrent titles (using regex like `anitomy` or `PTN`).
-    - [ ] Extract Year, Resolution (1080p/4k), and Codec (x264/h265).
-- [ ] **Metadata Enrichment**
-    - [ ] Integrate with TMDB/IMDb APIs to link info-hashes to actual movie/show IDs for better filtering.
-- [ ] **Database Performance**
-    - [ ] Implement table partitioning in PostgreSQL.
