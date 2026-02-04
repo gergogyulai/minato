@@ -30,8 +30,7 @@ Go excels at networking. These services should be "dumb" and simply push data to
     - [ ] Implement the `caps` (Capabilities) endpoint so Sonarr/Radarr can "see" supported categories.
     - [ ] Implement the `search` function mapping Torznab query params to Elasticsearch DSL queries.
 - [ ] **BetterAuth Integration**
-    - [ ] Configure the Admin login flow.
-    - [ ] Protect all `/api/admin/*` routes with session checks.
+    - [ ] Protect all routes with session or API key checks.
 - [x] **The Classifier**
     - [x] Parse torrent titles.
     - [ ] Natural language processing for titles to handle weird formatting not parsable using regex
