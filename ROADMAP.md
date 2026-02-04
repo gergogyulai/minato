@@ -8,8 +8,22 @@ Focus on the "source of truth" and how data flows between TypeScript and Go.
     - [ ] Create an index template.
     - [ ] Configure ranking rules to prioritize health (seeders) and recency.
 
-### Milestone 2: The Go Scrapers
-Go excels at networking. These services should be "dumb" and simply push data to the API.
+### Milestone 2: Scraper Infrastructure
+
+#### 2.1 Provider Implementations
+- [ ] **HTML Scrapers (The Crawler)**:
+    - **1337x, TPB, etc.**: Implement using `gocolly/colly`. Support deep crawling (extracting file lists and descriptions from torrent detail pages).
+- [ ] **API Scrapers (The Grabbers)**:
+    - **EZTV, YTS, Knaben, etc.**: Implement specialized clients for sites with JSON endpoints to minimize CPU/Bandwidth usage.
+- [ ] **Universal RSS Poller**:
+    - Build a worker that consumes any standard Torznab/RSS feed. 
+    - Store `last_seen_guid` in the database to prevent duplicate ingestion processing.
+- [ ] **DHT Scraper**:
+    - [ ] **DHT Scraper Phase 1 (The Bridge)**:
+        - Build a connector that pulls data from a running **Bitmagnet** instance into Minato.
+    - [ ] **DHT Scraper Phase 2 (Native)**:
+        - Build a standalone Go worker using `anacrolix/dht`. 
+        - Once an info-hash is found, connect to peers to resolve the file list and sizes.  
 - [ ] **The "Scraper-Core" Package**
     - [ ] Implement a circuit breaker to pause scraping if the TS API returns 5xx errors.
 - [ ] **Provider Implementation**
@@ -17,6 +31,14 @@ Go excels at networking. These services should be "dumb" and simply push data to
     - [ ] **DHT Crawler**: Implement a metadata wire protocol to fetch `metadata` (filenames/sizes) once an info-hash is found via DHT.
 - [ ] **Site Proxy Support**
     - [ ] Build a configuration loader that reads a list of mirrors for each site.
+
+#### 2.2 Multi-Language SDKs (Convenience)
+- [ ] **Go SDK (`minato-go`)**:
+    - **Smart Transport**: A `net/http` wrapper that handles proxy rotation and mirror switching automatically.
+    - **Submission Buffer**: Logic to batch torrents and send them in chunks to reduce API overhead.
+- [ ] **TypeScript SDK (`@minato/sdk`)**:
+    - **Validation Layer**: Zod-based checks to ensure data matches the API spec before sending.
+    - **Environment Aware**: Native support for Bun and Node environments.
 
 ### Milestone 3: The API & Workers
 - [x] **Ingestion Pipeline**
