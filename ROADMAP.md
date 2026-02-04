@@ -10,6 +10,13 @@ Focus on the "source of truth" and how data flows between TypeScript and Go.
 
 ### Milestone 2: Scraper Infrastructure
 
+#### 2.0 Networking and Plumbing
+- [ ] **Multi-Protocol Proxy Rotator**:
+    - Implement a `ProxyManager` that accepts a list of SOCKS5 and HTTP(S) proxies.
+    - Support **IP Rotation Strategies**: "Round Robin" or "Sticky Session" (keep the same IP for a specific site crawl to avoid session flags).
+- [ ] **Mirror/Base-URL Resolver**:
+    - Create a "Mirror Health Check" that pings configured mirrors (e.g., the 1337x list) and selects the fastest/active one.
+
 #### 2.1 Provider Implementations
 - [ ] **HTML Scrapers (The Crawler)**:
     - **1337x, TPB, etc.**: Implement using `gocolly/colly`. Support deep crawling (extracting file lists and descriptions from torrent detail pages).
