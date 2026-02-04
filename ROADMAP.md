@@ -40,6 +40,8 @@ Go excels at networking. These services should be "dumb" and simply push data to
     - [x] Integrate with TMDb API to link info-hashes to actual movie/show IDs for better filtering.
     - [ ] Integrate with some kind of music metadata provider
     - [ ] Integrate with anilist for Anime
+- [ ] **Mirror Health Worker**:
+    - A background task that pings the configured mirror lists for each site (e.g., the six 1337x domains) and flags which ones are currently online.
 
 ### Milestone 4: The Next.js Dashboard
 A modern UI to visualize the massive amount of data being indexed.
