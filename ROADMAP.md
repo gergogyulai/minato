@@ -4,13 +4,13 @@ Focus on the "source of truth" and how data flows between TypeScript and Go.
     - [x] Setup Turborepo with `apps/api`, `apps/web`, `packages/database`, and `packages/types`.
     - [ ] Initialize `go.work` to manage multiple Go scraper modules.
 - [X] **Drizzle Schema Definition**
-- [ ] **Elasticsearch Mapping**
-    - [ ] Create an index template with a `n-gram` analyzer for "fuzzy" title matching (essential for torrent names like `Movie.Title.2024.1080p...`).
+- [ ] **Meilisearch**
+    - [ ] Create an index template.
+    - [ ] Configure ranking rules to prioritize health (seeders) and recency.
 
 ### Milestone 2: The Go Scrapers
 Go excels at networking. These services should be "dumb" and simply push data to the API.
 - [ ] **The "Scraper-Core" Package**
-    - [ ] Build a standard `Result` struct: `Title`, `InfoHash`, `Size`, `Seeders`, `Leechers`.
     - [ ] Implement a circuit breaker to pause scraping if the TS API returns 5xx errors.
 - [ ] **Provider Implementation**
     - [ ] **1337x/Knaben Scrapers**: Use `gocolly/colly` to parse HTML. Implement logic to follow "Next Page" up to a configurable depth.
@@ -31,6 +31,7 @@ Go excels at networking. These services should be "dumb" and simply push data to
     - [ ] Implement the `search` function mapping Torznab query params to Elasticsearch DSL queries.
 - [ ] **BetterAuth Integration**
     - [ ] Protect all routes with session or API key checks.
+    - [ ] `X-Internal-Secret` auth for scraper-to-API communication.
 - [x] **The Classifier**
     - [x] Parse torrent titles.
     - [ ] Natural language processing for titles to handle weird formatting not parsable using regex
