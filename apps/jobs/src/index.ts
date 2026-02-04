@@ -2,11 +2,58 @@ import pc from 'picocolors';
 import { startIngestWorker } from './workers/ingest-worker';
 import { startEnrichmentWorker } from './workers/enrichment-worker';
 import { logger } from './utils/logger';
+import { connection } from '@project-minato/queue';
+import { meiliClient, setupTorrentIndex } from '@project-minato/meilisearch';
+import { db } from '@project-minato/db';
+import { sql } from 'drizzle-orm';
+
+async function checkConnections() {
+  const checks = {
+    redis: false,
+    meilisearch: false,
+    database: false,
+  };
+
+  try {
+    await connection.ping();
+    checks.redis = true;
+    logger.step('Redis', 'CONNECTED');
+  } catch (err) {
+    logger.error('Redis connection failed');
+    throw err;
+  }
+
+  try {
+    await meiliClient.health();
+    checks.meilisearch = true;
+    logger.step('MeiliSearch', 'CONNECTED');
+    
+    await setupTorrentIndex();
+    logger.step('MeiliSearch Index', 'INITIALIZED');
+  } catch (err) {
+    logger.error('MeiliSearch connection failed');
+    throw err;
+  }
+
+  try {
+    await db.execute(sql`SELECT 1`);
+    checks.database = true;
+    logger.step('Database', 'CONNECTED');
+  } catch (err) {
+    logger.error('Database connection failed');
+    throw err;
+  }
+
+  return checks;
+}
 
 async function bootstrap() {
   console.clear();
   console.log(pc.magenta(pc.bold('◢ PROJECT MINATO')));
   logger.info('Initializing worker mesh...');
+  console.log('');
+
+  await checkConnections();
   console.log('');
 
   const ingestWorker = startIngestWorker();
@@ -28,6 +75,9 @@ async function bootstrap() {
         ingestWorker.close(),
         enrichmentWorker.close(),
       ]);
+      
+      // Close Redis connection
+      await connection.quit();
       
       logger.success('Cleanup complete. Fly safe.');
       process.exit(0);

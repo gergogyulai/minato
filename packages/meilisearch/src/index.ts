@@ -16,6 +16,11 @@ export const meiliClient = new MeiliSearch({
 });
 
 export async function setupTorrentIndex(): Promise<Index<TorrentWithRelations>> {
+  try {
+    await meiliClient.createIndex("torrents", { primaryKey: "infoHash" });
+  } catch (e) {
+    // Index might already exist
+  }
   const index = meiliClient.index<TorrentWithRelations>("torrents");
 
   await index.updateSearchableAttributes([
