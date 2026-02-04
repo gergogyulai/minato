@@ -1,12 +1,10 @@
 ### Milestone 1: Data Architecture & Monorepo Plumbing
 Focus on the "source of truth" and how data flows between TypeScript and Go.
-- [ ] **Monorepo Structure**
-    - [ ] Setup Turborepo with `apps/api`, `apps/web`, `packages/database`, and `packages/types`.
+- [X] **Monorepo Structure**
+    - [x] Setup Turborepo with `apps/api`, `apps/web`, `packages/database`, and `packages/types`.
     - [ ] Initialize `go.work` to manage multiple Go scraper modules.
-- [ ] **Drizzle Schema Definition**
-    - [ ] Define `torrents` table with `info_hash` (Primary Key), `title`, `size`, `category`, and `magnet`.
-    - [ ] Create `sources` table to track which crawler (TPB, DHT, etc.) found which record.
-    - [ ] Setup `api_keys` with usage counters and `last_used_at`.
+- [X] **Drizzle Schema Definition**
+    - [x] Define `torrents` table with `info_hash` (Primary Key), `title`, `size`, `category`, and `magnet`.
 - [ ] **Elasticsearch Mapping**
     - [ ] Create an index template with a `n-gram` analyzer for "fuzzy" title matching (essential for torrent names like `Movie.Title.2024.1080p...`).
 
@@ -22,10 +20,10 @@ Go excels at networking. These services should be "dumb" and simply push data to
     - [ ] Build a configuration loader that reads a list of mirrors for each site.
 
 ### Milestone 3: The API & Torznab Gateway
-- [ ] **Ingestion Pipeline**
-    - [ ] Create a `/api/ingest` POST endpoint.
-    - [ ] **Upsert Logic**: If `info_hash` exists, update seeders/leechers; if not, create new record.
-    - [ ] **Sync to ES**: Trigger a background sync to Elasticsearch after a successful DB write.
+- [x] **Ingestion Pipeline**
+    - [x] Create a `/api/ingest` POST endpoint.
+    - [x] **Upsert Logic**: If `info_hash` exists, update seeders/leechers; if not, create new record.
+    - [x] **Sync to Meilisearch**: Trigger a background sync to Meilisearch after a successful DB write.
 - [ ] **Torznab XML Engine**
     - [ ] Implement the `caps` (Capabilities) endpoint so Sonarr/Radarr can "see" supported categories.
     - [ ] Implement the `search` function mapping Torznab query params to Elasticsearch DSL queries.
