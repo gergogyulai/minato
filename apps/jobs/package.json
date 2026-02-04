@@ -16,6 +16,7 @@
     "picocolors": "^1.1.1",
     "postinstall-postinstall": "^2.1.0",
     "release-parser": "^1.5.3",
+    "sharp": "^0.34.5",
     "tmdb-ts": "^2.2.0"
   },
   "devDependencies": {

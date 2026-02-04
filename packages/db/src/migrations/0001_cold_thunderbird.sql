@@ -1,0 +1,1 @@
+ALTER TABLE "torrents" ADD COLUMN "std_category" integer;

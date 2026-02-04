@@ -12,6 +12,9 @@ build
 .env
 .env*.local
 
+# Asset files from scraper
+data
+
 # IDEs and editors
 .vscode/*
 !.vscode/settings.json

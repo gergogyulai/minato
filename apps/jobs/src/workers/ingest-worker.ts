@@ -8,7 +8,49 @@ interface IngestJobData {
   infoHash: string;
 }
 
+const BATCH_SIZE = 50;
+const BATCH_TIMEOUT = 3000; // 3 seconds
+
 export function startIngestWorker() {
+  let batchBuffer: any[] = [];
+  let flushTimer: NodeJS.Timeout | null = null;
+
+  const flushBatch = async () => {
+    if (batchBuffer.length === 0) return;
+
+    const toIndex = [...batchBuffer];
+    batchBuffer = [];
+
+    if (flushTimer) {
+      clearTimeout(flushTimer);
+      flushTimer = null;
+    }
+
+    try {
+      console.log(
+        `[Ingest Worker] Flushing ${toIndex.length} torrents to Meilisearch`,
+      );
+      await meiliClient
+        .index("torrents")
+        .addDocuments(toIndex, { primaryKey: "infoHash" });
+      console.log(
+        `[Ingest Worker] Successfully indexed ${toIndex.length} torrents`,
+      );
+    } catch (error) {
+      console.error(
+        `[Ingest Worker] Meilisearch batch indexing failed:`,
+        error,
+      );
+    }
+  };
+
+  const scheduleBatchFlush = () => {
+    if (flushTimer) return;
+    flushTimer = setTimeout(() => {
+      flushBatch();
+    }, BATCH_TIMEOUT);
+  };
+
   const worker = new Worker<IngestJobData>(
     QUEUES.INGEST,
     async (job: Job<IngestJobData>) => {
@@ -30,7 +72,16 @@ export function startIngestWorker() {
         return;
       }
 
-      const release = ReleaseParser(torrent.trackerTitle);
+      let release;
+      try {
+        release = ReleaseParser(torrent.trackerTitle);
+      } catch (error) {
+        console.error(
+          `[Ingest Worker] Release parsing failed for torrent ${infoHash}:`,
+          error,
+        );
+        return;
+      }
 
       await db
         .update(torrents)
@@ -56,22 +107,23 @@ export function startIngestWorker() {
         return;
       }
 
-      const mailiTask = await meiliClient
-        .index("torrents")
-        .addDocuments([updatedTorrent]);
-
-      await job.updateProgress(mailiTask);
-      // Update indexed_at in PostgreSQL
-      await db
-        .update(torrents)
-        .set({ indexedAt: new Date() })
-        .where(eq(torrents.infoHash, infoHash));
-
+      // Add to batch buffer
+      batchBuffer.push(updatedTorrent);
       console.log(
-        `[Ingest Worker] Indexed torrent ${infoHash} - Title: ${updatedTorrent.releaseTitle || updatedTorrent.trackerTitle}`,
+        `[Ingest Worker] Added torrent ${infoHash} to batch (${batchBuffer.length}/${BATCH_SIZE}) - Title: ${updatedTorrent.releaseTitle || updatedTorrent.trackerTitle}`,
       );
 
-      if ((updatedTorrent.type == "Movie" || updatedTorrent.type == "TV")  && !updatedTorrent.enrichedAt) {
+      // Flush if batch is full
+      if (batchBuffer.length >= BATCH_SIZE) {
+        await flushBatch();
+      } else {
+        scheduleBatchFlush();
+      }
+
+      if (
+        (updatedTorrent.type == "Movie" || updatedTorrent.type == "TV") &&
+        !updatedTorrent.enrichedAt
+      ) {
         console.log(
           `[Ingest Worker] Torrent ${infoHash} - Title: ${updatedTorrent.releaseTitle || updatedTorrent.trackerTitle} is enrichable, queuing for enrichment`,
         );
@@ -88,6 +140,12 @@ export function startIngestWorker() {
 
   worker.on("failed", (job, err) => {
     console.error(`[Ingest Worker] Job ${job?.id} failed:`, err);
+  });
+
+  // Flush batch on worker close
+  worker.on("closing", async () => {
+    console.log("[Ingest Worker] Worker closing, flushing remaining batch...");
+    await flushBatch();
   });
 
   console.log("[Ingest Worker] Started and listening for jobs...");

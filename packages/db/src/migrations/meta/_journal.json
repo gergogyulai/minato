@@ -8,6 +8,41 @@
       "when": 1769728206257,
       "tag": "0000_chemical_stick",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1770061191458,
+      "tag": "0001_cold_thunderbird",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1770061619500,
+      "tag": "0002_perpetual_skrulls",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1770061901604,
+      "tag": "0003_fuzzy_the_initiative",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1770159140432,
+      "tag": "0004_broken_vance_astro",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1770196566080,
+      "tag": "0005_perpetual_lethal_legion",
+      "breakpoints": true
     }
   ]
 }

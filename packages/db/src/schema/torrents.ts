@@ -7,7 +7,7 @@ import {
   integer,
   varchar,
   boolean,
-  numeric,
+  bigint,
   uuid,
 } from "drizzle-orm/pg-core";
 import {
@@ -18,20 +18,31 @@ import {
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import type { ReleaseData, releaseType } from "release-parser";
 
+type FileInfo = {
+  filename: string;
+  size: number;
+}[];
+
+type Sources = {
+  name: string;
+  url: string | null;
+  scraper: string;
+}
+
 export const torrents = pgTable(
   "torrents",
   {
     infoHash: text("info_hash").primaryKey(),
     trackerTitle: text("tracker_title").notNull(),
-    size: numeric("size").notNull(),
+    size: bigint("size", { mode: "bigint" }).notNull(),
     seeders: integer("seeders").default(0),
     leechers: integer("leechers").default(0),
     _trackerCategory: text("tracker_category"),
     stdCategory: integer("std_category"),
-    files: jsonb("files"),
+    files: jsonb("files").$type<FileInfo[]>(),
     magnet: text("magnet"),
     sources: jsonb("sources")
-      .$type<{ name: string; url: string | null }[]>()
+      .$type<Sources[]>()
       .notNull()
       .default([]),
     isDirty: boolean("is_dirty").default(true),
@@ -69,14 +80,13 @@ export const enrichments = pgTable("enrichments", {
   genres: text("genres").array(),
   posterUrl: text("poster_url"),
   backdropUrl: text("backdrop_url"),
-  logoUrl: text("logo_url"),
-  description: text("description"),
+  overview: text("overview"),
   tagline: text("tagline"),
   year: integer("year"),
   releaseDate: timestamp("release_date"),
   status: text("status"),
   runtime: integer("runtime"),
-	tmdbId: integer("tmdb_id").unique(),
+  tmdbId: integer("tmdb_id").unique(),
   imdbId: varchar("imdb_id", { length: 20 }),
   tvdbId: integer("tvdb_id"),
   anilistId: integer("anilist_id"),
@@ -86,6 +96,19 @@ export const enrichments = pgTable("enrichments", {
   totalEpisodes: integer("total_episodes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const blacklistedTorrents = pgTable("blacklisted_torrents", {
+  infoHash: text("info_hash").primaryKey(),
+  reason: text("reason").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const blacklistedTrackers = pgTable("blacklisted_trackers", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  url: text("url").notNull().array(),
+  reason: text("reason").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const torrentsRelations = relations(torrents, ({ one }) => ({
@@ -110,3 +133,9 @@ export type NewEnrichment = InferInsertModel<typeof enrichments>;
 
 export const NewEnrichmentSchema = createInsertSchema(enrichments);
 export const EnrichmentSchema = createSelectSchema(enrichments);
+
+export type BlacklistedTorrent = InferSelectModel<typeof blacklistedTorrents>;
+export type NewBlacklistedTorrent = InferInsertModel<typeof blacklistedTorrents>;
+
+export const NewBlacklistedTorrentSchema = createInsertSchema(blacklistedTorrents);
+export const BlacklistedTorrentSchema = createSelectSchema(blacklistedTorrents);
