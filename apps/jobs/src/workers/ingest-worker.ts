@@ -107,8 +107,12 @@ export function startIngestWorker() {
         return;
       }
 
-      // Add to batch buffer
-      batchBuffer.push(updatedTorrent);
+      // Add to batch buffer - convert bigint to string for JSON serialization
+      const torrentDoc = {
+        ...updatedTorrent,
+        size: updatedTorrent.size.toString(),
+      };
+      batchBuffer.push(torrentDoc);
       console.log(
         `[Ingest Worker] Added torrent ${infoHash} to batch (${batchBuffer.length}/${BATCH_SIZE}) - Title: ${updatedTorrent.releaseTitle || updatedTorrent.trackerTitle}`,
       );

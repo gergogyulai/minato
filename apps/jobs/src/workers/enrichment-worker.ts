@@ -5,7 +5,6 @@ import {
   torrents,
   eq,
   enrichments,
-  type TorrentWithRelations,
   type NewEnrichment,
 } from "@project-minato/db";
 import { tmdbRateLimiter } from "../rate-limiter";
@@ -116,8 +115,9 @@ export function startEnrichmentWorker() {
       await Promise.allSettled(assetTasks);
 
       await db.transaction(async (tx) => {
+        // Check if enrichment already exists for this torrent
         let enrichment = await tx.query.enrichments.findFirst({
-          where: eq(enrichments.tmdbId, tmdbItemData.id),
+          where: eq(enrichments.torrentInfoHash, infoHash),
         });
 
         if (!enrichment) {
@@ -141,6 +141,7 @@ export function startEnrichmentWorker() {
           
 
           const enrichmentData: NewEnrichment = {
+            torrentInfoHash: infoHash,
             tmdbId: tmdbItemData.id,
             mediaType: (torrentType?.toLowerCase() as any) || "movie",
             overview: tmdbItemData.overview,
@@ -176,10 +177,10 @@ export function startEnrichmentWorker() {
           return;
         }
 
+        // Update torrent flags
         await tx
           .update(torrents)
           .set({
-            enrichmentId: enrichment.id,
             isDirty: false,
             enrichedAt: new Date(),
           })
@@ -197,9 +198,18 @@ export function startEnrichmentWorker() {
         return;
       }
 
-      // await meiliClient
-      //   .index<TorrentWithRelations>("torrents")
-      //   .updateDocuments([enriched], { primaryKey: "infoHash" });
+      // Update document in meilisearch with enrichment data
+      const enrichedDoc = {
+        ...enriched,
+        size: enriched.size.toString(),
+      };
+      await meiliClient
+        .index("torrents")
+        .updateDocuments([enrichedDoc], { primaryKey: "infoHash" });
+      
+      console.log(
+        `[Enrichment Worker] Updated torrent ${infoHash} in Meilisearch with enrichment data`,
+      );
     },
     {
       connection,
