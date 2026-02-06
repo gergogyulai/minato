@@ -2,83 +2,15 @@ import { Hono } from "hono";
 import {
   db,
   torrents,
-  eq,
   sql,
   blacklistedTorrents,
   blacklistedTrackers,
 } from "@project-minato/db";
-import { elasticClient } from "@project-minato/meilisearch";
 import type { NewTorrent } from "@project-minato/db";
 import { ingestQueue } from "@project-minato/queue";
 import { IngestTorrentsSchema } from "@/schemas/ingest-torrents.schema";
 
 const app = new Hono();
-
-app.get("/", async (c) => {
-  const query = c.req.query("q");
-  const categories = c.req.queries("categories");
-  // const sortField = c.req.query("sort") || "createdAt";
-  // const order = c.req.query("order") || "desc";
-  const limit = Math.min(parseInt(c.req.query("limit") || "100"), 100);
-  const offset = parseInt(c.req.query("offset") || "0");
-
-  // 2. Build Elasticsearch Query
-  const esQuery: any = {
-    bool: {
-      must: [],
-      filter: [],
-    },
-  };
-
-  // Fuzzy search on the 'name' field
-  if (query) {
-    esQuery.bool.must.push({
-      multi_match: {
-        query: query,
-        fields: ["name^3", "description"], // ^3 boosts the name field importance
-        fuzziness: "AUTO",
-      },
-    });
-  } else {
-    esQuery.bool.must.push({ match_all: {} });
-  }
-
-  // Filter by multiple categories (Terms query)
-  if (categories && categories.length > 0) {
-    esQuery.bool.filter.push({
-      terms: { category: categories },
-    });
-  }
-
-  try {
-    const response = await elasticClient.search({
-      index: "torrents",
-      from: offset,
-      size: limit,
-      query: esQuery,
-    });
-
-    console.log("Elasticsearch query executed:", JSON.stringify(response));
-
-    // 3. Map Results
-    // Elasticsearch stores numbers as doubles/longs, but BigInts
-    // are usually stored as strings or keywords to prevent precision loss.
-    const hits = response.hits.hits.map((hit: any) => ({
-      id: hit._id,
-      ...hit._source,
-      // Ensure size is a string for JSON
-      size: hit._source.size?.toString(),
-    }));
-
-    return c.json({
-      total: response.hits.total,
-      data: hits,
-    });
-  } catch (error) {
-    console.error(error);
-    return c.json({ error: "Search failed" }, 500);
-  }
-});
 
 app.post("/ingest", async (c) => {
   if (c.req.header("X-Minato-Scraper") === undefined) {
@@ -123,8 +55,8 @@ app.post("/ingest", async (c) => {
   const torrentsToIngest: NewTorrent[] = validationResult.data.map((item) => ({
     infoHash: item.infoHash.toLocaleLowerCase(),
     trackerTitle: item.title,
-    _trackerCategory: item.category || "uncategorized",
-    size: BigInt(item.size),
+    trackerCategory: item.category || "uncategorized",
+    size: Number(item.size),
     seeders: item.seeders,
     leechers: item.leechers,
     magnet: item.magnet,
@@ -193,16 +125,11 @@ app.post("/ingest", async (c) => {
     .onConflictDoUpdate({
       target: torrents.infoHash,
       set: {
-        trackerTitle: sql`COALESCE(excluded.tracker_title, ${torrents.trackerTitle})`,
-        _trackerCategory: sql`COALESCE(excluded.tracker_category, ${torrents._trackerCategory})`,
-        size: sql`COALESCE(excluded.size, ${torrents.size})`,
         seeders: sql`excluded.seeders`,
         leechers: sql`excluded.leechers`,
-        magnet: sql`COALESCE(excluded.magnet, ${torrents.magnet})`,
-        files: sql`COALESCE(excluded.files, ${torrents.files})`,
         isDirty: true,
         sources: sql`(SELECT jsonb_agg(DISTINCT e) FROM jsonb_array_elements(${torrents.sources} || excluded.sources) AS e)`,
-        updatedAt: sql`now()`,
+        lastSeenAt: sql`now()`,
       },
     })
     .returning();
@@ -224,25 +151,6 @@ app.post("/ingest", async (c) => {
     },
     202,
   );
-});
-
-app.get("/query/:infoHash", async (c) => {
-  const infoHash = c.req.param("infoHash");
-
-  const [torrent] = await db
-    .select()
-    .from(torrents)
-    .where(eq(torrents.infoHash as any, infoHash) as any)
-    .limit(1);
-
-  if (!torrent) {
-    return c.json({ message: "Torrent not found" }, 404);
-  }
-
-  return c.json({
-    ...torrent,
-    size: torrent.size.toString(), // Convert BigInt to string for JSON serialization
-  });
 });
 
 export default app;
