@@ -7,6 +7,8 @@ const connection = new Redis({
   maxRetriesPerRequest: null,
 });
 
+const redis = connection;
+
 export const QUEUES = {
   INGEST : 'torrent_ingest',
   ENRICH: 'torrent_enrich',
@@ -15,4 +17,4 @@ export const QUEUES = {
 export const ingestQueue = new Queue(QUEUES.INGEST, { connection });
 export const enrichQueue = new Queue(QUEUES.ENRICH, { connection });
 
-export { Worker, QueueEvents, connection };
+export { Worker, QueueEvents, connection, redis }; 
