@@ -14,6 +14,7 @@ import {
   type InferSelectModel,
   type InferInsertModel,
   relations,
+  sql,
 } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import type { ReleaseData, releaseType } from "release-parser";
@@ -21,59 +22,64 @@ import type { ReleaseData, releaseType } from "release-parser";
 type FileInfo = {
   filename: string;
   size: number;
-}[];
+};
 
 type Sources = {
   name: string;
   url: string | null;
   scraper: string;
-}
+};
 
 export const torrents = pgTable(
   "torrents",
   {
     infoHash: text("info_hash").primaryKey(),
     trackerTitle: text("tracker_title").notNull(),
-    size: bigint("size", { mode: "bigint" }).notNull(),
+    size: bigint("size", { mode: "number" }).notNull(),
     seeders: integer("seeders").default(0),
     leechers: integer("leechers").default(0),
-    _trackerCategory: text("tracker_category"),
-    stdCategory: integer("std_category"),
+    trackerCategory: text("tracker_category"),
+    standardCategory: integer("standard_category"),
     files: jsonb("files").$type<FileInfo[]>(),
     magnet: text("magnet"),
-    sources: jsonb("sources")
-      .$type<Sources[]>()
-      .notNull()
-      .default([]),
+    sources: jsonb("sources").$type<Sources[]>().notNull().default([]),
     isDirty: boolean("is_dirty").default(true),
 
-    // release data
     type: text("type").$type<releaseType>(),
     group: text("group"),
     resolution: text("resolution"),
     releaseTitle: text("release_title"),
     releaseData: jsonb("release_data").$type<ReleaseData>(),
 
-    enrichmentId: uuid("enrichment_id").references(() => enrichments.id, {
-      onDelete: "set null",
-    }),
-
     createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
+    publishedAt: timestamp("published_at"),
+    lastSeenAt: timestamp("last_seen_at").defaultNow().notNull(),
     indexedAt: timestamp("indexed_at"),
     enrichedAt: timestamp("enriched_at"),
   },
   (table) => [
-    index("tracker_title_idx").on(table.trackerTitle),
-    index("type_idx").on(table.type),
-    index("created_at_idx").on(table.createdAt),
+    index("is_dirty_partial_idx")
+      .on(table.isDirty)
+      .where(sql`is_dirty IS TRUE`),
     index("sources_gin_idx").using("gin", table.sources),
-    index("dirty_idx").on(table.isDirty),
+    index("created_at_idx").on(table.createdAt),
   ],
 );
 
-export const enrichments = pgTable("enrichments", {
+export const enrichments = pgTable(
+  "enrichments", 
+  {
   id: uuid("id").defaultRandom().primaryKey(),
+  torrentInfoHash: text("torrent_info_hash")
+    .notNull()
+    .unique() // Ensures 1:1
+    .references(() => torrents.infoHash, {
+      onDelete: "cascade", // This deletes the enrichment when the torrent is deleted
+    }),
   mediaType: text("media_type").$type<
     "movie" | "tv" | "anime" | "music" | "book"
   >(),
@@ -96,7 +102,14 @@ export const enrichments = pgTable("enrichments", {
   totalEpisodes: integer("total_episodes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("tmdb_id_idx").on(table.tmdbId),
+  index("imdb_id_idx").on(table.imdbId),
+  index("tvdb_id_idx").on(table.tvdbId),
+  index("anilist_id_idx").on(table.anilistId),
+  index("mal_id_idx").on(table.malId),
+  index("info_hash_idx").on(table.torrentInfoHash),
+]);
 
 export const blacklistedTorrents = pgTable("blacklisted_torrents", {
   infoHash: text("info_hash").primaryKey(),
@@ -113,13 +126,16 @@ export const blacklistedTrackers = pgTable("blacklisted_trackers", {
 
 export const torrentsRelations = relations(torrents, ({ one }) => ({
   enrichment: one(enrichments, {
-    fields: [torrents.enrichmentId],
-    references: [enrichments.id],
+    fields: [torrents.infoHash],
+    references: [enrichments.torrentInfoHash],
   }),
 }));
 
-export const enrichmentsRelations = relations(enrichments, ({ many }) => ({
-  torrents: many(torrents),
+export const enrichmentsRelations = relations(enrichments, ({ one }) => ({
+  torrent: one(torrents, {
+    fields: [enrichments.torrentInfoHash],
+    references: [torrents.infoHash],
+  }),
 }));
 
 export type Torrent = InferSelectModel<typeof torrents>;
@@ -135,7 +151,10 @@ export const NewEnrichmentSchema = createInsertSchema(enrichments);
 export const EnrichmentSchema = createSelectSchema(enrichments);
 
 export type BlacklistedTorrent = InferSelectModel<typeof blacklistedTorrents>;
-export type NewBlacklistedTorrent = InferInsertModel<typeof blacklistedTorrents>;
+export type NewBlacklistedTorrent = InferInsertModel<
+  typeof blacklistedTorrents
+>;
 
-export const NewBlacklistedTorrentSchema = createInsertSchema(blacklistedTorrents);
+export const NewBlacklistedTorrentSchema =
+  createInsertSchema(blacklistedTorrents);
 export const BlacklistedTorrentSchema = createSelectSchema(blacklistedTorrents);

@@ -56,7 +56,7 @@ export const IngestTorrentsSchema = z.object({
   leechers: z.number().default(0),
   category: z.string().optional(),
   magnet: z.string().regex(/^magnet:\?xt=urn:[a-z0-9]+:[a-z0-9]{32,40}/i).optional(),
-  files: z.array(FileInfoSchema).optional(),
+  files: FileInfoSchema.optional(),
   source: z.object({
     name: z.string(),
     scraperId: z.string().optional(),
