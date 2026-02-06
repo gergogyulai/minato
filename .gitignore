@@ -51,3 +51,8 @@ coverage
 .cache
 tmp
 temp
+
+
+## Local development things
+knaben.ts
+/scrapers

@@ -18,7 +18,7 @@
   },
   "type": "module",
   "scripts": {
-    "dev": "turbo dev && bun run infra:up",
+    "dev": "turbo dev db:studio && bun run infra:up",
     "build": "turbo build",
     "check-types": "turbo check-types",
     "dev:native": "turbo -F native dev",
