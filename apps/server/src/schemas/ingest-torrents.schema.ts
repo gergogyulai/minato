@@ -38,7 +38,7 @@ const FileInfoSchema = z
 
 
 export const IngestTorrentsSchema = z.object({
-  infoHash: z.string().length(40),
+  infoHash: z.string().length(40).transform((val) => val.toLowerCase()),
   title: z.string(),
   size: z
     .string()
@@ -54,7 +54,7 @@ export const IngestTorrentsSchema = z.object({
     }, "Size exceeds 64-bit integer limit"),
   seeders: z.number().default(0),
   leechers: z.number().default(0),
-  category: z.string().optional(),
+  category: z.string().optional().default("uncategorized"),
   magnet: z.string().regex(/^magnet:\?xt=urn:[a-z0-9]+:[a-z0-9]{32,40}/i).optional(),
   files: FileInfoSchema.optional(),
   source: z.object({
@@ -63,3 +63,6 @@ export const IngestTorrentsSchema = z.object({
     url: z.url().optional(),
   })
 });
+
+
+export type IngestInput = z.infer<typeof IngestTorrentsSchema>;
