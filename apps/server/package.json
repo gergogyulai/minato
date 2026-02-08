@@ -7,15 +7,19 @@
     "check-types": "tsc -b",
     "compile": "bun build --compile --minify --sourcemap --bytecode ./src/index.ts --outfile server",
     "dev": "bun run --hot src/index.ts",
-    "start": "bun run dist/index.js"
+    "start": "bun run dist/index.mjs"
   },
   "dependencies": {
-    "@hono/zod-validator": "^0.7.6",
     "@project-minato/auth": "workspace:*",
     "@project-minato/db": "workspace:*",
     "@project-minato/env": "workspace:*",
     "@project-minato/meilisearch": "workspace:*",
     "@project-minato/queue": "workspace:*",
+    "@hono/zod-validator": "^0.7.6",
+    "@orpc/client": "^1.13.4",
+    "@orpc/openapi": "^1.13.4",
+    "@orpc/server": "^1.13.4",
+    "@orpc/zod": "^1.13.4",
     "@scalar/hono-api-reference": "^0.9.37",
     "better-auth": "catalog:",
     "dotenv": "catalog:",
