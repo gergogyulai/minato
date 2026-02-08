@@ -1,4 +1,3 @@
-import { publicProcedure } from "..";
 import { ORPCError } from "@orpc/server";
 import {
   db,
@@ -10,22 +9,16 @@ import {
   inArray,
 } from "@project-minato/db";
 import { ingestQueue } from "@project-minato/queue";
-import { IngestTorrentsSchema } from "@/schemas/ingest-torrents.schema";
 import type { IngestInput } from "@/schemas/ingest-torrents.schema";
-import { z } from "zod";
+import {
+  ingestContract,
+  updateContract,
+  deleteContract,
+  blacklistContract,
+} from "../contracts/torrent.contracts";
 
 export const torrentRouter = {
-  ingest: publicProcedure
-    .route({
-      method: "POST",
-      path: "/torrents/ingest",
-      summary: "Ingest torrents",
-      description:
-        "Bulk ingest torrents from scrapers. Filters blacklisted torrents and trackers, performs deduplication, and queues for indexing.",
-      tags: ["torrents"],
-    })
-    .input(z.array(IngestTorrentsSchema).min(1))
-    .handler(async ({ input, context }) => {
+  ingest: ingestContract.handler(async ({ input, context }) => {
       const scraperId = context.honoContext.req.header("X-Minato-Scraper");
 
       if (!scraperId || scraperId.trim() === "") {
@@ -152,60 +145,7 @@ export const torrentRouter = {
       }
     }),
 
-  update: publicProcedure
-    .route({
-      method: "POST",
-      path: "/torrents/update",
-      summary: "Update torrent",
-      description:
-        "Update any fields of an existing torrent by info hash. Only provided fields will be updated in the database.",
-      tags: ["torrents"],
-    })
-    .input(
-      z.object({
-        infoHash: z
-          .string()
-          .length(40)
-          .describe("The 40-character info hash of the torrent"),
-        trackerTitle: z.string().optional().describe("Title from the tracker"),
-        seeders: z
-          .number()
-          .int()
-          .min(0)
-          .optional()
-          .describe("Number of seeders"),
-        leechers: z
-          .number()
-          .int()
-          .min(0)
-          .optional()
-          .describe("Number of leechers"),
-        trackerCategory: z
-          .string()
-          .optional()
-          .describe("Category from the tracker"),
-        standardCategory: z
-          .number()
-          .int()
-          .optional()
-          .describe("Standardized category ID"),
-        files: z
-          .array(
-            z.object({
-              filename: z.string(),
-              size: z.number().int(),
-            }),
-          )
-          .optional()
-          .describe("Array of file information"),
-        magnet: z.string().optional().describe("Magnet link"),
-        type: z.string().optional().describe("Release type (movie, tv, etc.)"),
-        group: z.string().optional().describe("Release group"),
-        resolution: z.string().optional().describe("Video resolution"),
-        releaseTitle: z.string().optional().describe("Parsed release title"),
-      }),
-    )
-    .handler(async ({ input }) => {
+  update: updateContract.handler(async ({ input }) => {
       const { infoHash, ...updateFields } = input;
 
       // Check if torrent exists
@@ -264,24 +204,7 @@ export const torrentRouter = {
       };
     }),
 
-  delete: publicProcedure
-    .route({
-      method: "POST",
-      path: "/torrents/delete",
-      summary: "Delete torrents",
-      description:
-        "Permanently delete one or more torrents from the database by their info hashes.",
-      tags: ["torrents"],
-    })
-    .input(
-      z.object({
-        infoHashes: z
-          .array(z.string().length(40))
-          .min(1)
-          .describe("Array of 40-character info hashes to delete"),
-      }),
-    )
-    .handler(async ({ input }) => {
+  delete: deleteContract.handler(async ({ input }) => {
       const { infoHashes } = input;
       const normalizedHashes = infoHashes.map((h) => h.toLowerCase());
 
@@ -298,34 +221,7 @@ export const torrentRouter = {
       };
     }),
 
-  blacklist: publicProcedure
-    .route({
-      method: "POST",
-      path: "/torrents/blacklist",
-      summary: "Blacklist torrents",
-      description:
-        "Add torrents to the blacklist to prevent future ingestion. Optionally deletes them from the database.",
-      tags: ["torrents"],
-    })
-    .input(
-      z.object({
-        infoHashes: z
-          .array(z.string().length(40))
-          .min(1)
-          .describe("Array of 40-character info hashes to blacklist"),
-        reason: z
-          .string()
-          .min(1)
-          .describe("Reason for blacklisting these torrents"),
-        deleteFromDatabase: z
-          .boolean()
-          .default(true)
-          .describe(
-            "Whether to delete torrents from database after blacklisting",
-          ),
-      }),
-    )
-    .handler(async ({ input }) => {
+  blacklist: blacklistContract.handler(async ({ input }) => {
       const { infoHashes, reason, deleteFromDatabase } = input;
       const normalizedHashes = infoHashes.map((h) => h.toLowerCase());
 
