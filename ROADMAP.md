@@ -4,9 +4,9 @@ Focus on the "source of truth" and how data flows between TypeScript and Go.
     - [x] Setup Turborepo with `apps/api`, `apps/web`, `packages/database`, and `packages/types`.
     - [ ] Initialize `go.work` to manage multiple Go scraper modules.
 - [X] **Drizzle Schema Definition**
-- [ ] **Meilisearch**
-    - [ ] Create an index template.
-    - [ ] Configure ranking rules to prioritize health (seeders) and recency.
+- [x] **Meilisearch**
+    - [x] Create an index template.
+    - [x] Configure ranking rules to prioritize health (seeders) and recency.
 
 ### Milestone 2: Scraper Infrastructure
 
@@ -53,6 +53,7 @@ Focus on the "source of truth" and how data flows between TypeScript and Go.
     - [ ] Create bulk ingestion `/api/ingest/bulk` POST endpoint.
     - [ ] Create `.torrent` file ingestion `/api/ingest/file` POST endpoint to ingest torrent files into the database.
     - [x] **Upsert Logic**: If `info_hash` exists, update seeders/leechers; if not, create new record.
+    - [ ] No reprocessing a torrent that hasnt changed to reduce unnecessary DB and meilisearch writes.
     - [x] **Sync to Meilisearch**: Trigger a background sync to Meilisearch after a successful DB write.
 - [ ] **Torznab XML Engine**
     - [Api spec docs](https://torznab.github.io/spec-1.3-draft/torznab/index.html)

@@ -59,10 +59,14 @@ export const IngestTorrentsSchema = z.object({
   files: FileInfoSchema.optional(),
   source: z.object({
     name: z.string(),
-    scraperId: z.string().optional(),
     url: z.url().optional(),
   })
 });
 
+export const IngestTorrentsResponseSchema = z.object({
+  count: z.number(),
+  message: z.string(),
+});
 
+export type IngestTorrentsResponse = z.infer<typeof IngestTorrentsResponseSchema>;
 export type IngestInput = z.infer<typeof IngestTorrentsSchema>;
