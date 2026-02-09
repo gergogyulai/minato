@@ -1,38 +1,39 @@
 diff --git a/ReleaseParser.js b/ReleaseParser.js
-index b087ab0ed1592595fc7611b0447a3970a1ec1df7..d415bacef4ae12d01c2b323d92c84062845fbe3a 100644
+index b087ab0ed1592595fc7611b0447a3970a1ec1df7..00fc00630f884bdf337e5627d398aebc46d8ee20 100644
 --- a/ReleaseParser.js
 +++ b/ReleaseParser.js
-@@ -13,13 +13,19 @@ import patterns from './ReleasePatterns.js'
- 
- const ReleaseParser = /** @lends module:ReleaseParser */ ( releaseName, section = '' ) =>
- {
-+	// Save original release name
-+	const originalReleaseName = releaseName
+@@ -40,6 +40,30 @@ const ReleaseParser = /** @lends module:ReleaseParser */ ( releaseName, section
+ 		'country'		: null, // Release country
+ 		'type'			: null
+ 	}
 +
-+	// Replace spaces with dots for better parsing
-+	releaseName = releaseName.replace( / /g, '.' )
++	// Normalize release name for consistent parsing
++	// Handle parenthesized or bracketed group notation at end: "Name (GROUP)" or "Name [GROUP]" -> "Name-GROUP"
++	
++	// Try parentheses first - look for (GROUP) with separator before
++	let groupMatch = releaseName.match( /[\s._]\(([A-Za-z0-9_.\[\]]+)\)$/ )
++	
++	// For square brackets: only convert if NOT part of an existing dash-prefixed group
++	// Skip conversion only if pattern is -WORD[...] where WORD contains no separators
++	if ( !groupMatch && !releaseName.match( /-\w+\[[^\]]+\]$/ ) )
++	{
++		groupMatch = releaseName.match( /[\s._]?\[([A-Za-z0-9_.\[\]]+)\]$/ )
++	}
++	
++	// Apply conversion if found and not purely numeric (e.g., not a year)
++	if ( groupMatch && !/^\d+$/.test( groupMatch[1] ) )
++	{
++		releaseName = releaseName.slice( 0, releaseName.length - groupMatch[0].length ) + '-' + groupMatch[1]
++	}
++	// Replace spaces with dots for uniform separator handling
++	releaseName = releaseName.replace( /\s+/g, '.' )
++	// Update stored release name so internal methods use the normalized version
++	data.release = releaseName
 +
  	/**
- 	 * All parsed informations.
+ 	 * Object toString() override: allows the object to decide how it will react when it is treated like a string.
  	 *
- 	 * @public
- 	*/
- 	let data = {
--		'release'		: releaseName, // Original rls name
-+		'release'		: originalReleaseName, // Original rls name
- 		'title'			: null, // First part of title
- 		'titleExtra'	: null, // Second part of title (optional) like Name of track/episode/book/xxx etc.
- 		'group'			: null,
-@@ -716,8 +722,6 @@ const ReleaseParser = /** @lends module:ReleaseParser */ ( releaseName, section
- 	 */
- 	const isType = ( type = '' ) =>
- 	{
--		releaseName = get( 'release' )
--
- 		if ( type === 'sports' )
- 		{
- 			let isSports = false
-@@ -786,8 +790,8 @@ const ReleaseParser = /** @lends module:ReleaseParser */ ( releaseName, section
+@@ -786,8 +810,8 @@ const ReleaseParser = /** @lends module:ReleaseParser */ ( releaseName, section
  		let type = guessTypeByParsedAttributes()
  		// 2nd: no type found? guess by section
  		type = !type ? guessTypeBySection( section ) : type
