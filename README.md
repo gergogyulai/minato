@@ -1,3 +1,9 @@
+> [!CAUTION]
+> This project is currently in the **conceptual and scaffolding phase**. Most features are currently being implemented and the codebase is not yet functional.
+
+> [!NOTE]
+> **Open Source & Contributions**: This is a personal project, but it is fully open-source. Contributions, ideas, and feedback are always welcome! If you're interested in the architecture or want to help build a feature, feel free to dive into the code or open an issue.
+
 # Project Blueprint: "Project Minato"
 
 A high-performance torrent scraping and indexing suite with a Torznab-compatible API, Next.js dashboard, and Go-based public tracker scrapers (The Pirate Bay, 1337x, knaben.org) and DHT crawlers.
