@@ -2,5 +2,15 @@
   "name": "@project-minato/utils",
   "version": "0.0.0",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@project-minato/config": "workspace:*",
+    "typescript": "catalog:"
+  }
 }
