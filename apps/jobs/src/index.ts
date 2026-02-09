@@ -1,6 +1,7 @@
 import pc from 'picocolors';
 import { startIngestWorker } from './workers/ingest-worker';
 import { startEnrichmentWorker } from './workers/enrichment-worker';
+import { startReindexWorker } from './workers/reindex-worker';
 import { logger } from './utils/logger';
 import { connection } from '@project-minato/queue';
 import { meiliClient, setupTorrentIndex } from '@project-minato/meilisearch';
@@ -58,9 +59,11 @@ async function bootstrap() {
 
   const ingestWorker = startIngestWorker();
   const enrichmentWorker = startEnrichmentWorker();
+  const reindexWorker = startReindexWorker();
 
   logger.step('Ingest Worker', 'PASS_1_ACTIVE');
   logger.step('Enrichment Worker', 'PASS_2_ACTIVE');
+  logger.step('Reindex Worker', 'REINDEX_ACTIVE');
   
   console.log('');
   logger.success('System heartbeat stable');
@@ -74,6 +77,7 @@ async function bootstrap() {
       await Promise.all([
         ingestWorker.close(),
         enrichmentWorker.close(),
+        reindexWorker.close(),
       ]);
       
       // Close Redis connection
