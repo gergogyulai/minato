@@ -17,11 +17,32 @@ export const BlacklistTorrentsSchema = z.object({
 
 export const BlacklistTorrentsResponseSchema = z.object({
   success: z.boolean(),
-  blacklistedCount: z.number(),
-  deletedCount: z.number(),
   message: z.string(),
-  blacklistedHashes: z.array(z.string()),
 });
 
 export type BlacklistTorrentsInput = z.infer<typeof BlacklistTorrentsSchema>;
-export type BlacklistTorrentsResponse = z.infer<typeof BlacklistTorrentsResponseSchema>;
+export type BlacklistTorrentsResponse = z.infer<
+  typeof BlacklistTorrentsResponseSchema
+>;
+
+export const RemoveBlacklistedTorrentsSchema = z.object({
+  infoHashes: z
+    .array(z.string().length(40))
+    .min(1)
+    .describe("Array of info hashes to remove from blacklist"),
+});
+
+export const RemoveBlacklistedTorrentsResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+});
+
+export const ListBlacklistedTorrentsResponseSchema = z.object({
+  torrents: z.array(
+    z.object({
+      infoHash: z.string().length(40),
+      reason: z.string(),
+      createdAt: z.date(),
+    }),
+  ),
+});

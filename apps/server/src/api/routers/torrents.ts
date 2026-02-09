@@ -14,7 +14,6 @@ import {
   ingestContract,
   updateContract,
   deleteContract,
-  blacklistContract,
 } from "../contracts/torrent.contracts";
 
 export const torrentRouter = {
@@ -219,55 +218,55 @@ export const torrentRouter = {
     };
   }),
 
-  blacklist: blacklistContract.handler(async ({ input }) => {
-    const { infoHashes, reason, deleteFromDatabase } = input;
-    const normalizedHashes = infoHashes.map((h) => h.toLowerCase());
+  // blacklist: blacklistContract.handler(async ({ input }) => {
+  //   const { infoHashes, reason, deleteFromDatabase } = input;
+  //   const normalizedHashes = infoHashes.map((h) => h.toLowerCase());
 
-    try {
-      const result = await db.transaction(async (tx) => {
-        // Insert into blacklist
-        const blacklisted = await tx
-          .insert(blacklistedTorrents)
-          .values(
-            normalizedHashes.map((hash) => ({
-              infoHash: hash,
-              reason,
-            })),
-          )
-          .onConflictDoUpdate({
-            target: blacklistedTorrents.infoHash,
-            set: { reason },
-          })
-          .returning({ infoHash: blacklistedTorrents.infoHash });
+  //   try {
+  //     const result = await db.transaction(async (tx) => {
+  //       // Insert into blacklist
+  //       const blacklisted = await tx
+  //         .insert(blacklistedTorrents)
+  //         .values(
+  //           normalizedHashes.map((hash) => ({
+  //             infoHash: hash,
+  //             reason,
+  //           })),
+  //         )
+  //         .onConflictDoUpdate({
+  //           target: blacklistedTorrents.infoHash,
+  //           set: { reason },
+  //         })
+  //         .returning({ infoHash: blacklistedTorrents.infoHash });
 
-        // Optionally delete from torrents table
-        let deleted: { infoHash: string }[] = [];
-        if (deleteFromDatabase) {
-          deleted = await tx
-            .delete(torrents)
-            .where(inArray(torrents.infoHash, normalizedHashes))
-            .returning({ infoHash: torrents.infoHash });
-        }
+  //       // Optionally delete from torrents table
+  //       let deleted: { infoHash: string }[] = [];
+  //       if (deleteFromDatabase) {
+  //         deleted = await tx
+  //           .delete(torrents)
+  //           .where(inArray(torrents.infoHash, normalizedHashes))
+  //           .returning({ infoHash: torrents.infoHash });
+  //       }
 
-        return { blacklisted, deleted };
-      });
+  //       return { blacklisted, deleted };
+  //     });
 
-      return {
-        success: true,
-        blacklistedCount: result.blacklisted.length,
-        deletedCount: result.deleted.length,
-        message: `Successfully blacklisted ${result.blacklisted.length} torrent(s)${
-          deleteFromDatabase
-            ? ` and deleted ${result.deleted.length} from database`
-            : ""
-        }`,
-        blacklistedHashes: result.blacklisted.map((t) => t.infoHash),
-      };
-    } catch (error) {
-      console.error("Blacklist Error:", error);
-      throw new ORPCError("INTERNAL_SERVER_ERROR", {
-        message: "Failed to blacklist torrents",
-      });
-    }
-  }),
+  //     return {
+  //       success: true,
+  //       blacklistedCount: result.blacklisted.length,
+  //       deletedCount: result.deleted.length,
+  //       message: `Successfully blacklisted ${result.blacklisted.length} torrent(s)${
+  //         deleteFromDatabase
+  //           ? ` and deleted ${result.deleted.length} from database`
+  //           : ""
+  //       }`,
+  //       blacklistedHashes: result.blacklisted.map((t) => t.infoHash),
+  //     };
+  //   } catch (error) {
+  //     console.error("Blacklist Error:", error);
+  //     throw new ORPCError("INTERNAL_SERVER_ERROR", {
+  //       message: "Failed to blacklist torrents",
+  //     });
+  //   }
+  // }),
 };

@@ -7,3 +7,4 @@
  */
 
 export * from "./torrent.contracts";
+export * from "./blacklist.contracts";

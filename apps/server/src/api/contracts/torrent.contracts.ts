@@ -10,10 +10,6 @@ import {
   DeleteTorrentsSchema,
   DeleteTorrentsResponseSchema,
 } from "@/schemas/delete-torrents.schema";
-import {
-  BlacklistTorrentsSchema,
-  BlacklistTorrentsResponseSchema,
-} from "@/schemas/blacklist-torrents.schema";
 
 /**
  * Contract-first API definitions for torrent operations
@@ -55,15 +51,3 @@ export const deleteContract = publicProcedure
   })
   .input(DeleteTorrentsSchema)
   .output(DeleteTorrentsResponseSchema);
-
-export const blacklistContract = publicProcedure
-  .route({
-    method: "POST",
-    path: "/torrents/blacklist",
-    summary: "Blacklist torrents",
-    description:
-      "Add torrents to the blacklist to prevent future ingestion. Optionally deletes them from the database.",
-    tags: ["torrents"],
-  })
-  .input(BlacklistTorrentsSchema)
-  .output(BlacklistTorrentsResponseSchema);
