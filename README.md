@@ -247,7 +247,7 @@ Planned:                    Go-based Scrapers     ---->
 | :--- | :--- | :--- |
 | **User -> Web UI** | BetterAuth (session-based) | Full Admin access |
 | **Sonarr/Radarr -> API** | `?apikey=` (User Generated) | Read-only Torznab (planned) |
-| **Scrapers -> API** | `X-Minato-Scraper` (header-based identification) | Write-only `/api/v1/torrents/ingest` |
+| **Scrapers -> API** | `X-Minato-Scraper` + API Key | Write-only `/api/v1/torrents/ingest` |
 | **Internal Services -> DB** | Internal Docker Network / localhost | Full access |
 | **Workers -> Queue** | Redis connection | Job processing |
 
