@@ -108,7 +108,7 @@ export async function setupTorrentIndex(): Promise<Index<TorrentDocument>> {
     "createdAt:desc",  // FRESHNESS: Prioritize newer torrents
   ]);
 
-  console.log("[Meilisearch] Torrent index configured successfully");
+  // console.log("[Meilisearch] Torrent index configured successfully");
 
   return index;
 }
