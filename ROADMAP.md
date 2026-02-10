@@ -140,7 +140,6 @@ A modern UI to visualize the massive amount of data being indexed.
 | | `torrents.update` | Admin | Manually edit raw torrent fields (Title, Category, etc). | ✓ |
 | | `torrents.get` | User / API Key | Get InfoHash details with joined Enrichment data. | ⏳ |
 | | `torrents.delete` | Admin | Delete from SQL/Search (Cascades to Enrichment). | ✓ |
-| | `torrents.search` | User / API Key | Search torrents via Meilisearch. | ⏳ |
 | | `torrents.enrichment.redo` | Admin | Requeue for enrichment. | ⏳ |
 | | `torrents.enrichment.update` | Admin | Manually edit enrichment data | ⏳ |
 | | `torrents.enrichment.link` | Admin | Manual override and bind to a specific TMDB/IMDb ID. | ⏳ |
