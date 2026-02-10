@@ -262,6 +262,8 @@ Planned:                    Go-based Scrapers     ---->
 
 ## 4. Features
 
+Refer to the [project roadmap](ROADMAP.md) for comprehensive implementation status.
+
 ### Implemented ✅
 
 - **Core Infrastructure**:
