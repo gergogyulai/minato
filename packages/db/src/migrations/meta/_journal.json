@@ -78,6 +78,13 @@
       "when": 1770375570223,
       "tag": "0010_mysterious_black_bolt",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1770723179380,
+      "tag": "0011_clever_korath",
+      "breakpoints": true
     }
   ]
 }
