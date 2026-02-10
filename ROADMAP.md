@@ -84,3 +84,34 @@ A modern UI to visualize the massive amount of data being indexed.
 - [ ] **Management Tools**
     - [ ] Build the API Key generator UI.
     - [ ] Implement a "Manual Re-index" button that clears Elasticsearch and repopulates it from PostgreSQL.
+
+
+### API Implementation
+
+| Domain | Procedure Name | Access | Description | Status |
+| :--- | :--- | :--- | :--- | :---: |
+| **Torrents** | `torrents.ingest` | Scraper / Internal | Bulk/Single upsert to SQL + Trigger BullMQ Sync. | ✓ |
+| | `torrents.update` | Admin | Manually edit raw torrent fields (Title, Category, etc). | ✓ |
+| | `torrents.get` | User / API Key | Get InfoHash details with joined Enrichment data. | ✓ |
+| | `torrents.delete` | Admin | Delete from SQL/Search (Cascades to Enrichment). | ✓ |
+| | `torrents.enrichment.redo` | Admin | Requeue for enrichment. |   |
+| | `torrents.enrichment.update` | Admin | Manually edit enrichment data |   |
+| | `torrents.enrichment.link` | Admin | Manual override and bind to a specific TMDB/IMDb ID. |   |
+| **Search** | `search.torrents` | User / Admin | Full-text query against Meilisearch. |   |
+| **Metadata** | `metadata.search.tmdb` | Admin | Direct proxy to TMDb |   |
+| **Blacklist** | `blacklist.torrent.add` | Admin | Block an infoHash and remove existing records. | ✓ |
+| | `blacklist.torrent.remove` | Admin | Unblock an infoHash. | ✓ |
+| | `blacklist.torrent.list` | Admin | List all blocked hashes. | ✓ |
+| | `blacklist.tracker.add` | Admin | Block a tracker URL/pattern. | ✓ |
+| | `blacklist.tracker.remove` | Admin | Unblock a tracker. | ✓ |
+| | `blacklist.tracker.list` | Admin | List all blocked trackers. | ✓ |
+| **Admin** | `admin.stats` | Admin | DB Row counts, Index Health, Worker Latency. |   |
+| | `admin.config.get` | Admin | Read Scraper/Mirror/FlareSolverr settings. |   |
+| | `admin.config.update` | Admin | Update site URLs or Env vars live. |   |
+| | `admin.apiKeys.list` | Admin | View all Torznab/Dashboard keys. |   |
+| | `admin.apiKeys.create` | Admin | Issue a new API Key. |   |
+| | `admin.apiKeys.revoke` | Admin | Instantly invalidate a key. |   |
+| **System** | `sys.jobs.list` | Admin | Monitor BullMQ (Sync/Enrichment status). |   |
+| | `sys.jobs.retry` | Admin | Manually push failed jobs back to queue. |   |
+| | `sys.backup.trigger` | Admin | Snapshot export to portable SQLite DB. |   |
+| | `sys.health` | Public | Readiness check for orchestration. |   |
