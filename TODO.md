@@ -1,3 +1,1 @@
 - [ ] fix terminology regarding "trackers" vs "indexers (sites)" in the roadmap, readme, and database schema. "Trackers" are technically servers that provide a list of peers, but in common usage, "trackers" often refer to the sites that list torrents (e.g., 1337x, TPB). To avoid confusion, we should standardize on "indexers" or "sites" when referring to the sources of torrent metadata.
-
-- [ ]
