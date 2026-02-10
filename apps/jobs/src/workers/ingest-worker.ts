@@ -1,7 +1,7 @@
 import { Worker, Job } from "bullmq";
 import { connection, enrichQueue, QUEUES } from "@project-minato/queue";
 import { db, torrents, eq } from "@project-minato/db";
-import { meiliClient } from "@project-minato/meilisearch";
+import { meiliClient, formatTorrentForMeilisearch } from "@project-minato/meilisearch";
 import ReleaseParser from "release-parser";
 
 interface IngestJobData {
@@ -107,11 +107,8 @@ export function startIngestWorker() {
         return;
       }
 
-      // Add to batch buffer - convert bigint to string for JSON serialization
-      const torrentDoc = {
-        ...updatedTorrent,
-        size: updatedTorrent.size.toString(),
-      };
+      // Add to batch buffer - format for Meilisearch
+      const torrentDoc = formatTorrentForMeilisearch(updatedTorrent);
       batchBuffer.push(torrentDoc);
       console.log(
         `[Ingest Worker] Added torrent ${infoHash} to batch (${batchBuffer.length}/${BATCH_SIZE}) - Title: ${updatedTorrent.releaseTitle || updatedTorrent.trackerTitle}`,

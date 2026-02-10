@@ -18,6 +18,41 @@ export const meiliClient = new MeiliSearch({
 // Type that accepts both plain Torrent and TorrentWithRelations
 type TorrentDocument = Torrent | TorrentWithRelations;
 
+// Helper function to flatten enrichment data for Meilisearch
+export function formatTorrentForMeilisearch(torrent: TorrentDocument): any {
+  const doc: any = {
+    ...torrent,
+    // Convert bigint to string for JSON serialization
+    size: torrent.size.toString(),
+  };
+
+  // If torrent has enrichment relation, flatten it with dot notation
+  if ('enrichment' in torrent && torrent.enrichment) {
+    const enrichment = torrent.enrichment;
+    // Remove the nested enrichment object
+    delete doc.enrichment;
+    
+    // Add flattened enrichment fields with dot notation
+    doc['enrichment.overview'] = enrichment.overview;
+    doc['enrichment.tagline'] = enrichment.tagline;
+    doc['enrichment.year'] = enrichment.year;
+    doc['enrichment.genres'] = enrichment.genres;
+    doc['enrichment.mediaType'] = enrichment.mediaType;
+    doc['enrichment.posterUrl'] = enrichment.posterUrl;
+    doc['enrichment.backdropUrl'] = enrichment.backdropUrl;
+    doc['enrichment.releaseDate'] = enrichment.releaseDate;
+    doc['enrichment.status'] = enrichment.status;
+    doc['enrichment.runtime'] = enrichment.runtime;
+    doc['enrichment.tmdbId'] = enrichment.tmdbId;
+    doc['enrichment.imdbId'] = enrichment.imdbId;
+    doc['enrichment.contentRating'] = enrichment.contentRating;
+    doc['enrichment.totalSeasons'] = enrichment.totalSeasons;
+    doc['enrichment.totalEpisodes'] = enrichment.totalEpisodes;
+  }
+
+  return doc;
+}
+
 export async function setupTorrentIndex(): Promise<Index<TorrentDocument>> {
   try {
     await meiliClient.createIndex("torrents", { primaryKey: "infoHash" });

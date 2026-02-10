@@ -1,7 +1,7 @@
 import { Worker, Job } from "bullmq";
 import { connection, QUEUES } from "@project-minato/queue";
 import { db } from "@project-minato/db";
-import { meiliClient } from "@project-minato/meilisearch";
+import { meiliClient, formatTorrentForMeilisearch } from "@project-minato/meilisearch";
 import ReleaseParser from "release-parser";
 import QueryStream from "pg-query-stream";
 import { sql } from "drizzle-orm";
@@ -18,8 +18,14 @@ export function startReindexWorker() {
         const client = await db.$client.connect();
         
         try {
-          // 2. Prepare the Query Stream
-          const queryText = "SELECT * FROM torrents";
+          // 2. Prepare the Query Stream with enrichment data via LEFT JOIN
+          const queryText = `
+            SELECT 
+              t.*,
+              row_to_json(e.*) as enrichment
+            FROM torrents t
+            LEFT JOIN enrichments e ON t.info_hash = e.torrent_info_hash
+          `;
           const stream = client.query(new QueryStream(queryText));
 
           let batchBuffer: any[] = [];
@@ -30,12 +36,13 @@ export function startReindexWorker() {
             try {
               const release = ReleaseParser(row.trackerTitle);
               
-              batchBuffer.push({
+              const torrentDoc = formatTorrentForMeilisearch({
                 ...row,
                 ...release.data,
-                size: row.size.toString(),
                 indexedAt: new Date(),
               });
+              
+              batchBuffer.push(torrentDoc);
 
               if (batchBuffer.length >= BATCH_SIZE) {
                 await meiliClient

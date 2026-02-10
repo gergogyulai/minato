@@ -9,7 +9,7 @@ import {
 } from "@project-minato/db";
 import { tmdbRateLimiter } from "../rate-limiter";
 import { TMDB } from "tmdb-ts";
-import { meiliClient } from "@project-minato/meilisearch";
+import { meiliClient, formatTorrentForMeilisearch } from "@project-minato/meilisearch";
 import { getAssetPaths, ingestAsset } from "../utils/media";
 
 const tmdb = new TMDB(
@@ -199,10 +199,7 @@ export function startEnrichmentWorker() {
       }
 
       // Update document in meilisearch with enrichment data
-      const enrichedDoc = {
-        ...enriched,
-        size: enriched.size.toString(),
-      };
+      const enrichedDoc = formatTorrentForMeilisearch(enriched);
       await meiliClient
         .index("torrents")
         .updateDocuments([enrichedDoc], { primaryKey: "infoHash" });
