@@ -94,7 +94,7 @@ export const enrichments = pgTable(
   releaseDate: timestamp("release_date"),
   status: text("status"),
   runtime: integer("runtime"),
-  tmdbId: integer("tmdb_id").unique(),
+  tmdbId: integer("tmdb_id"),
   imdbId: varchar("imdb_id", { length: 20 }),
   tvdbId: integer("tvdb_id"),
   anilistId: integer("anilist_id"),

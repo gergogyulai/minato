@@ -12,7 +12,7 @@ interface AssetInput {
  * Downloads and processes an image asset using a sharded directory structure.
  */
 export async function ingestAsset({ id, url, type }: AssetInput) {
-  const { absolute } = getAssetPaths(id, type);
+  const { absolute } = getLocalAssetPaths(id, type);
 
   // 2. Check if file already exists to avoid redundant downloads
   const file = Bun.file(absolute);
@@ -53,7 +53,7 @@ export async function ingestAsset({ id, url, type }: AssetInput) {
 /**
  * Returns consistent relative and absolute paths for an asset
  */
-export function getAssetPaths(
+export function getLocalAssetPaths(
   id: string | number,
   type: "poster" | "backdrop",
 ) {

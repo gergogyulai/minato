@@ -8,14 +8,11 @@ import {
   type NewEnrichment,
 } from "@project-minato/db";
 import { tmdbRateLimiter } from "../rate-limiter";
-import { TMDB } from "tmdb-ts";
 import { meiliClient, formatTorrentForMeilisearch } from "@project-minato/meilisearch";
-import { getAssetPaths, ingestAsset } from "../utils/media";
+import { getLocalAssetPaths, ingestAsset } from "../utils/media";
+import { TMDBProvider } from "../lib/providers/tmdb";
 
-const tmdb = new TMDB(
-  "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIzMWFkNjkxMTUzZWRkMzA5ZGFjYzRiOTJiMGFiNDQzZCIsIm5iZiI6MTcxMTgzMTc1NC43NTQsInN1YiI6IjY2MDg3YWNhMjgzZWQ5MDE0OTE4NjcwZCIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.ct4uXA3LWo8IZcgD4NXcY_dXpakWM9mw0rlFOJoU6gc",
-);
-
+const tmdbProvider = new TMDBProvider(process.env.TMDB_READ_ACCESS_TOKEN!);
 interface EnrichJobData {
   infoHash: string;
 }
@@ -53,7 +50,19 @@ export function startEnrichmentWorker() {
       await tmdbRateLimiter.waitForToken();
       const year = Number(torrent.releaseData?.year) || null;
       const cleanTitle = torrent.releaseData?.title;
-      const torrentType = torrent.type;
+      const torrentType = torrent.type?.toLowerCase() as "movie" | "tv" | undefined | null;
+
+      if (!torrentType || !tmdbProvider.supportedTypes.includes(torrentType)) {
+        console.log(
+          `[Enrichment Worker] Torrent ${infoHash} has unsupported type "${torrent.type}", skipping enrichment`,
+        );
+        // Still mark as enriched to avoid retrying
+        await db
+          .update(torrents)
+          .set({ enrichedAt: new Date() })
+          .where(eq(torrents.infoHash, infoHash));
+        return;
+      }
 
       if (!cleanTitle || !year) {
         console.log(
@@ -66,16 +75,10 @@ export function startEnrichmentWorker() {
           .where(eq(torrents.infoHash, infoHash));
         return;
       }
+      
+      const tmdbMetadata = await tmdbProvider.find(cleanTitle, year, torrentType);
 
-      const tmdbData =
-        torrentType === "Movie"
-          ? await tmdb.search.movies({ query: cleanTitle, year })
-          : await tmdb.search.tvShows({
-              query: cleanTitle,
-              first_air_date_year: year,
-            });
-
-      if (!tmdbData.results[0]) {
+      if (!tmdbMetadata) {
         console.log(
           `[Enrichment Worker] No TMDB results found for torrent ${infoHash}`,
         );
@@ -87,26 +90,21 @@ export function startEnrichmentWorker() {
         return;
       }
 
-      const tmdbItemData =
-        torrentType === "Movie"
-          ? await tmdb.movies.details(tmdbData.results[0].id)
-          : await tmdb.tvShows.details(tmdbData.results[0].id);
-
       const assetTasks = [];
-      if (tmdbItemData.poster_path) {
+      if (tmdbMetadata.poster_path) {
         assetTasks.push(
           ingestAsset({
-            id: String(tmdbItemData.id),
-            url: `https://image.tmdb.org/t/p/w500${tmdbItemData.poster_path}`,
+            id: String(tmdbMetadata.tmdb_id),
+            url: tmdbProvider.getAssetUrl(tmdbMetadata.poster_path, "poster"),
             type: "poster",
           }),
         );
       }
-      if (tmdbItemData.backdrop_path) {
+      if (tmdbMetadata.backdrop_path) {
         assetTasks.push(
           ingestAsset({
-            id: String(tmdbItemData.id),
-            url: `https://image.tmdb.org/t/p/w1280${tmdbItemData.backdrop_path}`,
+            id: String(tmdbMetadata.tmdb_id),
+            url: tmdbProvider.getAssetUrl(tmdbMetadata.backdrop_path, "backdrop"),
             type: "backdrop",
           }),
         );
@@ -121,46 +119,30 @@ export function startEnrichmentWorker() {
         });
 
         if (!enrichment) {
-          const poster = getAssetPaths(tmdbItemData.id, "poster");
-          const backdrop = getAssetPaths(tmdbItemData.id, "backdrop");
+          const localPoster = getLocalAssetPaths(tmdbMetadata.tmdb_id, "poster");
+          const localBackdrop = getLocalAssetPaths(tmdbMetadata.tmdb_id, "backdrop");
 
-          const releaseDate = new Date(
-            torrentType === "Movie"
-              ? (tmdbItemData as any).release_date
-              : (tmdbItemData as any).first_air_date) || null;
-
-          const releaseYear = releaseDate
-            ? releaseDate.getFullYear()
-            : null;
-
-          const runtime =
-            torrentType === "Movie"
-              ? (tmdbItemData as any).runtime
-              : (tmdbItemData as any).episode_run_time?.[0] || 0;
-
-          
+          const isTv = tmdbMetadata._type === "tv";
 
           const enrichmentData: NewEnrichment = {
             torrentInfoHash: infoHash,
-            tmdbId: tmdbItemData.id,
-            mediaType: (torrentType?.toLowerCase() as any) || "movie",
-            overview: tmdbItemData.overview,
-            tagline: tmdbItemData.tagline,
-            releaseDate: releaseDate,
-            year: releaseYear,
-            runtime: runtime || 0,
-            status: tmdbItemData.status,
-            genres: tmdbItemData.genres?.map((g) => g.name) || [],
-            posterUrl: tmdbItemData.poster_path ? poster.relative : null,
-            backdropUrl: tmdbItemData.backdrop_path ? backdrop.relative : null,
-            totalSeasons:
-              torrentType === "TV"
-                ? (tmdbItemData as any).number_of_seasons
-                : null,
-            totalEpisodes:
-              torrentType === "TV"
-                ? (tmdbItemData as any).number_of_episodes
-                : null,
+            tmdbId: tmdbMetadata.tmdb_id,
+            imdbId: tmdbMetadata.imdb_id,
+            tvdbId: isTv ? tmdbMetadata.tvdb_id : null,
+            mediaType: torrentType || "movie",
+            overview: tmdbMetadata.overview,
+            tagline: tmdbMetadata.tagline,
+            releaseDate: new Date(tmdbMetadata.release_date),
+            year: tmdbMetadata.release_year,
+            runtime: tmdbMetadata.runtime || 0,
+            status: isTv ? tmdbMetadata.status : "Released",
+            genres: tmdbMetadata.genres,
+            posterUrl: tmdbMetadata.poster_path ? localPoster.relative : null,
+            backdropUrl: tmdbMetadata.backdrop_path ? localBackdrop.relative : null,
+            totalSeasons: isTv ? tmdbMetadata.number_of_seasons : null,
+            totalEpisodes: isTv ? tmdbMetadata.number_of_episodes : null,
+            anilistId: null,
+            malId: null,
           };
 
           const [newEnrichment] = await tx

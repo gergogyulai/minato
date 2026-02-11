@@ -45,4 +45,4 @@ class RateLimiter {
 }
 
 // TMDB allows 50 requests per second, but we'll be conservative
-export const tmdbRateLimiter = new RateLimiter(20, 2); // 20 tokens max, 2 per second
+export const tmdbRateLimiter = new RateLimiter(50, 1); // 20 tokens max, 2 per second
