@@ -19,6 +19,8 @@ import {
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import type { ReleaseData, releaseType } from "release-parser";
 
+export type { ReleaseData, releaseType };
+
 type FileInfo = {
   filename: string;
   size: number;
@@ -147,8 +149,8 @@ export const TorrentSchema = createSelectSchema(torrents);
 export type Enrichment = InferSelectModel<typeof enrichments>;
 export type NewEnrichment = InferInsertModel<typeof enrichments>;
 
-export const NewEnrichmentSchema = createInsertSchema(enrichments);
 export const EnrichmentSchema = createSelectSchema(enrichments);
+export const NewEnrichmentSchema = createInsertSchema(enrichments);
 
 export type BlacklistedTorrent = InferSelectModel<typeof blacklistedTorrents>;
 export type NewBlacklistedTorrent = InferInsertModel<

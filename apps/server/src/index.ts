@@ -22,10 +22,10 @@ app.use(logger());
 app.use(
 	"/*",
 	cors({
-		origin: env.CORS_ORIGIN,
-		allowMethods: ["GET", "POST", "OPTIONS"],
-		allowHeaders: ["Content-Type", "Authorization"],
-		credentials: true,
+    origin: (origin) => (origin === "null" || origin === env.CORS_ORIGIN ? origin : env.CORS_ORIGIN),
+    allowMethods: ["GET", "POST", "OPTIONS"],
+    allowHeaders: ["Content-Type", "Authorization", "User-Agent"],
+    credentials: true,
 	})
 );
 

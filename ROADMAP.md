@@ -138,12 +138,12 @@ A modern UI to visualize the massive amount of data being indexed.
 | :--- | :--- | :--- | :--- | :---: |
 | **Torrents** | `torrents.ingest` | Scraper / Internal | Bulk/Single upsert to SQL + Trigger BullMQ Sync. | ✓ |
 | | `torrents.update` | Admin | Manually edit raw torrent fields (Title, Category, etc). | ✓ |
-| | `torrents.get` | User / API Key | Get InfoHash details with joined Enrichment data. | ⏳ |
+| | `torrents.get` | User / API Key | Get InfoHash details with joined Enrichment data. | 🚧 (needs proper types)|
 | | `torrents.delete` | Admin | Delete from SQL/Search (Cascades to Enrichment). | ✓ |
 | | `torrents.enrichment.redo` | Admin | Requeue for enrichment. | ⏳ |
 | | `torrents.enrichment.update` | Admin | Manually edit enrichment data | ⏳ |
 | | `torrents.enrichment.link` | Admin | Manual override and bind to a specific TMDB/IMDb ID. | ⏳ |
-| **Search** | `search.torrents` | User / Admin | Full-text query against Meilisearch with filters. | ⏳ |
+| **Search** | `search.torrents` | User / Admin | Full-text query against Meilisearch with filters. | ✓ |
 | **Metadata** | `metadata.search.tmdb` | Admin | Direct proxy to TMDB search. | ⏳ |
 | **Blacklist** | `blacklist.torrent.add` | Admin | Block an infoHash and remove existing records. | ✓ |
 | | `blacklist.torrent.remove` | Admin | Unblock an infoHash. | ✓ |

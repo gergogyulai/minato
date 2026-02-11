@@ -10,11 +10,37 @@ import {
   DeleteTorrentsSchema,
   DeleteTorrentsResponseSchema,
 } from "@/schemas/delete-torrents.schema";
+import {
+  TorrentSchema,
+  EnrichmentSchema,
+} from "@project-minato/db";
 
 /**
  * Contract-first API definitions for torrent operations
  * These contracts define the shape of the API without implementation details
  */
+export const getContract = publicProcedure
+  .route({
+    method: "GET",
+    path: "/torrents/:infoHash",
+    summary: "Get torrent by info hash",
+    description:
+      "Retrieve detailed information about a torrent by its info hash.",
+    tags: ["torrents"],
+  })
+  .input(
+    z.object({
+      infoHash: z
+        .string()
+        .length(40)
+        .transform((h) => h.toLowerCase()),
+    }),
+  )
+  .output(
+    TorrentSchema.extend({
+      enrichment: EnrichmentSchema.nullable(),
+    }),
+  );
 
 export const ingestContract = publicProcedure
   .route({

@@ -14,9 +14,29 @@ import {
   ingestContract,
   updateContract,
   deleteContract,
+  getContract,
 } from "../contracts/torrent.contracts";
 
 export const torrentRouter = {
+  get: getContract.handler(async ({ input }) => {
+    const { infoHash } = input;
+
+    const torrent = await db.query.torrents.findFirst({
+      where: (torrents, { eq }) => eq(torrents.infoHash, infoHash),
+      with: {
+        enrichment: true,
+      },
+    });
+
+    if (!torrent) {
+      throw new ORPCError("NOT_FOUND", {
+        message: `Torrent with info hash ${infoHash} not found`,
+      });
+    }
+
+    return torrent as any;
+  }),
+
   ingest: ingestContract.handler(async ({ input, context }) => {
     const scraperId = context.honoContext.req.header("X-Minato-Scraper");
 
