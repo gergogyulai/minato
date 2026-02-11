@@ -72,7 +72,6 @@ export async function setupTorrentIndex(): Promise<Index<TorrentDocument>> {
     "enrichment.tagline",
   ]);
 
-  // Configure filterable attributes
   await index.updateFilterableAttributes([
     "type",
     "resolution",
@@ -80,6 +79,7 @@ export async function setupTorrentIndex(): Promise<Index<TorrentDocument>> {
     "seeders",
     "leechers",
     "size",
+    "publishedAt",
     "createdAt",
     "updatedAt",
     "enrichment.year",
@@ -89,9 +89,12 @@ export async function setupTorrentIndex(): Promise<Index<TorrentDocument>> {
 
   // Configure sortable attributes
   await index.updateSortableAttributes([
+    "trackerTitle",
+    "releaseTitle",
     "seeders",
     "leechers",
     "size",
+    "publishedAt",
     "createdAt",
     "updatedAt",
   ]);
