@@ -1,5 +1,5 @@
 import { TMDB } from "tmdb-ts";
-import type { MetadataProvider } from "./types/metadata-provider";
+import type { MetadataProvider } from "./types/provider";
 import {
   calculateTitleSimilarity,
   TITLE_SIMILARITY_THRESHOLD,
