@@ -1,55 +1,25 @@
 import { Worker, Job } from "bullmq";
 import { connection, enrichQueue, QUEUES } from "@project-minato/queue";
 import { db, torrents, eq } from "@project-minato/db";
-import { meiliClient, formatTorrentForMeilisearch } from "@project-minato/meilisearch";
+import {
+  formatTorrentForMeilisearch,
+  MeiliBatcher,
+} from "@project-minato/meilisearch";
 import ReleaseParser from "release-parser";
 
 interface IngestJobData {
   infoHash: string;
 }
 
-const BATCH_SIZE = 50;
-const BATCH_TIMEOUT = 3000; // 3 seconds
+const INGEST_BATCH_SIZE = 50;
+const INGEST_BATCH_TIMEOUT = 3000; // 3 seconds
 
 export function startIngestWorker() {
-  let batchBuffer: any[] = [];
-  let flushTimer: NodeJS.Timeout | null = null;
-
-  const flushBatch = async () => {
-    if (batchBuffer.length === 0) return;
-
-    const toIndex = [...batchBuffer];
-    batchBuffer = [];
-
-    if (flushTimer) {
-      clearTimeout(flushTimer);
-      flushTimer = null;
-    }
-
-    try {
-      console.log(
-        `[Ingest Worker] Flushing ${toIndex.length} torrents to Meilisearch`,
-      );
-      await meiliClient
-        .index("torrents")
-        .addDocuments(toIndex, { primaryKey: "infoHash" });
-      console.log(
-        `[Ingest Worker] Successfully indexed ${toIndex.length} torrents`,
-      );
-    } catch (error) {
-      console.error(
-        `[Ingest Worker] Meilisearch batch indexing failed:`,
-        error,
-      );
-    }
-  };
-
-  const scheduleBatchFlush = () => {
-    if (flushTimer) return;
-    flushTimer = setTimeout(() => {
-      flushBatch();
-    }, BATCH_TIMEOUT);
-  };
+  const meiliBatcher = new MeiliBatcher(
+    "torrents",
+    INGEST_BATCH_SIZE,
+    INGEST_BATCH_TIMEOUT,
+  );
 
   const worker = new Worker<IngestJobData>(
     QUEUES.INGEST,
@@ -60,7 +30,6 @@ export function startIngestWorker() {
 
       const { infoHash } = job.data;
 
-      // Fetch torrent from database
       const [torrent] = await db
         .select()
         .from(torrents)
@@ -107,28 +76,23 @@ export function startIngestWorker() {
         return;
       }
 
-      // Add to batch buffer - format for Meilisearch
       const torrentDoc = formatTorrentForMeilisearch(updatedTorrent);
-      batchBuffer.push(torrentDoc);
+      await meiliBatcher.add(torrentDoc);
+
       console.log(
-        `[Ingest Worker] Added torrent ${infoHash} to batch (${batchBuffer.length}/${BATCH_SIZE}) - Title: ${updatedTorrent.releaseTitle || updatedTorrent.trackerTitle}`,
+        `[Ingest Worker] Document queued for torrent ${infoHash} - Title: ${
+          updatedTorrent.releaseTitle || updatedTorrent.trackerTitle
+        }`,
       );
 
-      // Flush if batch is full
-      if (batchBuffer.length >= BATCH_SIZE) {
-        await flushBatch();
-      } else {
-        scheduleBatchFlush();
-      }
-
+      // Check for enrichment eligibility
       if (
-        (updatedTorrent.type == "Movie" || updatedTorrent.type == "TV") &&
+        (updatedTorrent.type === "Movie" || updatedTorrent.type === "TV") &&
         !updatedTorrent.enrichedAt
       ) {
         console.log(
-          `[Ingest Worker] Torrent ${infoHash} - Title: ${updatedTorrent.releaseTitle || updatedTorrent.trackerTitle} is enrichable, queuing for enrichment`,
+          `[Ingest Worker] Torrent ${infoHash} is enrichable, queuing for enrichment`,
         );
-
         await enrichQueue.add("enrich", { infoHash }, { delay: 1000 });
       }
     },
@@ -143,10 +107,9 @@ export function startIngestWorker() {
     console.error(`[Ingest Worker] Job ${job?.id} failed:`, err);
   });
 
-  // Flush batch on worker close
   worker.on("closing", async () => {
     console.log("[Ingest Worker] Worker closing, flushing remaining batch...");
-    await flushBatch();
+    await meiliBatcher.flush();
   });
 
   console.log("[Ingest Worker] Started and listening for jobs...");

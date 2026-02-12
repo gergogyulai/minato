@@ -1,5 +1,6 @@
 import { GraphQLClient, gql } from "graphql-request";
 import type { MetadataProvider } from "./types/provider";
+import type { EnrichmentMetadata } from "./types/metadata";
 import {
   calculateTitleSimilarity,
   TITLE_SIMILARITY_THRESHOLD,
@@ -47,21 +48,24 @@ interface AniListDetailResponse {
   };
 }
 
+export interface AniListProviderConfig {
+  apiUrl?: string;
+}
 
-export class AniListProvider implements MetadataProvider<any> {
+export class AniListProvider implements MetadataProvider {
   readonly name = "AniList";
-  readonly supportedTypes: ("anime")[] = ["anime"];
+  readonly supportedTypes = ["anime"] as const;
   private client: GraphQLClient;
 
-  constructor() {
-    this.client = new GraphQLClient(ANILIST_API_URL);
+  constructor(config: AniListProviderConfig = {}) {
+    this.client = new GraphQLClient(config.apiUrl ?? ANILIST_API_URL);
   }
 
   async find(
     title: string,
     year?: number,
-    type: "movie" | "tv" = "tv",
-  ) {
+    _type: "movie" | "tv" | "anime" = "anime",
+  ): Promise<EnrichmentMetadata | null> {
     const SEARCH_QUERY = gql`
       query ($search: String, $year: Int) {
         Page(perPage: 1) {
@@ -83,7 +87,9 @@ export class AniListProvider implements MetadataProvider<any> {
     );
 
     const searchItem = searchData.Page.media[0];
-    if (!searchItem) return null;
+    if (!searchItem) {
+      return null;
+    }
 
     // Check similarity
     const titlesToCompare = [
@@ -136,22 +142,22 @@ export class AniListProvider implements MetadataProvider<any> {
     const media = detailData.Media;
     const releaseDate = `${media.startDate.year}-${String(media.startDate.month || 1).padStart(2, "0")}-${String(media.startDate.day || 1).padStart(2, "0")}`;
 
+    // Return enrichment-ready data
     return {
-      _type: type,
-      anilist_id: media.id,
-      mal_id: media.idMal,
+      mediaType: "anime",
+      anilistId: media.id,
+      malId: media.idMal ?? null,
       title: media.title.english || media.title.romaji,
       overview: media.description?.replace(/<[^>]*>?/gm, "") ?? "",
-      release_date: releaseDate,
-      release_year: media.startDate.year,
+      tagline: null, // AniList doesn't provide taglines
+      releaseDate,
+      releaseYear: media.startDate.year,
       runtime: media.duration ?? null,
-      poster_path: media.coverImage.extraLarge,
-      backdrop_path: media.bannerImage,
-      genres: media.genres,
       status: media.status,
-      episodes: media.episodes,
-      format: media.format,
-      season: media.season,
+      genres: media.genres,
+      posterPath: media.coverImage.extraLarge ?? null,
+      backdropPath: media.bannerImage ?? null,
+      totalEpisodes: media.episodes ?? null,
     };
   }
 

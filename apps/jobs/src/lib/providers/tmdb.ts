@@ -1,55 +1,32 @@
 import { TMDB } from "tmdb-ts";
 import type { MetadataProvider } from "./types/provider";
+import type { EnrichmentMetadata } from "./types/metadata";
 import {
   calculateTitleSimilarity,
   TITLE_SIMILARITY_THRESHOLD,
 } from "../common";
 
-type BaseResult = {
-  tmdb_id: number;
-  title: string;
-  release_date: string;
-  release_year: number;
-  overview: string;
-  runtime: number | null;
-  tagline: string | null;
-  poster_path: string | null;
-  backdrop_path: string | null;
-  imdb_id: string | null;
-  genres: string[];
-};
-
-export type TMDBMovieResult = BaseResult & {
-  _type: "movie";
-};
-
-export type TMDBTvResult = BaseResult & {
-  _type: "tv";
-  tvdb_id: number | null;
-  status: string;
-  number_of_episodes: number;
-  number_of_seasons: number;
-};
-
-export type TMDBFindResult = TMDBMovieResult | TMDBTvResult;
-
 const TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/";
 
-export class TMDBProvider implements MetadataProvider<TMDBFindResult> {
+export interface TMDBProviderConfig {
+  apiKey: string;
+}
+
+export class TMDBProvider implements MetadataProvider {
   readonly name = "TMDB";
-  readonly supportedTypes: ("movie" | "tv")[] = ["movie", "tv"];
+  readonly supportedTypes = ["movie", "tv"] as const;
 
   private client: TMDB;
 
-  constructor(apiKey: string) {
-    this.client = new TMDB(apiKey);
+  constructor(config: TMDBProviderConfig) {
+    this.client = new TMDB(config.apiKey);
   }
 
   async find(
     title: string,
     year?: number,
     type: "movie" | "tv" = "movie",
-  ): Promise<TMDBFindResult | null> {
+  ): Promise<EnrichmentMetadata | null> {
     const isMovie = type === "movie";
     let searchItem: { id: number; compareTitle: string } | null = null;
 
@@ -74,7 +51,9 @@ export class TMDBProvider implements MetadataProvider<TMDBFindResult> {
       }
     }
 
-    if (!searchItem) return null;
+    if (!searchItem) {
+      return null;
+    }
 
     const titleSimilarity = calculateTitleSimilarity(
       title,
@@ -87,24 +66,26 @@ export class TMDBProvider implements MetadataProvider<TMDBFindResult> {
       return null;
     }
 
+    // Fetch details and return enrichment-ready data
     if (isMovie) {
       const details = await this.client.movies.details(searchItem.id);
       const externalIds = await this.client.movies.externalIds(searchItem.id);
       const releaseDate = new Date(details.release_date);
 
       return {
-        _type: "movie",
-        tmdb_id: details.id,
+        mediaType: "movie",
+        tmdbId: details.id,
+        imdbId: externalIds.imdb_id ?? null,
         title: details.title,
         overview: details.overview,
-        tagline: details.tagline,
-        runtime: details.runtime,
-        release_date: details.release_date,
-        release_year: releaseDate.getFullYear(),
-        poster_path: details.poster_path ?? null,
-        backdrop_path: details.backdrop_path ?? null,
-        imdb_id: externalIds.imdb_id ?? null,
+        tagline: details.tagline ?? null,
+        releaseDate: details.release_date,
+        releaseYear: releaseDate.getFullYear(),
+        runtime: details.runtime ?? null,
+        status: "Released",
         genres: details.genres.map((g) => g.name),
+        posterPath: details.poster_path ?? null,
+        backdropPath: details.backdrop_path ?? null,
       };
     } else {
       const details = await this.client.tvShows.details(searchItem.id);
@@ -118,22 +99,22 @@ export class TMDBProvider implements MetadataProvider<TMDBFindResult> {
         : null;
 
       return {
-        _type: "tv",
-        tmdb_id: details.id,
+        mediaType: "tv",
+        tmdbId: details.id,
+        imdbId: externalIds.imdb_id ?? null,
+        tvdbId: externalIds.tvdb_id ?? null,
         title: details.name,
         overview: details.overview,
-        tagline: details.tagline,
+        tagline: details.tagline ?? null,
+        releaseDate: details.first_air_date,
+        releaseYear: firstAirDate.getFullYear(),
         runtime: medianRuntime ?? null,
         status: details.status,
-        release_date: details.first_air_date,
-        release_year: firstAirDate.getFullYear(),
-        number_of_episodes: details.number_of_episodes,
-        number_of_seasons: details.number_of_seasons,
-        poster_path: details.poster_path ?? null,
-        backdrop_path: details.backdrop_path ?? null,
-        imdb_id: externalIds.imdb_id ?? null,
-        tvdb_id: externalIds.tvdb_id ?? null,
         genres: details.genres.map((g) => g.name),
+        posterPath: details.poster_path ?? null,
+        backdropPath: details.backdrop_path ?? null,
+        totalSeasons: details.number_of_seasons,
+        totalEpisodes: details.number_of_episodes,
       };
     }
   }

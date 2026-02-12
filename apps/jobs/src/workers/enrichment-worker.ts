@@ -8,16 +8,40 @@ import {
   type NewEnrichment,
 } from "@project-minato/db";
 import { tmdbRateLimiter } from "../rate-limiter";
-import { meiliClient, formatTorrentForMeilisearch } from "@project-minato/meilisearch";
+import { formatTorrentForMeilisearch, MeiliBatcher } from "@project-minato/meilisearch";
 import { getLocalAssetPaths, ingestAsset } from "../utils/media";
 import { TMDBProvider } from "../lib/providers/tmdb";
+import { AniListProvider } from "../lib/providers/anilist";
+import { ProviderRegistry } from "../lib/providers/registry";
+import { getAssetId } from "../lib/providers/types/metadata";
+import { markTorrentProcessed } from "../utils/enrich";
 
-const tmdbProvider = new TMDBProvider(process.env.TMDB_READ_ACCESS_TOKEN!);
+const tmdbProvider = new TMDBProvider({
+  apiKey: process.env.TMDB_READ_ACCESS_TOKEN!,
+});
+
+const anilistProvider = new AniListProvider({});
+
+const providerRegistry = new ProviderRegistry({
+  providers: [
+    { provider: tmdbProvider, priority: 1, enabled: true },
+    { provider: anilistProvider, priority: 2, enabled: true },
+  ],
+});
+
 interface EnrichJobData {
   infoHash: string;
 }
 
+const ENRICH_BATCH_SIZE = 20;
+const ENRICH_BATCH_TIMEOUT = 5000; // 5 seconds
+
 export function startEnrichmentWorker() {
+  const meiliBatcher = new MeiliBatcher(
+    "torrents",
+    ENRICH_BATCH_SIZE,
+    ENRICH_BATCH_TIMEOUT,
+  );
   const worker = new Worker<EnrichJobData>(
     QUEUES.ENRICH,
     async (job: Job<EnrichJobData>) => {
@@ -46,21 +70,23 @@ export function startEnrichmentWorker() {
         return;
       }
 
-      // Rate limit before calling TMDB
+      // Rate limit before calling TMDB (or any provider)
       await tmdbRateLimiter.waitForToken();
       const year = Number(torrent.releaseData?.year) || null;
       const cleanTitle = torrent.releaseData?.title;
-      const torrentType = torrent.type?.toLowerCase() as "movie" | "tv" | undefined | null;
+      const torrentType = torrent.type?.toLowerCase() as "movie" | "tv" | "anime";
 
-      if (!torrentType || !tmdbProvider.supportedTypes.includes(torrentType)) {
+      // Check if any provider supports this type
+      const supportedProviders = torrentType 
+        ? providerRegistry.getProvidersForType(torrentType)
+        : [];
+
+      if (!torrentType || supportedProviders.length === 0) {
         console.log(
-          `[Enrichment Worker] Torrent ${infoHash} has unsupported type "${torrent.type}", skipping enrichment`,
+          `[Enrichment Worker] Torrent ${infoHash} has unsupported type "${torrent.type}" or no providers available, skipping enrichment`,
         );
         // Still mark as enriched to avoid retrying
-        await db
-          .update(torrents)
-          .set({ enrichedAt: new Date() })
-          .where(eq(torrents.infoHash, infoHash));
+        await markTorrentProcessed(infoHash);
         return;
       }
 
@@ -69,42 +95,62 @@ export function startEnrichmentWorker() {
           `[Enrichment Worker] Torrent ${infoHash} has no valid title or year for enrichment`,
         );
         // Still mark as enriched to avoid retrying
-        await db
-          .update(torrents)
-          .set({ enrichedAt: new Date() })
-          .where(eq(torrents.infoHash, infoHash));
+        await markTorrentProcessed(infoHash);
         return;
       }
       
-      const tmdbMetadata = await tmdbProvider.find(cleanTitle, year, torrentType);
+      // Use provider registry with automatic fallback
+      const enrichedResult = await providerRegistry.findWithFallback(
+        cleanTitle,
+        year,
+        torrentType,
+      );
 
-      if (!tmdbMetadata) {
+      if (!enrichedResult) {
         console.log(
-          `[Enrichment Worker] No TMDB results found for torrent ${infoHash}`,
+          `[Enrichment Worker] No metadata found for torrent ${infoHash} from any provider`,
         );
         // Still mark as enriched to avoid retrying
-        await db
-          .update(torrents)
-          .set({ enrichedAt: new Date() })
-          .where(eq(torrents.infoHash, infoHash));
+        await markTorrentProcessed(infoHash);
         return;
       }
 
+      const { metadata, provider: providerInfo } = enrichedResult;
+      console.log(
+        `[Enrichment Worker] Found metadata for ${infoHash} using provider "${providerInfo.name}"`,
+      );
+
       const assetTasks = [];
-      if (tmdbMetadata.poster_path) {
+      
+      // Get the provider-specific ID for asset storage
+      const assetId = getAssetId(metadata);
+      
+      if (metadata.posterPath) {
+        const posterUrl = providerRegistry.getAssetUrl(
+          providerInfo.name,
+          metadata.posterPath,
+          "poster"
+        ) || metadata.posterPath; // Fallback to raw path if getAssetUrl not available
+        
         assetTasks.push(
           ingestAsset({
-            id: String(tmdbMetadata.tmdb_id),
-            url: tmdbProvider.getAssetUrl(tmdbMetadata.poster_path, "poster"),
+            id: assetId,
+            url: posterUrl,
             type: "poster",
           }),
         );
       }
-      if (tmdbMetadata.backdrop_path) {
+      if (metadata.backdropPath) {
+        const backdropUrl = providerRegistry.getAssetUrl(
+          providerInfo.name,
+          metadata.backdropPath,
+          "backdrop"
+        ) || metadata.backdropPath; // Fallback to raw path if getAssetUrl not available
+        
         assetTasks.push(
           ingestAsset({
-            id: String(tmdbMetadata.tmdb_id),
-            url: tmdbProvider.getAssetUrl(tmdbMetadata.backdrop_path, "backdrop"),
+            id: assetId,
+            url: backdropUrl,
             type: "backdrop",
           }),
         );
@@ -113,36 +159,35 @@ export function startEnrichmentWorker() {
       await Promise.allSettled(assetTasks);
 
       await db.transaction(async (tx) => {
-        // Check if enrichment already exists for this torrent
         let enrichment = await tx.query.enrichments.findFirst({
           where: eq(enrichments.torrentInfoHash, infoHash),
         });
 
         if (!enrichment) {
-          const localPoster = getLocalAssetPaths(tmdbMetadata.tmdb_id, "poster");
-          const localBackdrop = getLocalAssetPaths(tmdbMetadata.tmdb_id, "backdrop");
+          const localPoster = getLocalAssetPaths(assetId, "poster");
+          const localBackdrop = getLocalAssetPaths(assetId, "backdrop");
 
-          const isTv = tmdbMetadata._type === "tv";
-
+          // Metadata is already enrichment-ready, just add local paths
           const enrichmentData: NewEnrichment = {
             torrentInfoHash: infoHash,
-            tmdbId: tmdbMetadata.tmdb_id,
-            imdbId: tmdbMetadata.imdb_id,
-            tvdbId: isTv ? tmdbMetadata.tvdb_id : null,
-            mediaType: torrentType || "movie",
-            overview: tmdbMetadata.overview,
-            tagline: tmdbMetadata.tagline,
-            releaseDate: new Date(tmdbMetadata.release_date),
-            year: tmdbMetadata.release_year,
-            runtime: tmdbMetadata.runtime || 0,
-            status: isTv ? tmdbMetadata.status : "Released",
-            genres: tmdbMetadata.genres,
-            posterUrl: tmdbMetadata.poster_path ? localPoster.relative : null,
-            backdropUrl: tmdbMetadata.backdrop_path ? localBackdrop.relative : null,
-            totalSeasons: isTv ? tmdbMetadata.number_of_seasons : null,
-            totalEpisodes: isTv ? tmdbMetadata.number_of_episodes : null,
-            anilistId: null,
-            malId: null,
+            mediaType: metadata.mediaType,
+            tmdbId: metadata.tmdbId ?? null,
+            imdbId: metadata.imdbId ?? null,
+            tvdbId: metadata.tvdbId ?? null,
+            anilistId: metadata.anilistId ?? null,
+            malId: metadata.malId ?? null,
+            overview: metadata.overview,
+            tagline: metadata.tagline ?? null,
+            releaseDate: new Date(metadata.releaseDate),
+            year: metadata.releaseYear,
+            runtime: metadata.runtime ?? 0,
+            status: metadata.status ?? "Released",
+            genres: metadata.genres,
+            posterUrl: metadata.posterPath ? localPoster.relative : null,
+            backdropUrl: metadata.backdropPath ? localBackdrop.relative : null,
+            totalSeasons: metadata.totalSeasons ?? null,
+            totalEpisodes: metadata.totalEpisodes ?? null,
+            contentRating: metadata.contentRating ?? null,
           };
 
           const [newEnrichment] = await tx
@@ -160,13 +205,7 @@ export function startEnrichmentWorker() {
         }
 
         // Update torrent flags
-        await tx
-          .update(torrents)
-          .set({
-            isDirty: false,
-            enrichedAt: new Date(),
-          })
-          .where(eq(torrents.infoHash, torrent.infoHash));
+        await markTorrentProcessed(infoHash);
       });
 
       const enriched = await db.query.torrents.findFirst({
@@ -180,19 +219,15 @@ export function startEnrichmentWorker() {
         return;
       }
 
-      // Update document in meilisearch with enrichment data
       const enrichedDoc = formatTorrentForMeilisearch(enriched);
-      await meiliClient
-        .index("torrents")
-        .updateDocuments([enrichedDoc], { primaryKey: "infoHash" });
-      
+      await meiliBatcher.add(enrichedDoc);      
       console.log(
         `[Enrichment Worker] Updated torrent ${infoHash} in Meilisearch with enrichment data`,
       );
     },
     {
       connection,
-      concurrency: 5, // Process 5 enrichments concurrently (rate limiter will control API calls)
+      concurrency: 15,
     },
   );
 
@@ -203,6 +238,12 @@ export function startEnrichmentWorker() {
   worker.on("failed", (job, err) => {
     console.error(`[Enrichment Worker] Job ${job?.id} failed:`, err);
   });
+
+  worker.on("closing", async () => {
+    console.log("[Enrichment Worker] Worker closing, flushing remaining batch...");
+    await meiliBatcher.flush();
+  });
+
 
   console.log("[Enrichment Worker] Started and listening for jobs...");
 
