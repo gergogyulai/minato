@@ -15,6 +15,8 @@ import { db } from "@project-minato/db";
 import { redis } from "@project-minato/queue";
 import { meiliClient } from "@project-minato/meilisearch";
 import { sql } from "@project-minato/db";
+import { serveStatic } from "hono/bun";
+import path from "node:path";
 
 const app = new Hono()
 
@@ -27,6 +29,15 @@ app.use(
     allowHeaders: ["Content-Type", "Authorization", "User-Agent"],
     credentials: true,
 	})
+);
+
+app.get(
+  "/assets/*",
+  serveStatic({
+    root: path.resolve("../../data/media"),
+    // This strips "/assets" so /assets/tm/poster.webp looks for <root>/tm/poster.webp
+    rewriteRequestPath: (path) => path.replace(/^\/assets/, ""),
+  })
 );
 
 app.all("/api/v1/auth/*", (c) => auth.handler(c.req.raw));

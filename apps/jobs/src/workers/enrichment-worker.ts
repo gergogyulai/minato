@@ -189,6 +189,9 @@ export function startEnrichmentWorker() {
             seriesDetails: {
               totalEpisodes: metadata.totalEpisodes ?? null,
               totalSeasons: metadata.totalSeasons ?? null,
+              episodeNumber: torrent.releaseData?.episode ?? null,
+              seasonNumber: torrent.releaseData?.season ?? null,
+              episodeTitle: metadata.episodeTitle ?? null,
             },
             contentRating: metadata.contentRating ?? null,
           };
