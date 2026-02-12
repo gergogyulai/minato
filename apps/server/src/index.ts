@@ -29,7 +29,7 @@ app.use(
 	})
 );
 
-app.on(["POST", "GET"], "/api/v1/auth/*", (c) => auth.handler(c.req.raw));
+app.all("/api/v1/auth/*", (c) => auth.handler(c.req.raw));
 
 app.route("/api/v1/feeds", feeds);
 
