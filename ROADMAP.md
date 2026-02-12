@@ -99,7 +99,7 @@ Focus on the "source of truth" and how data flows between TypeScript and Go.
     - [x] Download and manage media assets (posters, backdrops)
     - [x] Store enrichment data in dedicated table
     - [ ] Integrate with music metadata provider (MusicBrainz/Spotify)
-    - [ ] Integrate with AniList for anime content
+    - [x] Integrate with AniList for anime content
 - [ ] **Mirror Health Worker**
     - A background task that pings configured mirror lists for each site and flags which ones are currently online
 
