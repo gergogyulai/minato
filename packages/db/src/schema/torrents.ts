@@ -78,13 +78,14 @@ export const enrichments = pgTable(
   id: uuid("id").defaultRandom().primaryKey(),
   torrentInfoHash: text("torrent_info_hash")
     .notNull()
-    .unique() // Ensures 1:1
+    .unique() 
     .references(() => torrents.infoHash, {
-      onDelete: "cascade", // This deletes the enrichment when the torrent is deleted
+      onDelete: "cascade",
     }),
   mediaType: text("media_type").$type<
     "movie" | "tv" | "anime" | "music" | "book"
   >(),
+  title: text("title"),
   genres: text("genres").array(),
   posterUrl: text("poster_url"),
   backdropUrl: text("backdrop_url"),
@@ -100,8 +101,14 @@ export const enrichments = pgTable(
   anilistId: integer("anilist_id"),
   malId: integer("mal_id"),
   contentRating: varchar("content_rating", { length: 10 }),
-  totalSeasons: integer("total_seasons"),
-  totalEpisodes: integer("total_episodes"),
+  seriesDetails: jsonb("series_details").$type<{
+    seasonNumber?: number | null;
+    episodeNumber?: number | null;
+    episodeTitle?: string | null;
+    isSeasonPack?: boolean | null;
+    totalSeasons?: number | null;
+    totalEpisodes?: number | null;
+  }>(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [

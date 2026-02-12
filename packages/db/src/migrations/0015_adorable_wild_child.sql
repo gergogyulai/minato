@@ -1,0 +1,1 @@
+ALTER TABLE "enrichments" ADD COLUMN "title" text;

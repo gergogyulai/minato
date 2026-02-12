@@ -176,6 +176,7 @@ export function startEnrichmentWorker() {
             tvdbId: metadata.tvdbId ?? null,
             anilistId: metadata.anilistId ?? null,
             malId: metadata.malId ?? null,
+            title: metadata.title,
             overview: metadata.overview,
             tagline: metadata.tagline ?? null,
             releaseDate: new Date(metadata.releaseDate),
@@ -185,8 +186,10 @@ export function startEnrichmentWorker() {
             genres: metadata.genres,
             posterUrl: metadata.posterPath ? localPoster.relative : null,
             backdropUrl: metadata.backdropPath ? localBackdrop.relative : null,
-            totalSeasons: metadata.totalSeasons ?? null,
-            totalEpisodes: metadata.totalEpisodes ?? null,
+            seriesDetails: {
+              totalEpisodes: metadata.totalEpisodes ?? null,
+              totalSeasons: metadata.totalSeasons ?? null,
+            },
             contentRating: metadata.contentRating ?? null,
           };
 

@@ -33,6 +33,9 @@ export interface EnrichmentMetadata {
   // TV/Anime specific
   totalSeasons?: number | null;
   totalEpisodes?: number | null;
+  seasonNumber?: number | null;
+  episodeNumber?: number | null;
+  episodeTitle?: string | null;
 }
 
 export function getAssetId(metadata: EnrichmentMetadata): string {
