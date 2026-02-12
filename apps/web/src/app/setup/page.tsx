@@ -36,10 +36,10 @@ const formSchema = z.object({
 export default function SignupPage() {
   const form = useForm({
     defaultValues: {
-      name: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
+      name: "testuser1",
+      email: "testuser1@example.com",
+      password: "123456789987654321",
+      confirmPassword: "123456789987654321",
     },
     validators: {
       onChange: formSchema,

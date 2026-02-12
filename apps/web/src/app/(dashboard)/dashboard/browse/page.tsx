@@ -1,7 +1,7 @@
 import { TorrentTable } from "@/components/torrent-table";
 
 export default async function DashboardPage() {
-  const torrents = await fetch("http://localhost:3000/api/torrents").then(res => res.json());
+  const torrents = await fetch("http://localhost:3000/api/v1/search/torrents").then(res => res.json());
 
   return (
     <div className="p-4">
