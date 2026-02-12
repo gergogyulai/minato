@@ -1,5 +1,4 @@
-"use client";
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 
 import { ModeToggle } from "./mode-toggle";
 import UserMenu from "./user-menu";
@@ -16,7 +15,7 @@ export default function Header() {
         <nav className="flex gap-4 text-lg">
           {links.map(({ to, label }) => {
             return (
-              <Link key={to} href={to}>
+              <Link key={to} to={to}>
                 {label}
               </Link>
             );
