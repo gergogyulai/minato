@@ -11,8 +11,8 @@ interface IngestJobData {
   infoHash: string;
 }
 
-const INGEST_BATCH_SIZE = 50;
-const INGEST_BATCH_TIMEOUT = 3000; // 3 seconds
+const INGEST_BATCH_SIZE = 500;
+const INGEST_BATCH_TIMEOUT = 5000; // 3 seconds
 
 export function startIngestWorker() {
   const meiliBatcher = new MeiliBatcher(

@@ -33,8 +33,8 @@ interface EnrichJobData {
   infoHash: string;
 }
 
-const ENRICH_BATCH_SIZE = 20;
-const ENRICH_BATCH_TIMEOUT = 5000; // 5 seconds
+const ENRICH_BATCH_SIZE = 50;
+const ENRICH_BATCH_TIMEOUT = 3000; // 3 seconds
 
 export function startEnrichmentWorker() {
   const meiliBatcher = new MeiliBatcher(
