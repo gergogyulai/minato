@@ -1,4 +1,4 @@
-// import type { AppRouterClient } from "@project-minato/api/routers/index";
+import type { AppRouterClient } from "@project-minato/api/routers";
 
 import { env } from "@project-minato/env/web";
 import { createORPCClient } from "@orpc/client";
@@ -29,7 +29,7 @@ export const link = new RPCLink({
     });
   },
 });
-// type this as AppRouterClient
-export const client = createORPCClient(link);
+
+export const client: AppRouterClient = createORPCClient(link);
 
 export const orpc = createTanstackQueryUtils(client);
