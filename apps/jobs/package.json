@@ -1,5 +1,5 @@
 {
-  "name": "jobs",
+  "name": "@project-minato/jobs",
   "type": "module",
   "main": "src/index.ts",
   "scripts": {

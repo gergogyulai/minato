@@ -1,5 +1,5 @@
 {
-  "name": "server",
+  "name": "@project-minato/api",
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
@@ -8,6 +8,9 @@
     "compile": "bun build --compile --minify --sourcemap --bytecode ./src/index.ts --outfile server",
     "dev": "bun run --hot src/index.ts",
     "start": "bun run dist/index.mjs"
+  },
+  "exports": {
+    "./routers": "./src/api/routers/index.ts"
   },
   "dependencies": {
     "@project-minato/auth": "workspace:*",
