@@ -9,10 +9,18 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TorrentsRouteImport } from './routes/torrents'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as TorrentsBrowseRouteImport } from './routes/torrents.browse'
+import { Route as TorrentsTorrentRouteImport } from './routes/torrents.$torrent'
 
+const TorrentsRoute = TorrentsRouteImport.update({
+  id: '/torrents',
+  path: '/torrents',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -28,39 +36,85 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TorrentsBrowseRoute = TorrentsBrowseRouteImport.update({
+  id: '/browse',
+  path: '/browse',
+  getParentRoute: () => TorrentsRoute,
+} as any)
+const TorrentsTorrentRoute = TorrentsTorrentRouteImport.update({
+  id: '/$torrent',
+  path: '/$torrent',
+  getParentRoute: () => TorrentsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/torrents': typeof TorrentsRouteWithChildren
+  '/torrents/$torrent': typeof TorrentsTorrentRoute
+  '/torrents/browse': typeof TorrentsBrowseRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/torrents': typeof TorrentsRouteWithChildren
+  '/torrents/$torrent': typeof TorrentsTorrentRoute
+  '/torrents/browse': typeof TorrentsBrowseRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/torrents': typeof TorrentsRouteWithChildren
+  '/torrents/$torrent': typeof TorrentsTorrentRoute
+  '/torrents/browse': typeof TorrentsBrowseRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/login'
+  fullPaths:
+    | '/'
+    | '/dashboard'
+    | '/login'
+    | '/torrents'
+    | '/torrents/$torrent'
+    | '/torrents/browse'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/login'
-  id: '__root__' | '/' | '/dashboard' | '/login'
+  to:
+    | '/'
+    | '/dashboard'
+    | '/login'
+    | '/torrents'
+    | '/torrents/$torrent'
+    | '/torrents/browse'
+  id:
+    | '__root__'
+    | '/'
+    | '/dashboard'
+    | '/login'
+    | '/torrents'
+    | '/torrents/$torrent'
+    | '/torrents/browse'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
   LoginRoute: typeof LoginRoute
+  TorrentsRoute: typeof TorrentsRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/torrents': {
+      id: '/torrents'
+      path: '/torrents'
+      fullPath: '/torrents'
+      preLoaderRoute: typeof TorrentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -82,13 +136,42 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/torrents/browse': {
+      id: '/torrents/browse'
+      path: '/browse'
+      fullPath: '/torrents/browse'
+      preLoaderRoute: typeof TorrentsBrowseRouteImport
+      parentRoute: typeof TorrentsRoute
+    }
+    '/torrents/$torrent': {
+      id: '/torrents/$torrent'
+      path: '/$torrent'
+      fullPath: '/torrents/$torrent'
+      preLoaderRoute: typeof TorrentsTorrentRouteImport
+      parentRoute: typeof TorrentsRoute
+    }
   }
 }
+
+interface TorrentsRouteChildren {
+  TorrentsTorrentRoute: typeof TorrentsTorrentRoute
+  TorrentsBrowseRoute: typeof TorrentsBrowseRoute
+}
+
+const TorrentsRouteChildren: TorrentsRouteChildren = {
+  TorrentsTorrentRoute: TorrentsTorrentRoute,
+  TorrentsBrowseRoute: TorrentsBrowseRoute,
+}
+
+const TorrentsRouteWithChildren = TorrentsRoute._addFileChildren(
+  TorrentsRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
   LoginRoute: LoginRoute,
+  TorrentsRoute: TorrentsRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
