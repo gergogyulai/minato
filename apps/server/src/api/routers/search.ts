@@ -9,7 +9,7 @@ export const searchRouter = {
 
     // Parse the query string to extract filters and directives
     // TODO: Pass dynamic directives (source names) from DB if available
-    const parsed = parseMinatoQuery(input.q);
+    const parsed = parseMinatoQuery(input.q, []);
 
     // Build filter string
     const filters: string[] = [];

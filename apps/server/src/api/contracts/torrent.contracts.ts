@@ -42,6 +42,17 @@ export const getContract = publicProcedure
     }),
   );
 
+export const getCountContract = publicProcedure
+  .route({
+    method: "GET",
+    path: "/torrents/count",
+    summary: "Get total torrent count",
+    description: "Retrieve the total number of torrents in the database.",
+    tags: ["torrents"],
+  })
+  .input(z.void())
+  .output(z.object({ count: z.number() }));
+
 export const ingestContract = publicProcedure
   .route({
     method: "POST",

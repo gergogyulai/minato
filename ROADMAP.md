@@ -109,12 +109,12 @@ Focus on the "source of truth" and how data flows between TypeScript and Go.
 
 A modern UI to visualize the massive amount of data being indexed.
 - [ ] **Search Interface**
-    - [ ] Build a high-performance search bar using TanStack Query
-    - [ ] Implement "Instant Search" as the user types, hitting the Meilisearch endpoint
-    - [ ] Advanced filters (resolution, codec, year, genre, etc.)
+    - [x] Build a high-performance search bar using TanStack Query
+    - [x] Implement "Instant Search" as the user types, hitting the Meilisearch endpoint
+    - [x] Advanced filters (resolution, codec, year, genre, etc.)
     - [ ] Result pagination and sorting
 - [ ] **Torrent Details View**
-    - [ ] Display enriched metadata (poster, overview, ratings)
+    - [x] Display enriched metadata (poster, overview, ratings)
     - [ ] Show file lists and sizes
     - [ ] Display source tracking (which scrapers found this torrent)
     - [ ] Magnet link and download options

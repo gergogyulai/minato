@@ -15,6 +15,7 @@ import {
   updateContract,
   deleteContract,
   getContract,
+  getCountContract,
 } from "../contracts/torrent.contracts";
 
 export const torrentRouter = {
@@ -35,6 +36,16 @@ export const torrentRouter = {
     }
 
     return torrent as any;
+  }),
+
+  getCount: getCountContract.handler(async () => {
+    const result = await db
+      .select({ count: sql<number>`cast(count(*) as integer)` })
+      .from(torrents);
+
+    return {
+      count: result[0]?.count ?? 0,
+    };
   }),
 
   ingest: ingestContract.handler(async ({ input, context }) => {
