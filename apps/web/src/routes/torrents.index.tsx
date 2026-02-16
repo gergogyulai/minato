@@ -1,32 +1,89 @@
 import { orpc } from "@/utils/orpc";
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { formatBytesString } from "@/lib/utils";
+import { z } from "zod";
+
+const torrentsSearchSchema = z.object({
+  q: z.string().optional().default(""),
+  type: z.string().optional(),
+  resolution: z.string().optional(),
+  genres: z.string().optional(),
+  yearMin: z.string().optional(),
+  yearMax: z.string().optional(),
+  sizeMin: z.string().optional(),
+  sizeMax: z.string().optional(),
+  seeders: z.string().optional(),
+});
 
 export const Route = createFileRoute("/torrents/")({
   component: TorrentBrowseComponent,
+  validateSearch: torrentsSearchSchema,
 });
 
 function TorrentBrowseComponent() {
-  const [searchQuery, setSearchQuery] = useState("breaking bad");
+  const navigate = useNavigate();
+  const searchParams = Route.useSearch();
+  const [searchQuery, setSearchQuery] = useState(searchParams.q || "");
+
+  // Update local search query when URL params change
+  useEffect(() => {
+    setSearchQuery(searchParams.q || "");
+  }, [searchParams.q]);
+
+  // Build API query input from URL search params
+  const buildQueryInput = () => {
+    const input: any = {
+      q: searchParams.q || "",
+    };
+
+    if (searchParams.type) {
+      input.type = searchParams.type.split(",");
+    }
+    if (searchParams.resolution) {
+      input.resolution = searchParams.resolution.split(",");
+    }
+    if (searchParams.genres) {
+      input.genres = searchParams.genres.split(",");
+    }
+    if (searchParams.yearMin || searchParams.yearMax) {
+      input.year = {
+        min: searchParams.yearMin ? parseInt(searchParams.yearMin) : undefined,
+        max: searchParams.yearMax ? parseInt(searchParams.yearMax) : undefined,
+      };
+    }
+    if (searchParams.sizeMin || searchParams.sizeMax) {
+      input.size = {
+        min: searchParams.sizeMin ? parseInt(searchParams.sizeMin) : undefined,
+        max: searchParams.sizeMax ? parseInt(searchParams.sizeMax) : undefined,
+      };
+    }
+    if (searchParams.seeders) {
+      input.seeders = parseInt(searchParams.seeders);
+    }
+
+    return input;
+  };
 
   const torrents = useQuery(
     orpc.search.searchTorrents.queryOptions({
-      input: {
-        q: searchQuery,
-      },
+      input: buildQueryInput(),
     }),
   );
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    // Query will automatically refetch when searchQuery changes
+    // Update URL search params with new query
+    navigate({
+      to: "/torrents",
+      search: { q: searchQuery },
+    });
   };
 
   return (

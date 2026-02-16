@@ -8,12 +8,29 @@ import { ArrowLeft, Download, Calendar, Users, HardDrive, Magnet } from "lucide-
 import { formatBytesString, formatDate } from "@/lib/utils";
 
 export const Route = createFileRoute("/torrents/$torrent")({
+  loader: async ({ params, context: { queryClient } }) => {
+    const { torrent: infoHash } = params;
+
+    try {
+      return await queryClient.ensureQueryData(
+        orpc.torrents.get.queryOptions({
+          input: {
+            infoHash,
+          },
+        }),
+      );
+    } catch (error) {
+      // Return null to let the component handle the not found state
+      return null;
+    }
+  },
   component: TorrentDetailComponent,
 });
 
 function TorrentDetailComponent() {
   const { torrent: infoHash } = Route.useParams();
 
+  // This will now read from the loader cache instantly
   const torrent = useQuery(
     orpc.torrents.get.queryOptions({
       input: {
@@ -52,6 +69,33 @@ function TorrentDetailComponent() {
   }
 
   const data = torrent.data;
+
+  if (!data) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Link to="/torrents">
+          <Button variant="outline" className="mb-6">
+            <ArrowLeft className="mr-2 size-4" />
+            Back to Browse
+          </Button>
+        </Link>
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+            <Magnet className="size-16 text-muted-foreground mb-4" />
+            <h2 className="text-2xl font-semibold mb-2">Torrent Not Found</h2>
+            <p className="text-muted-foreground mb-6 max-w-md">
+              The torrent you're looking for doesn't exist or has been removed from the database.
+            </p>
+            <Link to="/torrents">
+              <Button>
+                Browse Torrents
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
