@@ -4,7 +4,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download, Calendar, Users, HardDrive } from "lucide-react";
+import { ArrowLeft, Download, Calendar, Users, HardDrive, Magnet } from "lucide-react";
 
 export const Route = createFileRoute("/torrents/$torrent")({
   component: TorrentDetailComponent,
@@ -34,7 +34,7 @@ function TorrentDetailComponent() {
   if (torrent.isError) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <Link to="/torrents/browse">
+        <Link to="/torrents">
           <Button variant="outline" className="mb-4">
             <ArrowLeft className="mr-2 size-4" />
             Back to Browse
@@ -54,7 +54,7 @@ function TorrentDetailComponent() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <Link to="/torrents/browse">
+      <Link to="/torrents">
         <Button variant="outline" className="mb-6">
           <ArrowLeft className="mr-2 size-4" />
           Back to Browse
@@ -67,8 +67,13 @@ function TorrentDetailComponent() {
           <CardHeader>
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
-                <CardTitle className="text-2xl mb-2">
+                <CardTitle className="text-2xl mb-2 flex flex-col">
                   {data?.enrichment?.title || data?.trackerTitle || "Untitled Torrent"}
+                  {data?.trackerTitle && (
+                    <span className="text-sm text-muted-foreground mt-1">
+                      {data.trackerTitle}
+                    </span>
+                  )}
                 </CardTitle>
                 {data?.trackerCategory && (
                   <Badge variant="secondary" className="mb-4">
@@ -76,10 +81,12 @@ function TorrentDetailComponent() {
                   </Badge>
                 )}
               </div>
-              <Button className="gap-2">
-                <Download className="size-4" />
-                Download
-              </Button>
+              <a href={data?.magnet!} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" className="gap-2">
+                  <Download className="size-4" />
+                  Magnet Link
+                </Button>  
+              </a>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -128,14 +135,16 @@ function TorrentDetailComponent() {
                   </div>
                 </div>
               )}
-            </div>
 
-            {/* Info Hash */}
-            <div className="pt-4 border-t">
-              <p className="text-xs text-muted-foreground mb-1">Info Hash</p>
-              <code className="text-sm bg-muted px-2 py-1 rounded">
-                {data?.infoHash}
-              </code>
+              {data?.lastSeenAt && (
+                <div className="flex items-center gap-3">
+                  <Calendar className="size-5 text-muted-foreground" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Last Seen</p>
+                    <p className="font-medium">{formatDate(data.lastSeenAt)}</p>
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -154,6 +163,10 @@ function TorrentDetailComponent() {
                     {data.enrichment.overview}
                   </p>
                 </div>
+              )}
+
+              {data.enrichment.posterUrl && (
+                <img src={"http://localhost:3000/assets"+ data.enrichment.posterUrl} alt="Poster" className="w-full h-48 object-cover rounded-md" />
               )}
 
               {data.enrichment.releaseDate && (

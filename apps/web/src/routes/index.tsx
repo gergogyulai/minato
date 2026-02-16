@@ -15,12 +15,24 @@ import {
 } from "@/components/ui/sheet"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { useDebounce } from 'use-debounce';
+import { useQuery } from "@tanstack/react-query"
+import { orpc } from "@/utils/orpc"
 
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
 });
+
+// Helper function to format bytes to human-readable size
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
+}
 
 const TYPES = [
   { value: "movie", label: "Movie" },
@@ -53,6 +65,9 @@ export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [showFilters, setShowFilters] = useState(false)
 
+  // Debounce the search query for instant results (300ms delay)
+  const [debouncedSearchQuery] = useDebounce(searchQuery, 300)
+
   // Filter states matching API contract
   const [types, setTypes] = useState<string[]>([])
   const [resolutions, setResolutions] = useState<string[]>([])
@@ -63,12 +78,16 @@ export default function HomePage() {
   const [sizeRange, setSizeRange] = useState<number[]>([0, 100])
   const [seedersRange, setSeedersRange] = useState<number[]>([0])
 
-  // Mock instant results
-  const [instantResults] = useState([
-    { id: 1, title: "Example Movie 2024 1080p", size: "2.5 GB", seeders: 150 },
-    { id: 2, title: "Popular Series S01E01 4K", size: "8.2 GB", seeders: 320 },
-    { id: 3, title: "Anime Collection BluRay", size: "15.8 GB", seeders: 89 },
-  ])
+  // Fetch instant results using debounced search query
+  const instantResults = useQuery(
+    orpc.search.searchTorrents.queryOptions({
+      input: {
+        q: debouncedSearchQuery,
+        limit: 5, // Only show top 5 instant results
+      },
+      enabled: debouncedSearchQuery.length > 2, // Only search if query is longer than 2 characters
+    })
+  )
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -99,6 +118,7 @@ export default function HomePage() {
     console.log("Searching with:", payload)
     // TODO: Call API with payload
   }
+
 
   return (
     <div className="flex min-h-screen flex-col items-center px-4 pt-36">
@@ -299,30 +319,44 @@ export default function HomePage() {
             {searchQuery.length > 2 && (
               <div className="space-y-3">
                 <p className="text-muted-foreground text-xs">
-                  Instant results
+                  {instantResults.isLoading ? "Searching..." : "Instant results"}
                 </p>
-                <div className="space-y-2">
-                  {instantResults.map((result) => (
-                    <Card
-                      key={result.id}
-                      className="hover:bg-muted/50 cursor-pointer transition-colors"
-                    >
-                      <CardContent className="flex items-center justify-between p-4">
-                        <div className="flex-1 min-w-0">
-                          <CardTitle className="text-sm font-medium truncate">
-                            {result.title}
-                          </CardTitle>
-                        </div>
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                          <span>{result.size}</span>
-                          <span className="text-green-600 dark:text-green-400">
-                            ↑ {result.seeders}
-                          </span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                {instantResults.isError && (
+                  <p className="text-destructive text-sm">
+                    Error loading results. Please try again.
+                  </p>
+                )}
+                {instantResults.data && instantResults.data.hits.length > 0 && (
+                  <div className="space-y-2">
+                    {instantResults.data.hits.map((result) => (
+                      <Link to="/torrents/$torrent" params={{ torrent: result.infoHash }} key={result.infoHash} >
+                        <Card
+                          key={result.infoHash}
+                          className="hover:bg-muted/50 cursor-pointer transition-colors"
+                        >
+                          <CardContent className="flex items-center justify-between p-4">
+                            <div className="flex-1 min-w-0">
+                              <CardTitle className="text-sm font-medium truncate">
+                                {result.trackerTitle}
+                              </CardTitle>
+                            </div>
+                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                              <span>{formatBytes(Number(result.size))}</span>
+                              <span className="text-green-600 dark:text-green-400">
+                                ↑ {result.seeders}
+                              </span>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+                {instantResults.data && instantResults.data.hits.length === 0 && !instantResults.isLoading && (
+                  <p className="text-muted-foreground text-sm">
+                    No results found
+                  </p>
+                )}
               </div>
             )}
           </div>

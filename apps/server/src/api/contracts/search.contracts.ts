@@ -1,5 +1,6 @@
 import { publicProcedure } from "..";
 import { z } from "zod";
+import type { MeiliTorrentDocument } from "@project-minato/meilisearch";
 
 export const searchTorrentsContract = publicProcedure
   .route({
@@ -44,7 +45,7 @@ export const searchTorrentsContract = publicProcedure
   )
   .output(
     z.object({
-      hits: z.array(z.any()),
+	    hits: z.array(z.custom<MeiliTorrentDocument>()),
       totalHits: z.number(),
       facetDistribution: z.any().optional(),
       processingTimeMs: z.number(),

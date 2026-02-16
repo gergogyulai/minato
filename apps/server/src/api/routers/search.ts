@@ -1,6 +1,7 @@
 import { meiliClient } from "@project-minato/meilisearch";
 import { searchTorrentsContract } from "../contracts/search.contracts";
 import { parseMinatoQuery } from "../../lib/search/parser";
+import type { MeiliTorrentDocument } from "@project-minato/meilisearch";
 
 export const searchRouter = {
   searchTorrents: searchTorrentsContract.handler(async ({ input }) => {
@@ -155,7 +156,7 @@ export const searchRouter = {
     };
 
     return {
-      hits: result.hits,
+      hits: result.hits as MeiliTorrentDocument[],
       totalHits: result.estimatedTotalHits ?? 0,
       facetDistribution: result.facetDistribution,
       processingTimeMs: result.processingTimeMs,

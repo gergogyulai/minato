@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
 import { useState } from "react";
 
-export const Route = createFileRoute("/torrents/browse")({
+export const Route = createFileRoute("/torrents/")({
   component: TorrentBrowseComponent,
 });
 
@@ -71,14 +71,14 @@ function TorrentBrowseComponent() {
           <div className="grid gap-4">
             {torrents.data?.hits.map((hit) => (
               <Link
-                key={hit.id}
+                key={hit.infoHash}
                 to="/torrents/$torrent"
                 params={{ torrent: hit.infoHash }}
                 className="block"
               >
                 <Card className="hover:bg-muted/50 cursor-pointer transition-colors">
                   <CardHeader>
-                    <CardTitle className="text-lg">{hit.title || "Untitled"}</CardTitle>
+                    <CardTitle className="text-lg">{hit.trackerTitle || "Untitled"}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="flex flex-wrap gap-2 items-center text-sm text-muted-foreground">
@@ -97,9 +97,9 @@ function TorrentBrowseComponent() {
                           ↓ {hit.leechers} leechers
                         </Badge>
                       )}
-                      {hit.category && (
+                      {hit.trackerCategory && (
                         <Badge variant="secondary">
-                          {hit.category}
+                          {hit.trackerCategory}
                         </Badge>
                       )}
                     </div>

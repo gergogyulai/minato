@@ -1,5 +1,5 @@
 import { MeiliSearch, type Index } from "meilisearch";
-import type { Torrent, TorrentWithRelations } from "@project-minato/db";
+import type { Torrent, Enrichment } from "@project-minato/db";
 
 export const meiliClient = new MeiliSearch({
   host: process.env.MEILISEARCH_HOST || "http://localhost:7700",
@@ -7,84 +7,71 @@ export const meiliClient = new MeiliSearch({
     process.env.MEILISEARCH_MASTER_KEY || "masterKey_change_me_in_production",
 });
 
-// Type that accepts both plain Torrent and TorrentWithRelations
-type TorrentDocument = Torrent | TorrentWithRelations;
+/**
+ * Meilisearch Document Type
+ * Keeps Enrichment and SeriesDetails nested exactly like the DB relations.
+ */
+export interface MeiliTorrentDocument extends Omit<Torrent, "size"> {
+  size: string;
+  sourceNames: string[];
+  enrichment?: Enrichment; // Uses the original Enrichment type including seriesDetails
+}
 
-// Helper function to flatten enrichment data for Meilisearch
-export function formatTorrentForMeilisearch(torrent: TorrentDocument): any {
-  const doc: any = {
-    ...torrent,
-    // Convert bigint to string for JSON serialization
+/**
+ * Formats a database Torrent into a nested MeiliTorrentDocument.
+ */
+export function formatTorrentForMeilisearch(
+  torrent: Torrent & { enrichment?: Enrichment | null }
+): MeiliTorrentDocument {
+  const { enrichment, ...rest } = torrent;
+
+  const doc: MeiliTorrentDocument = {
+    ...rest,
+    // Ensure BigInt is stringified for JSON/Search engine safety
     size: torrent.size.toString(),
+    // Array of scraper names for easy filtering
+    sourceNames: torrent.sources?.map((s) => s.scraper) ?? [],
   };
 
-  // Flatten sources array for filtering by scraper name
-  if (torrent.sources && Array.isArray(torrent.sources)) {
-    doc.sourceNames = torrent.sources.map((s: any) => s.scraper);
-  }
-
-  // If torrent has enrichment relation, flatten it with dot notation
-  if ("enrichment" in torrent && torrent.enrichment) {
-    const enrichment = torrent.enrichment;
-    // Remove the nested enrichment object
-    delete doc.enrichment;
-
-    // Add flattened enrichment fields with dot notation
-    doc["enrichment.title"] = enrichment.title;
-    doc["enrichment.overview"] = enrichment.overview;
-    doc["enrichment.tagline"] = enrichment.tagline;
-    doc["enrichment.year"] = enrichment.year;
-    doc["enrichment.genres"] = enrichment.genres;
-    doc["enrichment.mediaType"] = enrichment.mediaType;
-    doc["enrichment.posterUrl"] = enrichment.posterUrl;
-    doc["enrichment.backdropUrl"] = enrichment.backdropUrl;
-    doc["enrichment.releaseDate"] = enrichment.releaseDate;
-    doc["enrichment.status"] = enrichment.status;
-    doc["enrichment.runtime"] = enrichment.runtime;
-    doc["enrichment.contentRating"] = enrichment.contentRating;
-    doc["enrichment.tmdbId"] = enrichment.tmdbId;
-    doc["enrichment.imdbId"] = enrichment.imdbId;
-    doc["enrichment.tvdbId"] = enrichment.tvdbId;
-    doc["enrichment.anilistId"] = enrichment.anilistId;
-    doc["enrichment.malId"] = enrichment.malId;
-    doc["enrichment.seasonNumber"] = enrichment.seriesDetails?.seasonNumber;
-    doc["enrichment.episodeNumber"] = enrichment.seriesDetails?.episodeNumber;
-    doc["enrichment.episodeTitle"] = enrichment.seriesDetails?.episodeTitle;
-    doc["enrichment.isSeasonPack"] = enrichment.seriesDetails?.isSeasonPack;
-    doc["enrichment.totalSeasons"] = enrichment.seriesDetails?.totalSeasons;
-    doc["enrichment.totalEpisodes"] = enrichment.seriesDetails?.totalEpisodes;
+  if (enrichment) {
+    doc.enrichment = enrichment;
   }
 
   return doc;
 }
 
-export async function setupTorrentIndex(): Promise<Index<TorrentDocument>> {
+export async function setupTorrentIndex(): Promise<Index<MeiliTorrentDocument>> {
+  const indexName = "torrents";
+  
   try {
-    await meiliClient.createIndex("torrents", { primaryKey: "infoHash" });
+    await meiliClient.createIndex(indexName, { primaryKey: "infoHash" });
   } catch (e) {
-    // Index might already exist
   }
-  const index = meiliClient.index<TorrentDocument>("torrents");
 
-  // Configure searchable attributes
+  const index = meiliClient.index<MeiliTorrentDocument>(indexName);
+
+  // 1. Searchable Attributes
+  // Notice the triple-dot notation for seriesDetails: enrichment.seriesDetails.episodeTitle
   await index.updateSearchableAttributes([
-    "infoHash", // High priority for exact matches
-    "enrichment.imdbId", // Added for identifier matching
-    "enrichment.tmdbId", // Added for identifier matching
-    "enrichment.title", // Enriched title (e.g., "The Matrix")
-    "trackerTitle", // Original tracker title
-    "releaseTitle", // Parsed release title
+    "infoHash",
+    "enrichment.imdbId",
+    "enrichment.tmdbId",
+    "enrichment.title",
+    "trackerTitle",
+    "releaseTitle",
     "type",
     "group",
     "enrichment.overview",
+    "enrichment.seriesDetails.episodeTitle", 
     "enrichment.tagline",
   ]);
 
+  // 2. Filterable Attributes
   await index.updateFilterableAttributes([
     "type",
     "resolution",
     "group",
-    "sourceNames", // Array of scraper names for source filtering
+    "sourceNames",
     "seeders",
     "leechers",
     "size",
@@ -96,12 +83,13 @@ export async function setupTorrentIndex(): Promise<Index<TorrentDocument>> {
     "enrichment.mediaType",
     "enrichment.imdbId",
     "enrichment.tmdbId",
-    "enrichment.seasonNumber",
-    "enrichment.episodeNumber",
-    "enrichment.isSeasonPack",
+    // Filter by nested series properties
+    "enrichment.seriesDetails.seasonNumber",
+    "enrichment.seriesDetails.episodeNumber",
+    "enrichment.seriesDetails.isSeasonPack",
   ]);
 
-  // Configure sortable attributes
+  // 3. Sortable Attributes
   await index.updateSortableAttributes([
     "trackerTitle",
     "releaseTitle",
@@ -113,19 +101,17 @@ export async function setupTorrentIndex(): Promise<Index<TorrentDocument>> {
     "updatedAt",
   ]);
 
-  // Configure ranking rules - prioritize freshness and health
+  // 4. Ranking Rules
   await index.updateRankingRules([
-    "words", // Match words in search query first
-    "typo", // Then tolerance for typos
-    "proximity", // Then word proximity
-    "attribute", // Then attribute ranking
-    "sort", // Allow custom sorting
-    "exactness", // Then exact matches
-    "seeders:desc", // HEALTH: Prioritize torrents with more seeders
-    "createdAt:desc", // FRESHNESS: Prioritize newer torrents
+    "words",
+    "typo",
+    "proximity",
+    "attribute",
+    "sort",
+    "exactness",
+    "seeders:desc",
+    "createdAt:desc",
   ]);
-
-  // console.log("[Meilisearch] Torrent index configured successfully");
 
   return index;
 }
