@@ -15,24 +15,17 @@ import {
 } from "@/components/ui/sheet"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
 import { useDebounce } from 'use-debounce';
 import { useQuery } from "@tanstack/react-query"
 import { orpc } from "@/utils/orpc"
 
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { formatBytesString } from "@/lib/utils"
 
 export const Route = createFileRoute("/")({
   component: HomePage,
 });
-
-// Helper function to format bytes to human-readable size
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return "0 B";
-  const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB", "TB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
-}
 
 const TYPES = [
   { value: "movie", label: "Movie" },
@@ -62,7 +55,7 @@ const GENRES = [
 ]
 
 export default function HomePage() {
-  const [searchQuery, setSearchQuery] = useState("")
+  const [searchQuery, setSearchQuery] = useState("breaking bad")
   const [showFilters, setShowFilters] = useState(false)
 
   // Debounce the search query for instant results (300ms delay)
@@ -83,11 +76,13 @@ export default function HomePage() {
     orpc.search.searchTorrents.queryOptions({
       input: {
         q: debouncedSearchQuery,
-        limit: 5, // Only show top 5 instant results
+        limit: 3, // Only show top 5 instant results
       },
       enabled: debouncedSearchQuery.length > 2, // Only search if query is longer than 2 characters
     })
   )
+
+  // instantResults.isLoading = true
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -318,16 +313,30 @@ export default function HomePage() {
             {/* Instant Results */}
             {searchQuery.length > 2 && (
               <div className="space-y-3">
-                <p className="text-muted-foreground text-xs">
-                  {instantResults.isLoading ? "Searching..." : "Instant results"}
-                </p>
                 {instantResults.isError && (
                   <p className="text-destructive text-sm">
                     Error loading results. Please try again.
                   </p>
                 )}
-                {instantResults.data && instantResults.data.hits.length > 0 && (
-                  <div className="space-y-2">
+                {instantResults.isLoading && (
+                  <div className="flex flex-col gap-2">
+                    {[...Array(3)].map((_, i) => (
+                      <Card key={i} className="cursor-pointer">
+                        <CardContent className="flex items-center justify-between p-4">
+                          <div className="flex-1 min-w-0">
+                            <Skeleton className="h-5 w-full max-w-md" />
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <Skeleton className="h-4 w-16" />
+                            <Skeleton className="h-4 w-12" />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+                {instantResults.data && instantResults.data.hits.length > 0 && !instantResults.isLoading && (
+                  <div className="flex flex-col gap-2">
                     {instantResults.data.hits.map((result) => (
                       <Link to="/torrents/$torrent" params={{ torrent: result.infoHash }} key={result.infoHash} >
                         <Card
@@ -341,7 +350,7 @@ export default function HomePage() {
                               </CardTitle>
                             </div>
                             <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                              <span>{formatBytes(Number(result.size))}</span>
+                              <span>{formatBytesString(result.size)}</span>
                               <span className="text-green-600 dark:text-green-400">
                                 ↑ {result.seeders}
                               </span>

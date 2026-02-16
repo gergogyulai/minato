@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download, Calendar, Users, HardDrive, Magnet } from "lucide-react";
+import { formatBytesString, formatDate } from "@/lib/utils";
 
 export const Route = createFileRoute("/torrents/$torrent")({
   component: TorrentDetailComponent,
@@ -97,7 +98,7 @@ function TorrentDetailComponent() {
                   <HardDrive className="size-5 text-muted-foreground" />
                   <div>
                     <p className="text-xs text-muted-foreground">Size</p>
-                    <p className="font-medium">{formatBytes(data.size)}</p>
+                    <p className="font-medium">{formatBytesString(data.size.toString())}</p>
                   </div>
                 </div>
               )}
@@ -252,21 +253,4 @@ function TorrentDetailComponent() {
       </div>
     </div>
   );
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return "0 B";
-  const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB", "TB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
-}
-
-function formatDate(dateString: string | Date): string {
-  const date = new Date(dateString);
-  return date.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
 }

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
 import { useState } from "react";
+import { formatBytesString } from "@/lib/utils";
 
 export const Route = createFileRoute("/torrents/")({
   component: TorrentBrowseComponent,
@@ -32,7 +33,7 @@ function TorrentBrowseComponent() {
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
         <h1 className="text-4xl font-bold mb-4">Browse Torrents</h1>
-        
+
         <form onSubmit={handleSearch} className="flex gap-2 max-w-2xl">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground size-4" />
@@ -78,29 +79,33 @@ function TorrentBrowseComponent() {
               >
                 <Card className="hover:bg-muted/50 cursor-pointer transition-colors">
                   <CardHeader>
-                    <CardTitle className="text-lg">{hit.trackerTitle || "Untitled"}</CardTitle>
+                    <CardTitle className="text-lg">
+                      {hit.trackerTitle || "Untitled"}
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="flex flex-wrap gap-2 items-center text-sm text-muted-foreground">
                       {hit.size && (
-                        <Badge variant="outline">
-                          {formatBytes(hit.size)}
-                        </Badge>
+                        <Badge variant="outline">{formatBytesString(hit.size)}</Badge>
                       )}
                       {hit.seeders !== undefined && (
-                        <Badge variant="outline" className="text-green-600 dark:text-green-400">
+                        <Badge
+                          variant="outline"
+                          className="text-green-600 dark:text-green-400"
+                        >
                           ↑ {hit.seeders} seeders
                         </Badge>
                       )}
                       {hit.leechers !== undefined && (
-                        <Badge variant="outline" className="text-red-600 dark:text-red-400">
+                        <Badge
+                          variant="outline"
+                          className="text-red-600 dark:text-red-400"
+                        >
                           ↓ {hit.leechers} leechers
                         </Badge>
                       )}
                       {hit.trackerCategory && (
-                        <Badge variant="secondary">
-                          {hit.trackerCategory}
-                        </Badge>
+                        <Badge variant="secondary">{hit.trackerCategory}</Badge>
                       )}
                     </div>
                   </CardContent>
@@ -112,12 +117,4 @@ function TorrentBrowseComponent() {
       )}
     </div>
   );
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return "0 B";
-  const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB", "TB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
 }
