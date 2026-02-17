@@ -30,6 +30,7 @@ import { orpc } from "@/utils/orpc";
 
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { formatBytesString } from "@/lib/utils";
+import { tr } from "zod/v4/locales";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -96,8 +97,6 @@ export default function HomePage() {
     }),
   );
 
-  // instantResults.isLoading = true
-
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -135,8 +134,8 @@ export default function HomePage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center px-4 pt-24 sm:pt-32">
-      <div className="w-full max-w-5xl space-y-12">
+    <div className="flex min-h-screen flex-col items-center px-4 pt-24 sm:pt-32 overflow-x-hidden">
+      <div className="w-full max-w-5xl space-y-12 min-w-0">
         {/* Hero Section */}
         <div className="space-y-6 text-center">
           <div className="space-y-3">
@@ -362,24 +361,24 @@ export default function HomePage() {
 
             {/* Instant Results */}
             {searchQuery.length > 2 && (
-              <div className="space-y-3 animate-in fade-in-50 duration-300">
-                <div className="flex items-center justify-between px-1">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-base font-semibold">Instant Results</h2>
+              <div className="space-y-3 animate-in fade-in-50 duration-300 overflow-x-hidden">
+                <div className="flex items-center justify-between px-1 min-w-0 gap-2">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <h2 className="text-base font-semibold truncate">Instant Results</h2>
                     {instantResults.data && (
-                      <Badge variant="secondary" className="font-mono text-xs">
+                      <Badge variant="secondary" className="font-mono text-xs shrink-0">
                         {instantResults.data.totalHits} hits
                       </Badge>
                     )}
                   </div>
                   {instantResults.data && (
-                    <span className="text-xs text-muted-foreground font-mono">
+                    <span className="text-xs text-muted-foreground font-mono shrink-0">
                       {instantResults.data.processingTimeMs}ms
                     </span>
                   )}
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2 overflow-x-hidden">
                   {instantResults.isError && (
                     <div className="border-2 border-destructive/50 bg-destructive/5 rounded-lg p-4">
                       <p className="text-destructive text-sm font-medium">
@@ -391,27 +390,31 @@ export default function HomePage() {
                   {instantResults.isLoading && (
                     <div className="flex flex-col gap-2">
                       {[...Array(3)].map((_, i) => (
-                        <div
-                          key={i}
-                          className="border-2 rounded-lg p-3 bg-card"
-                        >
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                              <Skeleton className="h-5 w-full max-w-md" />
-                              <Skeleton className="h-4 w-12 shrink-0" />
-                              <Skeleton className="h-4 w-12 shrink-0" />
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <Skeleton className="h-4 w-16" />
-                                <Skeleton className="h-4 w-12" />
-                                <Skeleton className="h-4 w-12" />
-                                <Skeleton className="h-4 w-12" />
-                              </div>
-                              <Skeleton className="h-4 w-24" />
-                            </div>
+                      <div
+                        key={i}
+                        className="border-2 rounded-lg p-3 bg-card"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0 space-y-2">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                          <Skeleton className="h-5 w-full sm:w-72" />
+                          <Skeleton className="h-4 w-24 sm:ml-auto" />
+                          </div>
+                          <div className="flex flex-col sm:flex-row gap-2">
+                          <div className="flex items-center gap-2 sm:gap-3 text-xs flex-wrap">
+                            <Skeleton className="h-4 w-16" />
+                            <Skeleton className="h-4 w-12" />
+                            <Skeleton className="h-4 w-12" />
+                          </div>
+                          <div className="flex items-center gap-2 sm:gap-3 text-xs flex-wrap">
+                            <Skeleton className="h-4 w-12" />
+                            <Skeleton className="h-4 w-16" />
+                            <Skeleton className="h-4 w-20" />
+                          </div>
                           </div>
                         </div>
+                        </div>
+                      </div>
                       ))}
                     </div>
                   )}
@@ -419,112 +422,119 @@ export default function HomePage() {
                   {instantResults.data &&
                     instantResults.data.hits.length > 0 &&
                     !instantResults.isLoading && (
-                      <div className="flex flex-col gap-2">
+                      <div className="flex flex-col gap-2 min-w-0">
                         {instantResults.data.hits.map((result) => (
                           <Link
                             to="/torrents/$torrent"
                             params={{ torrent: result.infoHash }}
                             key={result.infoHash}
-                            className="block"
+                            className="block min-w-0"
                           >
-                            <div className="group border-2 rounded-lg p-3 bg-card hover:bg-accent/50 hover:border-accent-foreground/20 cursor-pointer transition-all duration-200 hover:shadow-lg sm:hover:scale-[1.01]">
-                              <div className="flex items-start justify-between gap-4">
-                                {/* Left side: Main content */}
+                            <div className="group border-2 rounded-lg p-3 bg-card hover:bg-accent/50 hover:border-accent-foreground/20 cursor-pointer transition-all duration-200 hover:shadow-lg sm:hover:scale-[1.01] overflow-hidden">
+                              <div className="flex items-start gap-4 min-w-0">
+                                {/* Main content */}
                                 <div className="flex-1 min-w-0 space-y-2">
-                                  {/* Row 1: Title and Badges */}
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <h3 className="text-sm font-semibold line-clamp-1 flex-1 min-w-0">
+                                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 min-w-0">
+                                    <h3 className="text-sm font-semibold line-clamp-2 sm:line-clamp-1 flex-1 min-w-0 overflow-hidden wrap-break-word">
                                       {result.trackerTitle}
                                     </h3>
-                                    <div className="flex items-center gap-1.5 shrink-0">
-                                      {result.type && (
-                                        <Badge
-                                          variant="secondary"
-                                          className="text-[10px] leading-none px-1.5 py-0.5 h-4"
-                                        >
-                                          {result.type}
-                                        </Badge>
+                                    {result.sourceNames &&
+                                      result.sourceNames.length > 0 && (
+                                        <span className="font-mono text-xs text-muted-foreground shrink-0 truncate max-w-full sm:max-w-none">
+                                          {result.sourceNames.join(", ")}
+                                        </span>
                                       )}
-                                      {result.resolution && (
-                                        <Badge
-                                          variant="outline"
-                                          className="text-[10px] leading-none px-1.5 py-0.5 h-4"
-                                        >
-                                          {result.resolution}
-                                        </Badge>
-                                      )}
-                                    </div>
                                   </div>
 
-                                  {/* Row 2: Stats */}
-                                  <div className="flex items-center gap-3 text-xs flex-wrap">
-                                    <div
-                                      className="flex items-center gap-1"
-                                      title="Size"
-                                    >
-                                      <HardDrive className="size-3.5 text-muted-foreground" />
-                                      <span className="font-medium">
-                                        {formatBytesString(result.size)}
-                                      </span>
+                                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 min-w-0">
+                                    <div className="flex items-center gap-2 sm:gap-3 text-xs flex-wrap min-w-0">
+                                      <div
+                                        className="flex items-center gap-1"
+                                        title="Size"
+                                      >
+                                        <HardDrive className="size-3.5 text-muted-foreground" />
+                                        <span className="font-medium">
+                                          {formatBytesString(result.size)}
+                                        </span>
+                                      </div>
+                                      <div
+                                        className="flex items-center gap-1"
+                                        title="Seeders"
+                                      >
+                                        <ArrowUp className="size-3.5 text-green-600 dark:text-green-400" />
+                                        <span className="font-medium text-green-600 dark:text-green-400">
+                                          {result.seeders}
+                                        </span>
+                                      </div>
+                                      <div
+                                        className="flex items-center gap-1"
+                                        title="Leechers"
+                                      >
+                                        <ArrowDown className="size-3.5 text-rose-600 dark:text-rose-400" />
+                                        <span className="font-medium text-rose-600 dark:text-rose-400">
+                                          {result.leechers ?? 0}
+                                        </span>
+                                      </div>
+                                      {result.files &&
+                                        result.files.length > 0 && (
+                                          <div
+                                            className="flex items-center gap-1"
+                                            title={`${result.files.length} files`}
+                                          >
+                                            <FileText className="size-3.5 text-muted-foreground" />
+                                            <span className="font-medium">
+                                              {result.files.length}
+                                            </span>
+                                          </div>
+                                        )}
                                     </div>
-                                    <div
-                                      className="flex items-center gap-1"
-                                      title="Seeders"
-                                    >
-                                      <ArrowUp className="size-3.5 text-green-600 dark:text-green-400" />
-                                      <span className="font-medium text-green-600 dark:text-green-400">
-                                        {result.seeders}
-                                      </span>
-                                    </div>
-                                    <div
-                                      className="flex items-center gap-1"
-                                      title="Leechers"
-                                    >
-                                      <ArrowDown className="size-3.5 text-amber-600 dark:text-amber-400" />
-                                      <span className="font-medium text-amber-600 dark:text-amber-400">
-                                        {result.leechers ?? 0}
-                                      </span>
-                                    </div>
-                                    {result.files &&
-                                      result.files.length > 0 && (
+                                    <div className="flex items-center gap-2 sm:gap-3 text-xs flex-wrap min-w-0">
+                                      <div className="flex items-center gap-1.5 min-w-0">
+                                        {result.type && (
+                                          <Badge
+                                            variant="secondary"
+                                            className="text-[10px] leading-none px-1.5 py-0.5 h-4"
+                                          >
+                                            {result.type}
+                                          </Badge>
+                                        )}
+                                        {result.resolution && (
+                                          <Badge
+                                            variant="outline"
+                                            className="text-[10px] leading-none px-1.5 py-0.5 h-4"
+                                          >
+                                            {result.resolution}
+                                          </Badge>
+                                        )}
+                                      </div>
+                                      {(result.publishedAt ||
+                                        result.createdAt) && (
                                         <div
                                           className="flex items-center gap-1"
-                                          title={`${result.files.length} files`}
+                                          title="Published date"
                                         >
-                                          <FileText className="size-3.5 text-muted-foreground" />
-                                          <span className="font-medium">
-                                            {result.files.length}
+                                          <Calendar className="size-3.5" />
+                                          <span className="whitespace-nowrap">
+                                            {new Date(
+                                              result.publishedAt ||
+                                                result.createdAt,
+                                            ).toLocaleDateString(undefined, {
+                                              month: "short",
+                                              day: "numeric",
+                                              year:
+                                                new Date(
+                                                  result.publishedAt ||
+                                                    result.createdAt,
+                                                ).getFullYear() !==
+                                                new Date().getFullYear()
+                                                  ? "numeric"
+                                                  : undefined,
+                                            })}
                                           </span>
                                         </div>
                                       )}
-                                  </div>
-                                </div>
-
-                                {/* Right side: Metadata */}
-                                <div className="flex flex-col items-end gap-1.5 text-xs text-muted-foreground shrink-0">
-                                  {result.sourceNames &&
-                                    result.sourceNames.length > 0 && (
-                                      <span className="font-medium">
-                                        {result.sourceNames.join(", ")}
-                                      </span>
-                                    )}
-                                  {result.publishedAt && (
-                                    <div
-                                      className="flex items-center gap-1"
-                                      title="Published date"
-                                    >
-                                      <Calendar className="size-3.5" />
-                                      <span>
-                                        {new Date(
-                                          result.publishedAt,
-                                        ).toLocaleDateString(undefined, {
-                                          month: "short",
-                                          day: "numeric",
-                                          year: "2-digit",
-                                        })}
-                                      </span>
                                     </div>
-                                  )}
+                                  </div>
                                 </div>
                               </div>
                             </div>
