@@ -5,6 +5,7 @@ import { protectedProcedure } from "../index";
 import { torrentRouter } from "./torrents";
 import { blacklistRouter } from "./blacklist";
 import { searchRouter } from "./search";
+import { setupRouter } from "./setup";
 
 export const appRouter = {
   privateData: protectedProcedure.handler(({ context }) => {
@@ -16,6 +17,7 @@ export const appRouter = {
   torrents: torrentRouter,
   blacklist: blacklistRouter,
   search: searchRouter,
+  setup: setupRouter,
 };
 export type AppRouter = typeof appRouter;
 export type AppRouterClient = RouterClient<typeof appRouter>;
