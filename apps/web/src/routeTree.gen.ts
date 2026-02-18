@@ -10,15 +10,22 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TorrentsRouteImport } from './routes/torrents'
+import { Route as SetupRouteImport } from './routes/setup'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TorrentsIndexRouteImport } from './routes/torrents.index'
+import { Route as SetupIndexRouteImport } from './routes/setup.index'
 import { Route as TorrentsTorrentRouteImport } from './routes/torrents.$torrent'
 
 const TorrentsRoute = TorrentsRouteImport.update({
   id: '/torrents',
   path: '/torrents',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SetupRoute = SetupRouteImport.update({
+  id: '/setup',
+  path: '/setup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -41,6 +48,11 @@ const TorrentsIndexRoute = TorrentsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => TorrentsRoute,
 } as any)
+const SetupIndexRoute = SetupIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => SetupRoute,
+} as any)
 const TorrentsTorrentRoute = TorrentsTorrentRouteImport.update({
   id: '/$torrent',
   path: '/$torrent',
@@ -51,8 +63,10 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/setup': typeof SetupRouteWithChildren
   '/torrents': typeof TorrentsRouteWithChildren
   '/torrents/$torrent': typeof TorrentsTorrentRoute
+  '/setup/': typeof SetupIndexRoute
   '/torrents/': typeof TorrentsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -60,6 +74,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/torrents/$torrent': typeof TorrentsTorrentRoute
+  '/setup': typeof SetupIndexRoute
   '/torrents': typeof TorrentsIndexRoute
 }
 export interface FileRoutesById {
@@ -67,8 +82,10 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/setup': typeof SetupRouteWithChildren
   '/torrents': typeof TorrentsRouteWithChildren
   '/torrents/$torrent': typeof TorrentsTorrentRoute
+  '/setup/': typeof SetupIndexRoute
   '/torrents/': typeof TorrentsIndexRoute
 }
 export interface FileRouteTypes {
@@ -77,18 +94,28 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/login'
+    | '/setup'
     | '/torrents'
     | '/torrents/$torrent'
+    | '/setup/'
     | '/torrents/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/login' | '/torrents/$torrent' | '/torrents'
+  to:
+    | '/'
+    | '/dashboard'
+    | '/login'
+    | '/torrents/$torrent'
+    | '/setup'
+    | '/torrents'
   id:
     | '__root__'
     | '/'
     | '/dashboard'
     | '/login'
+    | '/setup'
     | '/torrents'
     | '/torrents/$torrent'
+    | '/setup/'
     | '/torrents/'
   fileRoutesById: FileRoutesById
 }
@@ -96,6 +123,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
   LoginRoute: typeof LoginRoute
+  SetupRoute: typeof SetupRouteWithChildren
   TorrentsRoute: typeof TorrentsRouteWithChildren
 }
 
@@ -106,6 +134,13 @@ declare module '@tanstack/react-router' {
       path: '/torrents'
       fullPath: '/torrents'
       preLoaderRoute: typeof TorrentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/setup': {
+      id: '/setup'
+      path: '/setup'
+      fullPath: '/setup'
+      preLoaderRoute: typeof SetupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -136,6 +171,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TorrentsIndexRouteImport
       parentRoute: typeof TorrentsRoute
     }
+    '/setup/': {
+      id: '/setup/'
+      path: '/'
+      fullPath: '/setup/'
+      preLoaderRoute: typeof SetupIndexRouteImport
+      parentRoute: typeof SetupRoute
+    }
     '/torrents/$torrent': {
       id: '/torrents/$torrent'
       path: '/$torrent'
@@ -145,6 +187,16 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface SetupRouteChildren {
+  SetupIndexRoute: typeof SetupIndexRoute
+}
+
+const SetupRouteChildren: SetupRouteChildren = {
+  SetupIndexRoute: SetupIndexRoute,
+}
+
+const SetupRouteWithChildren = SetupRoute._addFileChildren(SetupRouteChildren)
 
 interface TorrentsRouteChildren {
   TorrentsTorrentRoute: typeof TorrentsTorrentRoute
@@ -164,6 +216,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
   LoginRoute: LoginRoute,
+  SetupRoute: SetupRouteWithChildren,
   TorrentsRoute: TorrentsRouteWithChildren,
 }
 export const routeTree = rootRouteImport
