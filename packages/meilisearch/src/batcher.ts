@@ -1,4 +1,4 @@
-import { meiliClient } from "@project-minato/meilisearch";
+import { meiliClient } from "./client";
 
 /**
  * A utility class to batch document additions to Meilisearch.

@@ -2,12 +2,8 @@
   "name": "@project-minato/meilisearch",
   "type": "module",
   "exports": {
-    ".": {
-      "default": "./src/index.ts"
-    },
-    "./*": {
-      "default": "./src/*.ts"
-    }
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
   },
   "scripts": {
     "meilisearch:start": "docker compose up -d",
