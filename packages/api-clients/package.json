@@ -1,0 +1,18 @@
+{
+  "name": "@project-minato/api-clients",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@project-minato/config": "workspace:*",
+    "@types/bun": "latest",
+    "typescript": "catalog:"
+  }
+}
