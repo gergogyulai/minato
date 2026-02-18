@@ -52,6 +52,8 @@ coverage
 tmp
 temp
 
+# Generated files
+routeTree.gen.ts
 
 ## Local development things
 /knaben.ts
