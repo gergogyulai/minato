@@ -18,6 +18,7 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+
   redis:
     image: redis:alpine
     container_name: project-minato-redis
@@ -32,6 +33,7 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+
   postgres:
     image: postgres
     container_name: project-minato-postgres
@@ -50,7 +52,23 @@ services:
       retries: 5
     restart: unless-stopped
 
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: project-minato-flaresolverr
+    environment:
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - LOG_FILE=${LOG_FILE:-none}
+      - LOG_HTML=${LOG_HTML:-false}
+      - CAPTCHA_SOLVER=${CAPTCHA_SOLVER:-none}
+      - TZ=Europe/London
+    ports:
+      - "${PORT:-8191}:8191"
+    volumes:
+      - project-minato_flaresolverr_data:/config
+    restart: unless-stopped
+
 volumes:
   project-minato_meili_data:
   project-minato_redis_data:
   project-minato_postgres_data:
+  project-minato_flaresolverr_data:
