@@ -10,6 +10,7 @@ import {
   HeadContent,
   Outlet,
   createRootRouteWithContext,
+  redirect,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { useState } from "react";
@@ -28,6 +29,29 @@ export interface RouterAppContext {
 
 export const Route = createRootRouteWithContext<RouterAppContext>()({
   component: RootComponent,
+  beforeLoad: async ({ location, context }) => {
+    if (location.pathname.startsWith("/setup")) {
+      return;
+    }
+
+    try {
+      const setupStatus = await context.queryClient.ensureQueryData(
+        context.orpc.setup.getStatus.queryOptions()
+      );
+      
+      if (!setupStatus.setupCompleted) {
+        // Redirect to setup if not completed
+        redirect({
+          to: "/setup",
+          throw: true,
+        });
+      }
+    } catch (error) {
+      // If there's an error checking setup status, allow access
+      // This prevents blocking the app if the API is down
+      console.error("Failed to check setup status:", error);
+    }
+  },
   head: () => ({
     meta: [
       {
@@ -60,8 +84,11 @@ function RootComponent() {
         disableTransitionOnChange
         storageKey="vite-ui-theme"
       >
-        <div className="grid grid-rows-[auto_1fr] h-svh">
-          <Outlet />
+        <div className="min-h-screen">
+          {/* <Header /> */}
+          <main>
+            <Outlet />
+          </main>
         </div>
         <Toaster richColors />
       </ThemeProvider>

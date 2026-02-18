@@ -1,4 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
+import { User } from "lucide-react";
 
 import {
   DropdownMenu,
@@ -19,7 +20,7 @@ export default function UserMenu() {
   const { data: session, isPending } = authClient.useSession();
 
   if (isPending) {
-    return <Skeleton className="h-9 w-24" />;
+    return <Skeleton className="h-9 w-18" />;
   }
 
   if (!session) {
@@ -32,8 +33,11 @@ export default function UserMenu() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger render={<Button variant="outline" />}>
-        {session.user.name}
+      <DropdownMenuTrigger>
+        <Button variant="outline" size="icon">
+          <User className="h-[1.2rem] w-[1.2rem]" />
+          <span className="sr-only">{session.user.name}</span>
+        </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="bg-card">
         <DropdownMenuGroup>
