@@ -13,6 +13,7 @@
     "./routers": "./src/api/routers/index.ts"
   },
   "dependencies": {
+    "@project-minato/api-clients": "workspace:*",
     "@project-minato/auth": "workspace:*",
     "@project-minato/db": "workspace:*",
     "@project-minato/env": "workspace:*",
