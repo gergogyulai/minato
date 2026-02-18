@@ -1,3 +1,10 @@
+/**
+ * FlareSolverr API Client
+ * This client provides a simple interface to interact with the FlareSolverr API,
+ * allowing you to perform requests, manage sessions, and handle Cloudflare challenges.
+ * Supports both https://github.com/FlareSolverr/FlareSolverr and https://github.com/yoori/flare-bypasser
+ */
+
 export interface FlareSolverrResponse<T> {
   status: "ok" | "error";
   message: string;
