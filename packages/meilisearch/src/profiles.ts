@@ -1,8 +1,8 @@
 import { meiliClient } from "./client";
 
-export type GlobalProfile = "quality" | "health" | "freshness";
+export type SearchEngineProfile = "quality" | "health" | "freshness";
 
-export const RANKING_PROFILES: Record<GlobalProfile, string[]> = {
+export const RANKING_PROFILES: Record<SearchEngineProfile, string[]> = {
   /**
    * QUALITY: Oriented towards better quality releases among relevant matches.
    */
@@ -46,7 +46,7 @@ export const RANKING_PROFILES: Record<GlobalProfile, string[]> = {
   ],
 };
 
-export async function applyGlobalSearchProfile(profileName: GlobalProfile): Promise<void> {
+export async function applyGlobalSearchProfile(profileName: SearchEngineProfile): Promise<void> {
   const index = meiliClient.index("torrents");
   const rules = RANKING_PROFILES[profileName];
 
