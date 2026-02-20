@@ -19,7 +19,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@project-minato/config": "workspace:*",
+    "@project-minato/typescript": "workspace:*",
     "typescript": "catalog:"
   }
 }

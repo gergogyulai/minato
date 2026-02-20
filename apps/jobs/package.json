@@ -24,7 +24,7 @@
     "tmdb-ts": "^2.2.0"
   },
   "devDependencies": {
-    "@project-minato/config": "workspace:*",
+    "@project-minato/typescript": "workspace:*",
     "@types/bun": "catalog:",
     "typescript": "catalog:",
     "patch-package": "^8.0.1"

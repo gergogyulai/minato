@@ -1,5 +1,5 @@
 {
-  "extends": "@project-minato/config/tsconfig.base.json",
+  "extends": "@project-minato/typescript/tsconfig.base.json",
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
