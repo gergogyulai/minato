@@ -120,6 +120,20 @@
       "when": 1771400338557,
       "tag": "0016_same_stranger",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1771416635891,
+      "tag": "0017_nasty_vindicator",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1771582275749,
+      "tag": "0018_bent_puck",
+      "breakpoints": true
     }
   ]
 }

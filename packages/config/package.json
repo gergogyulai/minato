@@ -1,0 +1,22 @@
+{
+  "name": "@project-minato/config",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "dependencies": {
+    "@project-minato/db": "workspace:*",
+    "drizzle-orm": "catalog:",
+    "ioredis": "^5.3.2",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@project-minato/typescript": "workspace:*",
+    "typescript": "catalog:"
+  }
+}

@@ -141,7 +141,6 @@ export default function HomePage() {
       <TorrentHeader />
       <div className="flex flex-col items-center px-4 sm:px-6 overflow-x-hidden min-h-screen pt-20 sm:pt-24 pb-16">
         <div className="w-full max-w-3xl space-y-10 min-w-0">
-
           {/* Hero */}
           <div className="text-center space-y-3 pt-8 sm:pt-12">
             <h1 className="text-4xl sm:text-5xl font-bold tracking-tight">
@@ -167,7 +166,9 @@ export default function HomePage() {
                   <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide leading-none mb-1">
                     Size
                   </p>
-                  <p className="text-xl font-bold tabular-nums leading-none">2.4TB</p>
+                  <p className="text-xl font-bold tabular-nums leading-none">
+                    2.4TB
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -181,7 +182,9 @@ export default function HomePage() {
                   <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide leading-none mb-1">
                     Movies
                   </p>
-                  <p className="text-xl font-bold tabular-nums leading-none">8.2K</p>
+                  <p className="text-xl font-bold tabular-nums leading-none">
+                    8.2K
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -195,7 +198,9 @@ export default function HomePage() {
                   <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide leading-none mb-1">
                     TV Shows
                   </p>
-                  <p className="text-xl font-bold tabular-nums leading-none">3.1K</p>
+                  <p className="text-xl font-bold tabular-nums leading-none">
+                    3.1K
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -209,7 +214,9 @@ export default function HomePage() {
                   <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide leading-none mb-1">
                     Enriched
                   </p>
-                  <p className="text-xl font-bold tabular-nums leading-none">4.5K</p>
+                  <p className="text-xl font-bold tabular-nums leading-none">
+                    4.5K
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -333,7 +340,9 @@ export default function HomePage() {
                         <div className="space-y-6">
                           <div className="space-y-3">
                             <div className="flex items-center justify-between">
-                              <Label className="text-sm font-medium">Year Range</Label>
+                              <Label className="text-sm font-medium">
+                                Year Range
+                              </Label>
                               <span className="text-sm tabular-nums text-muted-foreground font-medium">
                                 {yearRange[0]} – {yearRange[1]}
                               </span>
@@ -350,7 +359,9 @@ export default function HomePage() {
 
                           <div className="space-y-3">
                             <div className="flex items-center justify-between">
-                              <Label className="text-sm font-medium">Size Range</Label>
+                              <Label className="text-sm font-medium">
+                                Size Range
+                              </Label>
                               <span className="text-sm tabular-nums text-muted-foreground font-medium">
                                 {sizeRange[0]} – {sizeRange[1]} GB
                               </span>
@@ -367,7 +378,9 @@ export default function HomePage() {
 
                           <div className="space-y-3">
                             <div className="flex items-center justify-between">
-                              <Label className="text-sm font-medium">Min. Seeders</Label>
+                              <Label className="text-sm font-medium">
+                                Min. Seeders
+                              </Label>
                               <span className="text-sm tabular-nums text-muted-foreground font-medium">
                                 {seedersRange[0]}
                               </span>
@@ -410,7 +423,10 @@ export default function HomePage() {
                 <SlidersHorizontal className="size-4" />
                 Filters
               </Button>
-              <Button type="submit" className="flex-1 h-11 font-semibold rounded-full">
+              <Button
+                type="submit"
+                className="flex-1 h-11 font-semibold rounded-full"
+              >
                 Search
               </Button>
             </div>
@@ -423,9 +439,15 @@ export default function HomePage() {
                     Quick Results
                   </h2>
                   {instantResults.data && (
-                    <span className="text-sm text-muted-foreground tabular-nums">
-                      {instantResults.data.totalHits.toLocaleString()} found
-                    </span>
+                    <div className="flex gap-0.5">
+                      <span className="text-sm text-muted-foreground tabular-nums">
+                        {instantResults.data.totalHits.toLocaleString()} found 
+                      </span>
+
+                      <span className="text-sm text-muted-foreground tabular-nums">
+                        {instantResults.data.processingTimeMs}ms
+                      </span>
+                    </div>
                   )}
                 </div>
 
@@ -456,38 +478,52 @@ export default function HomePage() {
                                     <h3 className="text-sm font-semibold line-clamp-1 flex-1 min-w-0">
                                       {result.trackerTitle}
                                     </h3>
-                                    {result.sourceNames && result.sourceNames.length > 0 && (
-                                      <span className="font-mono text-[11px] text-muted-foreground/50 shrink-0 hidden sm:block">
-                                        {result.sourceNames[0]}
-                                      </span>
-                                    )}
+                                    {result.sourceNames &&
+                                      result.sourceNames.length > 0 && (
+                                        <span className="font-mono text-[11px] text-muted-foreground/50 shrink-0 hidden sm:block">
+                                          {result.sourceNames[0]}
+                                        </span>
+                                      )}
                                   </div>
 
                                   <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
-                                    <div className="flex items-center gap-1" title="Size">
+                                    <div
+                                      className="flex items-center gap-1"
+                                      title="Size"
+                                    >
                                       <HardDrive className="size-3.5 shrink-0" />
                                       <span className="font-medium text-foreground/70">
                                         {formatBytesString(result.size)}
                                       </span>
                                     </div>
-                                    <div className="flex items-center gap-1" title="Seeders">
+                                    <div
+                                      className="flex items-center gap-1"
+                                      title="Seeders"
+                                    >
                                       <ArrowUp className="size-3.5 text-green-500 shrink-0" />
                                       <span className="font-medium text-green-600 dark:text-green-400">
                                         {result.seeders}
                                       </span>
                                     </div>
-                                    <div className="flex items-center gap-1" title="Leechers">
+                                    <div
+                                      className="flex items-center gap-1"
+                                      title="Leechers"
+                                    >
                                       <ArrowDown className="size-3.5 text-rose-500 shrink-0" />
                                       <span className="font-medium text-rose-600 dark:text-rose-400">
                                         {result.leechers ?? 0}
                                       </span>
                                     </div>
-                                    {result.files && result.files.length > 0 && (
-                                      <div className="flex items-center gap-1" title={`${result.files.length} files`}>
-                                        <FileText className="size-3.5 shrink-0" />
-                                        <span>{result.files.length}</span>
-                                      </div>
-                                    )}
+                                    {result.files &&
+                                      result.files.length > 0 && (
+                                        <div
+                                          className="flex items-center gap-1"
+                                          title={`${result.files.length} files`}
+                                        >
+                                          <FileText className="size-3.5 shrink-0" />
+                                          <span>{result.files.length}</span>
+                                        </div>
+                                      )}
                                     <div className="flex items-center gap-1.5 ml-auto">
                                       {result.type && (
                                         <Badge
@@ -505,19 +541,23 @@ export default function HomePage() {
                                           {result.resolution}
                                         </Badge>
                                       )}
-                                      {(result.publishedAt || result.createdAt) && (
+                                      {(result.publishedAt ||
+                                        result.createdAt) && (
                                         <div className="hidden sm:flex items-center gap-1">
                                           <Calendar className="size-3.5 shrink-0" />
                                           <span className="whitespace-nowrap">
                                             {new Date(
-                                              result.publishedAt || result.createdAt,
+                                              result.publishedAt ||
+                                                result.createdAt,
                                             ).toLocaleDateString(undefined, {
                                               month: "short",
                                               day: "numeric",
                                               year:
                                                 new Date(
-                                                  result.publishedAt || result.createdAt,
-                                                ).getFullYear() !== new Date().getFullYear()
+                                                  result.publishedAt ||
+                                                    result.createdAt,
+                                                ).getFullYear() !==
+                                                new Date().getFullYear()
                                                   ? "numeric"
                                                   : undefined,
                                             })}
@@ -536,10 +576,17 @@ export default function HomePage() {
                         <Button
                           type="button"
                           variant="ghost"
-                          onClick={() => navigate({ to: "/torrents", search: { q: searchQuery } })}
+                          onClick={() =>
+                            navigate({
+                              to: "/torrents",
+                              search: { q: searchQuery },
+                            })
+                          }
                           className="w-full gap-2 h-10 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg group"
                         >
-                          View all {instantResults.data.totalHits.toLocaleString()} results
+                          View all{" "}
+                          {instantResults.data.totalHits.toLocaleString()}{" "}
+                          results
                           <ArrowRight className="size-3.5 group-hover:translate-x-0.5 transition-transform" />
                         </Button>
                       </>

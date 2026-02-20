@@ -7,6 +7,7 @@ import { connection } from "@project-minato/queue";
 import { meiliClient, setupTorrentIndex } from "@project-minato/meilisearch";
 import { db } from "@project-minato/db";
 import { sql } from "drizzle-orm";
+import { getConfig, initConfig, setupConfigSubscriber } from "@project-minato/config";
 
 async function checkConnections() {
   try {
@@ -42,7 +43,16 @@ async function bootstrap() {
     // 1. Validate Infrastructure
     await checkConnections();
 
-    // 2. Start Workers
+    // 2. Load Config
+    await initConfig(db);
+    setupConfigSubscriber(db);
+    logger.step("Config", "LOADED");
+    console.log("");
+
+    const config = getConfig();
+    console.log(config)
+
+    // 3. Start Workers
     const ingestWorker = startIngestWorker();
     const enrichmentWorker = startEnrichmentWorker();
     const reindexWorker = startReindexWorker();

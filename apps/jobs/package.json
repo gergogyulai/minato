@@ -7,6 +7,7 @@
     "start": "bun run src/index.ts"
   },
   "dependencies": {
+    "@project-minato/config": "workspace:*",
     "@project-minato/db": "workspace:*",
     "@project-minato/env": "workspace:*",
     "@project-minato/meilisearch": "workspace:*",

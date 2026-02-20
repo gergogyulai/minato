@@ -15,6 +15,7 @@
   "dependencies": {
     "@project-minato/api-clients": "workspace:*",
     "@project-minato/auth": "workspace:*",
+    "@project-minato/config": "workspace:*",
     "@project-minato/db": "workspace:*",
     "@project-minato/env": "workspace:*",
     "@project-minato/meilisearch": "workspace:*",

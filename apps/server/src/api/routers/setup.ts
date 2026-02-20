@@ -1,8 +1,9 @@
 import { ORPCError } from "@orpc/server";
-import { db, settings, user, eq, sql, defaultSettings } from "@project-minato/db";
-import type { SettingsData } from "@project-minato/db";
+import { db, user, eq, sql } from "@project-minato/db";
 import { auth } from "@project-minato/auth";
 import { FlareSolverr } from "@project-minato/api-clients";
+import { getConfig, writeConfigKey } from "@project-minato/config";
+import type { SetupStep } from "@project-minato/config";
 import {
   getStatusContract,
   createAdminContract,
@@ -14,66 +15,93 @@ import {
   completeSetupContract,
 } from "../contracts/setup.contracts";
 
-// Define available scrapers
+// ---------------------------------------------------------------------------
+// Static catalogue – never changes at runtime
+// ---------------------------------------------------------------------------
+
 const AVAILABLE_SCRAPERS = [
   { id: "1337x", name: "1337x", description: "Popular torrent indexer" },
   { id: "thepiratebay", name: "The Pirate Bay", description: "Classic torrent site" },
   { id: "knaben", name: "Knaben", description: "Torrent metasearch engine" },
   { id: "eztv", name: "EZTV", description: "TV torrents specialist" },
   { id: "yts", name: "YTS", description: "High-quality movie torrents" },
-];
+] as const;
+
+const VALID_SCRAPER_IDS = AVAILABLE_SCRAPERS.map((s) => s.id) as string[];
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+const STEP_ORDER: SetupStep[] = ["admin", "scrapers", "flaresolverr"];
+
+async function hasAdminUser(): Promise<boolean> {
+  const [row] = await db
+    .select({ count: sql<number>`cast(count(*) as integer)` })
+    .from(user)
+    .where(eq(user.role, "admin"));
+  return (row?.count ?? 0) > 0;
+}
+
+/**
+ * Mark `completedStep` as done and advance `currentStep` to the next one.
+ * Only runs when setup is not yet completed.
+ * Uses silent=true so it never triggers a version bump / reload / broadcast.
+ */
+async function advanceSetupProgress(completedStep: SetupStep): Promise<void> {
+  const { setup } = getConfig();
+  if (setup.setupCompleted) return;
+
+  const current = setup.setupProgress ?? {
+    currentStep: "admin" as SetupStep,
+    completedSteps: [] as SetupStep[],
+  };
+
+  const completedSteps = current.completedSteps.includes(completedStep)
+    ? current.completedSteps
+    : [...current.completedSteps, completedStep];
+
+  const nextIndex = STEP_ORDER.indexOf(completedStep) + 1;
+  const currentStep: SetupStep =
+    nextIndex < STEP_ORDER.length
+      ? (STEP_ORDER[nextIndex] as SetupStep)
+      : (STEP_ORDER[STEP_ORDER.length - 1] as SetupStep);
+
+  await writeConfigKey(
+    db,
+    "setup.setupProgress",
+    { currentStep, completedSteps },
+    { silent: true },
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Router
+// ---------------------------------------------------------------------------
 
 export const setupRouter = {
   getStatus: getStatusContract.handler(async () => {
-    // Check if settings exist
-    let currentSettings = await db.select().from(settings).where(eq(settings.id, "default")).limit(1);
-    
-    // Initialize settings if not exists
-    if (currentSettings.length === 0) {
-      await db.insert(settings).values({
-        id: "default",
-        data: defaultSettings,
-      });
-      currentSettings = await db.select().from(settings).where(eq(settings.id, "default")).limit(1);
-    }
-
-    // Check if any admin user exists
-    const adminCount = await db
-      .select({ count: sql<number>`cast(count(*) as integer)` })
-      .from(user)
-      .where(eq(user.role, "admin"));
-
-    const hasAdminUser = (adminCount[0]?.count ?? 0) > 0;
-    const settingsData = (currentSettings[0]?.data as SettingsData) ?? defaultSettings;
-
+    const { setup } = getConfig();
     return {
-      setupCompleted: settingsData.setupCompleted ?? false,
-      hasAdminUser,
-      setupProgress: settingsData.setupProgress,
+      setupCompleted: setup.setupCompleted,
+      hasAdminUser: await hasAdminUser(),
+      setupProgress: setup.setupProgress,
     };
   }),
 
   createAdmin: createAdminContract.handler(async ({ input }) => {
-    const currentSettings = await db.select().from(settings).where(eq(settings.id, "default")).limit(1);
-    
-    if (currentSettings.length > 0 && (currentSettings[0]?.data as SettingsData)?.setupCompleted) {
+    if (getConfig().setup.setupCompleted) {
       throw new ORPCError("FORBIDDEN", {
         message: "Setup has already been completed. Cannot create admin through setup flow.",
       });
     }
 
-    const adminCount = await db
-      .select({ count: sql<number>`cast(count(*) as integer)` })
-      .from(user)
-      .where(eq(user.role, "admin"));
-
-    if ((adminCount[0]?.count ?? 0) > 0) {
+    if (await hasAdminUser()) {
       throw new ORPCError("FORBIDDEN", {
         message: "An admin user already exists.",
       });
     }
 
-    // Create admin user using BetterAuth
     try {
       const newUser = await auth.api.signUpEmail({
         body: {
@@ -83,16 +111,14 @@ export const setupRouter = {
         },
       });
 
-      // Update user role to admin
       await db
         .update(user)
         .set({ role: "admin" })
         .where(eq(user.id, newUser.user.id));
 
-      return {
-        success: true,
-        message: "Admin account created successfully",
-      };
+      await advanceSetupProgress("admin");
+
+      return { success: true, message: "Admin account created successfully" };
     } catch (error) {
       throw new ORPCError("INTERNAL_SERVER_ERROR", {
         message: error instanceof Error ? error.message : "Failed to create admin account",
@@ -100,72 +126,38 @@ export const setupRouter = {
     }
   }),
 
-  getScrapers: getScrapersContract.handler(async () => {
-    // Get current settings
-    let currentSettings = await db.select().from(settings).where(eq(settings.id, "default")).limit(1);
-    
-    if (currentSettings.length === 0) {
-      // Initialize with defaults
-      await db.insert(settings).values({
-        id: "default",
-        data: defaultSettings,
-      });
-      currentSettings = await db.select().from(settings).where(eq(settings.id, "default")).limit(1);
-    }
-
-    const settingsData = currentSettings[0]?.data as SettingsData;
-    const enabledScrapers = settingsData?.enabledScrapers ?? [];
-
+  getScrapers: getScrapersContract.handler(() => {
+    const { setup } = getConfig();
     return {
       scrapers: AVAILABLE_SCRAPERS.map((scraper) => ({
         ...scraper,
-        enabled: enabledScrapers.includes(scraper.id),
+        enabled: setup.enabledScrapers.includes(scraper.id),
       })),
     };
   }),
 
   updateScrapers: updateScrapersContract.handler(async ({ input }) => {
-    // Validate that all provided scrapers are valid
-    const validScraperIds = AVAILABLE_SCRAPERS.map((s) => s.id);
-    const invalidScrapers = input.enabledScrapers.filter((id) => !validScraperIds.includes(id));
-
-    if (invalidScrapers.length > 0) {
+    const invalid = input.enabledScrapers.filter((id) => !VALID_SCRAPER_IDS.includes(id));
+    if (invalid.length > 0) {
       throw new ORPCError("BAD_REQUEST", {
-        message: `Invalid scraper IDs: ${invalidScrapers.join(", ")}`,
+        message: `Invalid scraper IDs: ${invalid.join(", ")}`,
       });
     }
 
-    // Get current settings
-    const currentSettings = await db.select().from(settings).where(eq(settings.id, "default")).limit(1);
-    const currentData = (currentSettings[0]?.data as SettingsData) ?? defaultSettings;
-
-    // Update settings
-    await db
-      .update(settings)
-      .set({
-        data: {
-          ...currentData,
-          enabledScrapers: input.enabledScrapers,
-        },
-        updatedAt: new Date(),
-      })
-      .where(eq(settings.id, "default"));
-
-    return {
-      success: true,
-      message: "Scrapers configuration updated successfully",
-    };
+    await writeConfigKey(db, "setup.enabledScrapers", input.enabledScrapers);
+    await advanceSetupProgress("scrapers");
+    return { success: true, message: "Scrapers configuration updated successfully" };
   }),
 
   checkFlareSolverr: checkFlareSolverrContract.handler(async ({ input }) => {
     try {
       const client = new FlareSolverr(input.url);
       const response = await client.listSessions();
-
       return {
         success: true,
         message: "FlareSolverr is working correctly",
-        version: response.version,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+        version: (response as any).version as string | undefined,
       };
     } catch (error) {
       return {
@@ -176,83 +168,28 @@ export const setupRouter = {
   }),
 
   updateFlareSolverr: updateFlareSolverrContract.handler(async ({ input }) => {
-    // Get current settings
-    const currentSettings = await db.select().from(settings).where(eq(settings.id, "default")).limit(1);
-    const currentData = (currentSettings[0]?.data as SettingsData) ?? defaultSettings;
-
-    await db
-      .update(settings)
-      .set({
-        data: {
-          ...currentData,
-          flareSolverrUrl: input.url,
-        },
-        updatedAt: new Date(),
-      })
-      .where(eq(settings.id, "default"));
-
-    return {
-      success: true,
-      message: "FlareSolverr URL updated successfully",
-    };
+    await writeConfigKey(db, "setup.flareSolverrUrl", input.url);
+    await advanceSetupProgress("flaresolverr");
+    return { success: true, message: "FlareSolverr URL updated successfully" };
   }),
 
   updateProgress: updateSetupProgressContract.handler(async ({ input }) => {
-    // Get current settings
-    const currentSettings = await db.select().from(settings).where(eq(settings.id, "default")).limit(1);
-    const currentData = (currentSettings[0]?.data as SettingsData) ?? defaultSettings;
-
-    await db
-      .update(settings)
-      .set({
-        data: {
-          ...currentData,
-          setupProgress: {
-            currentStep: input.currentStep,
-            completedSteps: input.completedSteps,
-          },
-        },
-        updatedAt: new Date(),
-      })
-      .where(eq(settings.id, "default"));
-
-    return {
-      success: true,
-      message: "Setup progress updated successfully",
+    const progress: { currentStep: SetupStep; completedSteps: SetupStep[] } = {
+      currentStep: input.currentStep as SetupStep,
+      completedSteps: input.completedSteps as SetupStep[],
     };
+    await writeConfigKey(db, "setup.setupProgress", progress, { silent: true });
+    return { success: true, message: "Setup progress updated successfully" };
   }),
 
   completeSetup: completeSetupContract.handler(async () => {
-    // Verify that an admin user exists before completing setup
-    const adminCount = await db
-      .select({ count: sql<number>`cast(count(*) as integer)` })
-      .from(user)
-      .where(eq(user.role, "admin"));
-
-    if ((adminCount[0]?.count ?? 0) === 0) {
+    if (!(await hasAdminUser())) {
       throw new ORPCError("BAD_REQUEST", {
-        message: "Cannot complete setup without creating an admin account first",
+        message: "Cannot complete setup without creating an admin account first.",
       });
     }
 
-    // Get current settings
-    const currentSettings = await db.select().from(settings).where(eq(settings.id, "default")).limit(1);
-    const currentData = (currentSettings[0]?.data as SettingsData) ?? defaultSettings;
-
-    await db
-      .update(settings)
-      .set({
-        data: {
-          ...currentData,
-          setupCompleted: true,
-        },
-        updatedAt: new Date(),
-      })
-      .where(eq(settings.id, "default"));
-
-    return {
-      success: true,
-      message: "Setup completed successfully",
-    };
+    await writeConfigKey(db, "setup.setupCompleted", true);
+    return { success: true, message: "Setup completed successfully" };
   }),
 };
