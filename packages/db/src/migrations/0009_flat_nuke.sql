@@ -1,1 +1,0 @@
-ALTER TABLE "torrents" RENAME COLUMN "std_category" TO "standard_category";

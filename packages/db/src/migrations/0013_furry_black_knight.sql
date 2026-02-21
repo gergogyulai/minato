@@ -1,1 +1,0 @@
-ALTER TABLE "enrichments" DROP CONSTRAINT "enrichments_tmdb_id_unique";
