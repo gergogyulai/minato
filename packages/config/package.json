@@ -12,7 +12,7 @@
   "dependencies": {
     "@project-minato/db": "workspace:*",
     "drizzle-orm": "catalog:",
-    "ioredis": "^5.3.2",
+    "ioredis": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {

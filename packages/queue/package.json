@@ -18,8 +18,8 @@
   "dependencies": {
     "@project-minato/env": "workspace:*",
     "dotenv": "catalog:",
-    "bullmq": "^5.0.0",
-    "ioredis": "^5.3.2"
+    "bullmq": "catalog:",
+    "ioredis": "catalog:"
   },
   "devDependencies": {
     "@project-minato/typescript": "workspace:*",

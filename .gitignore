@@ -54,8 +54,14 @@ temp
 
 ## Local development things
 /knaben.ts
+/knaben_json_ingest.ts
+/knaben_keyword_scrape.ts
+/knaben_hits.json
 /bitmagnet.ts
 /scrapers
 SCRAPERS.md
 /idea
 /apps/web2
+
+.agents
+skills-lock.json

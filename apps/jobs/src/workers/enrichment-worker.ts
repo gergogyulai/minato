@@ -14,7 +14,7 @@ import { TMDBProvider } from "../lib/providers/tmdb";
 import { AniListProvider } from "../lib/providers/anilist";
 import { ProviderRegistry } from "../lib/providers/registry";
 import { getAssetId } from "../lib/providers/types/metadata";
-import { markTorrentProcessed } from "../utils/enrich";
+import { markAsEnriched } from "../utils/enrich";
 
 const tmdbProvider = new TMDBProvider({
   apiKey: process.env.TMDB_READ_ACCESS_TOKEN!,
@@ -86,7 +86,7 @@ export function startEnrichmentWorker() {
           `[Enrichment Worker] Torrent ${infoHash} has unsupported type "${torrent.type}" or no providers available, skipping enrichment`,
         );
         // Still mark as enriched to avoid retrying
-        await markTorrentProcessed(infoHash);
+        await markAsEnriched(infoHash);
         return;
       }
 
@@ -95,7 +95,7 @@ export function startEnrichmentWorker() {
           `[Enrichment Worker] Torrent ${infoHash} has no valid title or year for enrichment`,
         );
         // Still mark as enriched to avoid retrying
-        await markTorrentProcessed(infoHash);
+        await markAsEnriched(infoHash);
         return;
       }
       
@@ -111,7 +111,7 @@ export function startEnrichmentWorker() {
           `[Enrichment Worker] No metadata found for torrent ${infoHash} from any provider`,
         );
         // Still mark as enriched to avoid retrying
-        await markTorrentProcessed(infoHash);
+        await markAsEnriched(infoHash);
         return;
       }
 
@@ -211,7 +211,7 @@ export function startEnrichmentWorker() {
         }
 
         // Update torrent flags
-        await markTorrentProcessed(infoHash);
+        await markAsEnriched(infoHash);
       });
 
       const enriched = await db.query.torrents.findFirst({
