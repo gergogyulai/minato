@@ -34,7 +34,7 @@ interface EnrichJobData {
 }
 
 const ENRICH_BATCH_SIZE = 50;
-const ENRICH_BATCH_TIMEOUT = 3000; // 3 seconds
+const ENRICH_BATCH_TIMEOUT = 30000; // 3 seconds
 
 export function startEnrichmentWorker() {
   const meiliBatcher = new MeiliBatcher(
@@ -249,7 +249,6 @@ export function startEnrichmentWorker() {
     console.log("[Enrichment Worker] Worker closing, flushing remaining batch...");
     await meiliBatcher.flush();
   });
-
 
   console.log("[Enrichment Worker] Started and listening for jobs...");
 
