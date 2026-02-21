@@ -9,10 +9,10 @@ export const Route = createFileRoute("/torrents")({
 function TorrentsLayout() {
   return (
     <>
-      <TorrentHeader />
-      <div className="pt-14.25">
+      {/* <TorrentHeader /> */}
+      {/* <div className="pt-14.25"> */}
         <Outlet />
-      </div>
+      {/* </div> */}
     </>
   );
 }

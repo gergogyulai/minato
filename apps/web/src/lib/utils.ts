@@ -24,11 +24,22 @@ export function formatBytesString(bytesStr: string): string {
   return `${value.toFixed(2)} ${sizes[i]}`;
 }
 
-export function formatDate(dateString: string | Date): string {
+export function formatDate(
+  dateString: string | Date,
+  includeTime: boolean = false
+): string {
   const date = new Date(dateString);
-  return date.toLocaleDateString("en-US", {
+
+  const options: Intl.DateTimeFormatOptions = {
     year: "numeric",
-    month: "long",
+    month: "short",
     day: "numeric",
-  });
+  };
+
+  if (includeTime) {
+    options.hour = "2-digit";
+    options.minute = "2-digit";
+  }
+
+  return date.toLocaleDateString("en-US", options);
 }
