@@ -22,7 +22,7 @@
     "drizzle-seed": "^0.3.1",
     "drizzle-zod": "^0.8.3",
     "pg": "^8.17.1",
-    "release-parser": "^1.5.3",
+    "release-parser": "1.5.3",
     "zod": "catalog:"
   },
   "devDependencies": {

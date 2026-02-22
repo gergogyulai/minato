@@ -20,14 +20,13 @@
     "pg-query-stream": "^4.12.0",
     "picocolors": "^1.1.1",
     "postinstall-postinstall": "^2.1.0",
-    "release-parser": "^1.5.3",
+    "release-parser": "1.5.3",
     "sharp": "^0.34.5",
     "tmdb-ts": "^2.2.0"
   },
   "devDependencies": {
     "@project-minato/typescript": "workspace:*",
     "@types/bun": "catalog:",
-    "typescript": "catalog:",
-    "patch-package": "^8.0.1"
+    "typescript": "catalog:"
   }
 }
