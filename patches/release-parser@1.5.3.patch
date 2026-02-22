@@ -1,5 +1,5 @@
 diff --git a/ReleaseParser.js b/ReleaseParser.js
-index b087ab0ed1592595fc7611b0447a3970a1ec1df7..00fc00630f884bdf337e5627d398aebc46d8ee20 100644
+index b087ab0ed1592595fc7611b0447a3970a1ec1df7..d57a7ff0a03a8f0f3f17f36e1b79c076188e7c87 100644
 --- a/ReleaseParser.js
 +++ b/ReleaseParser.js
 @@ -40,6 +40,30 @@ const ReleaseParser = /** @lends module:ReleaseParser */ ( releaseName, section
@@ -33,7 +33,25 @@ index b087ab0ed1592595fc7611b0447a3970a1ec1df7..00fc00630f884bdf337e5627d398aebc
  	/**
  	 * Object toString() override: allows the object to decide how it will react when it is treated like a string.
  	 *
-@@ -786,8 +810,8 @@ const ReleaseParser = /** @lends module:ReleaseParser */ ( releaseName, section
+@@ -188,7 +212,16 @@ const ReleaseParser = /** @lends module:ReleaseParser */ ( releaseName, section
+ 			languageName.forEach ( (name) =>
+ 			{
+ 				// Insert current lang pattern
+-				let newRegexPattern = regexPattern.replace( '%language_pattern%', name ).toRegExp()
++				let newRegexPattern = null
++
++				try
++				{
++					newRegexPattern = regexPattern.replace( '%language_pattern%', name ).toRegExp()
++				}
++				catch ( _err )
++				{
++					return
++				}
+ 
+ 				// Check for language tag (exclude "grand" for formula1 rls)
+ 				let matches = releaseName.match( newRegexPattern )
+@@ -786,8 +819,8 @@ const ReleaseParser = /** @lends module:ReleaseParser */ ( releaseName, section
  		let type = guessTypeByParsedAttributes()
  		// 2nd: no type found? guess by section
  		type = !type ? guessTypeBySection( section ) : type
@@ -44,6 +62,54 @@ index b087ab0ed1592595fc7611b0447a3970a1ec1df7..00fc00630f884bdf337e5627d398aebc
  
  		set( 'type', type )
  	}
+@@ -1205,9 +1238,18 @@ const ReleaseParser = /** @lends module:ReleaseParser */ ( releaseName, section
+ 				// and it isn't always numeric: 8 / e8 / e08
+ 				if ( titleExtra && titleExtra.replaceAll( /[a-z]+/gi, '' ).isNumeric() )
+ 				{
++					const parsedEpisode = get( 'episode' )
++					const parsedTitleExtraEpisode = parseInt( titleExtra.replaceAll( /[a-z]+/gi, '' ) )
++					const hasEpisode =
++						Array.isArray( parsedEpisode )
++							? parsedEpisode.includes( parsedTitleExtraEpisode )
++							: typeof parsedEpisode === 'string'
++								? parsedEpisode.includes( parsedTitleExtraEpisode.toString() )
++								: parsedEpisode === parsedTitleExtraEpisode
++
+ 					if (
+ 						titleExtra.length <= 3 &&
+-						get( 'episode' ).includes( parseInt( titleExtra.replaceAll( /[a-z]+/gi, '' ) ) )
++						hasEpisode
+ 					)
+ 					{
+ 						titleExtra = ''
+@@ -1988,7 +2030,7 @@ const ReleaseParser = /** @lends module:ReleaseParser */ ( releaseName, section
+ 						break
+ 
+ 					case 'group':
+-						attributes.push( informationValue )
++						attributes.push( escapeRegexValue( informationValue ) )
+ 						break
+ 
+ 					case 'language':
+@@ -2103,6 +2145,18 @@ const ReleaseParser = /** @lends module:ReleaseParser */ ( releaseName, section
+ 		return regexPattern
+ 	}
+ 
++	/**
++	 * Escape regex special chars for dynamic values that should be matched literally.
++	 *
++	 * @private
++	 * @param {string} value - Raw value.
++	 * @return {string} Escaped value.
++	 */
++	const escapeRegexValue = ( value = '' ) =>
++	{
++		return value.toString().replace( /[.*+?^${}()|[\]\\/]/g, '\\$&' )
++	}
++
+ 	/**
+ 	 * Remove or fix attributes that were falsely parsed.
+ 	 *
 diff --git a/ReleasePatterns.js b/ReleasePatterns.js
 index 6301b495c980a5d92fd7b4f4ab708e05698fe98b..d782e726482123364039b1eacb85a0d18e05211d 100644
 --- a/ReleasePatterns.js
@@ -73,25 +139,3 @@ index 6301b495c980a5d92fd7b4f4ab708e05698fe98b..d782e726482123364039b1eacb85a0d1
  	// Formats
  	formatsVideo : [ 'AVC', 'VCD', 'SVCD', 'CVCD', 'XViD', 'DiVX', 'x264', 'x265', 'h264', 'h265', 'HEVC', 'MP4', 'MPEG', 'MPEG2', 'VC1', 'WMV' ],
  	formatsMusic : [ 'FLAC', 'KONTAKT', 'MP3', 'OGG', 'WAV' ],
-diff --git a/index.d.ts b/index.d.ts
-index 5d5c10bcce50e064a62cafb736012192eb67ea72..c86f0b4b2f912f024738880b81426644514f691f 100644
---- a/index.d.ts
-+++ b/index.d.ts
-@@ -7,7 +7,7 @@
-  */
- 
- // Flags
--type releaseFlag = '3D' | 'Abridged' | 'Addon' | 'Anime' | 'ARM' | 'Audiopack' | 'Beta' | 'Boxset' | 'Chapterfix' | 'Cheats' | 'Chrono' | 'Colorized' | 'Comic' | 'Complete' | 'Convert' | 'Cover' | 'CPOP' | 'Incl. Crack' | 'Cracked' | 'Crackfix' | 'Criterion' | 'Cuefix' | 'Digipack' | 'Directors Cut' | 'DIRFiX' | 'DIZFiX' | 'DLC' | 'DOX' | 'Docu' | 'Dolby Vision' | 'Dubbed' | 'Extended' | 'Final' | 'FiX' | 'Font' | 'Fontset' | 'Fullscreen' | 'FSK' | 'Hardcoded Subtitles' | 'HDLIGHT' | 'HDR' | 'HDR10' | 'HDR10+' | 'Hentai' | 'HLG' | 'HOTFiX' | 'HOU' | 'HR' | 'HSBS' | 'Hybrid' | 'Imageset' | 'IMAX' | 'Internal' | 'IVTC' | 'JAV' | 'KEY' | 'KEYGEN' | 'Intel' | 'Line dubbed' | 'Limited' | 'M2TS' | 'Magazine' | 'Menufix' | 'Micro dubbed' | 'MIPS' | 'New' | 'NFOFiX' | 'OAR' | 'OVA' | 'OAD' | 'ONA' | 'OEM' | 'OST' | 'PACK' | 'Incl. Patch' | 'Patchfix' | 'Paysite' | 'Portable' | 'Preair' | 'Proper' | 'Promo' | 'Prooffix' | 'Rated' | 'RARFix' | 'READNFO' | 'Redump' | 'Refill' | 'Reissue' | 'Regged' | 'Regraded' | 'Remastered' | 'Remux' | 'Repack' | 'RERiP' | 'Restored' | 'Retail' | 'Ringtone' | 'Samplefix' | 'Scrubbed' | 'Serial' | 'SFVFix' | 'SH3' | 'Sizefix' | 'Soundfix' | 'Special Edition' | 'STV' | 'Subbed' | 'Subfix' | 'Subpack' | 'Superbit' | 'Syncfix' | 'Theatrical' | 'Trackfix' | 'Trailer' | 'TRAiNER' | 'Tutorial' | 'TV Dubbed' | 'Unabridged' | 'Uncensored' | 'Uncut' | 'Unlicensed' | 'Unrated' | 'Untouched' | 'USK' | 'Update' | 'V1' | 'V2' | 'V3' | 'Vertical' | 'VR' | 'VR180' | 'Workprint' | 'Widescreen' | 'x64' | 'x86' | 'XSCale' | 'XXX';
-+type releaseFlag = '3D' | 'Ai upscale' | 'Abridged' | 'Addon' | 'Anime' | 'ARM' | 'Audiopack' | 'Beta' | 'Boxset' | 'Chapterfix' | 'Cheats' | 'Chrono' | 'Colorized' | 'Comic' | 'Complete' | 'Convert' | 'Cover' | 'CPOP' | 'Incl. Crack' | 'Cracked' | 'Crackfix' | 'Criterion' | 'Cuefix' | 'Digipack' | 'Directors Cut' | 'DIRFiX' | 'DIZFiX' | 'DLC' | 'DOX' | 'Docu' | 'Dolby Vision' | 'Dubbed' | 'Extended' | 'Final' | 'FiX' | 'Font' | 'Fontset' | 'Fullscreen' | 'FSK' | 'Hardcoded Subtitles' | 'HDLIGHT' | 'HDR' | 'HDR10' | 'HDR10+' | 'Hentai' | 'HLG' | 'HOTFiX' | 'HOU' | 'HR' | 'HSBS' | 'Hybrid' | 'Imageset' | 'IMAX' | 'Internal' | 'IVTC' | 'JAV' | 'KEY' | 'KEYGEN' | 'Intel' | 'Line dubbed' | 'Limited' | 'M2TS' | 'Magazine' | 'Menufix' | 'Micro dubbed' | 'MIPS' | 'New' | 'NFOFiX' | 'OAR' | 'OVA' | 'OAD' | 'ONA' | 'OEM' | 'OST' | 'PACK' | 'Incl. Patch' | 'Patchfix' | 'Paysite' | 'Portable' | 'Preair' | 'Proper' | 'Promo' | 'Prooffix' | 'Rated' | 'RARFix' | 'READNFO' | 'Redump' | 'Refill' | 'Reissue' | 'Regged' | 'Regraded' | 'Remastered' | 'Remux' | 'Repack' | 'RERiP' | 'Restored' | 'Retail' | 'Ringtone' | 'Samplefix' | 'Scrubbed' | 'Serial' | 'SFVFix' | 'SH3' | 'Sizefix' | 'Soundfix' | 'Special Edition' | 'STV' | 'Subbed' | 'Subfix' | 'Subpack' | 'Superbit' | 'Syncfix' | 'Theatrical' | 'Trackfix' | 'Trailer' | 'TRAiNER' | 'Tutorial' | 'TV Dubbed' | 'Unabridged' | 'Uncensored' | 'Uncut' | 'Unlicensed' | 'Unrated' | 'Untouched' | 'USK' | 'Update' | 'V1' | 'V2' | 'V3' | 'Vertical' | 'VR' | 'VR180' | 'Workprint' | 'Widescreen' | 'x64' | 'x86' | 'XSCale' | 'XXX';
- 
- // Source
- type releaseSource = 'MBluray' | 'MDVDR' | 'ABC' | 'Amazon' | 'Amazon Freevee' | 'ATVP' | 'AUD' | 'BBC iPlayer' | 'BDRip' | 'BookMyShow' | 'Bootleg' | 'CABLE' | 'CAM' | 'CBS' | 'CD Album' | 'CD EP' | 'CD Single' | 'Comedy Central' | 'Console Disc' | 'Crave' | 'Crunchyroll' | 'DAB' | 'DC Universe' | 'DD' | 'DDC' | 'DAT Tape' | 'Disney Plus' | 'Disney Networks' | 'Discovery Plus' | 'DSR' | 'DVB' | 'DVDA' | 'DVDS' | 'DVDRip' | 'EDTV' | 'FM' | 'Google Play' | 'HBO Max' | 'HDCAM' | 'HDDVD' | 'HDRip' | 'HDTC' | 'HDTV' | 'HLS' | 'Hotstar' | 'Hulu' | 'iTunes' | 'Lionsgate Play' | 'LP' | 'Maxi CD' | 'Maxi Single' | 'Movies Anywhere' | 'MP3 CD' | 'MTV Networks' | 'Mubi' | 'NBC' | 'Netflix' | 'Nintendo eShop' | 'Paramount Plus' | 'Peacock' | 'PDTV' | 'PPV' | 'PSN' | 'RAWRiP' | 'SAT' | 'Scan' | 'Screener' | 'Showtime' | 'SBD' | 'Stan' | 'Stream' | 'Starz' | 'Tape' | 'TBS' | 'Telecine' | 'Telesync' | 'UHDBD' | 'UHDTV' | 'VHS' | 'VLS' | 'Vinyl' | 'VODRip' | 'Web Single' | 'WEB' | 'WOW tv' | 'XBLA' | 'YouTube Red' | 'MiniDisc' | 'Line' | 'CD' | 'DVD' | 'Bluray' | 'SDTV' | 'RiP' | 'BBC' | 'EP';
-@@ -28,7 +28,7 @@ type releaseDevice = '3DO' | 'Analogue Pocket' | 'Atari Jaguar' | 'Bandai Wonde
- type releaseOS = 'IBM AIX' | 'Android' | 'BlackBerry' | 'BSD' | 'HP-UX' | 'iOS' | 'Linux' | 'macOS' | 'PalmOS' | 'Solaris' | 'SunOS' | 'Symbian' | 'Ubuntu' | 'Unix' | 'WebOS' | 'Windows' | 'Windows CE' | 'Windows Mobile';
- 
- // Type
--type releaseType = 'ABook' | 'Anime' | 'App' | 'Bookware' | 'eBook' | 'Font' | 'Game' | 'Music' | 'MusicVideo' | 'TV' | 'Sports' | 'XXX' | 'Movie';
-+type releaseType = 'ABook' | 'Anime' | 'App' | 'Bookware' | 'eBook' | 'Font' | 'Game' | 'Music' | 'MusicVideo' | 'TV' | 'Sports' | 'XXX' | 'Movie' | 'Unknown';
- 
- // Language
- type releaseLanguage = {
