@@ -11,6 +11,8 @@ import {
   ExternalLink,
   Hash,
   FileText,
+  Clock,
+  Layers,
 } from "lucide-react";
 import { formatBytesString, formatDate } from "@/lib/utils";
 
@@ -159,6 +161,24 @@ function TorrentDetailComponent() {
             <h1 className="text-2xl font-black tracking-tight leading-tight">
               {title ?? "Untitled Torrent"}
             </h1>
+            {data.enrichment?.seriesDetails &&
+              (data.enrichment.seriesDetails.seasonNumber != null ||
+                data.enrichment.seriesDetails.episodeNumber != null) && (
+              <p className="font-mono text-sm font-bold text-foreground/70 mt-1">
+                {data.enrichment.seriesDetails.seasonNumber != null &&
+                data.enrichment.seriesDetails.episodeNumber != null
+                  ? `S${String(data.enrichment.seriesDetails.seasonNumber).padStart(2, "0")}E${String(data.enrichment.seriesDetails.episodeNumber).padStart(2, "0")}`
+                  : data.enrichment.seriesDetails.seasonNumber != null
+                    ? `Season ${data.enrichment.seriesDetails.seasonNumber}`
+                    : `Episode ${data.enrichment.seriesDetails.episodeNumber}`}
+                {data.enrichment.seriesDetails.episodeTitle && (
+                  <span className="font-normal text-muted-foreground/60">
+                    {" · "}
+                    {data.enrichment.seriesDetails.episodeTitle}
+                  </span>
+                )}
+              </p>
+            )}
             {trackerSubtitle && (
               <p className="font-mono text-sm text-muted-foreground/50 mt-1 line-clamp-1">
                 {trackerSubtitle}
@@ -236,26 +256,32 @@ function TorrentDetailComponent() {
           </p>
         </div>
 
-        {/* Overview */}
-        {data.enrichment?.overview && (
-          <div className="py-4 border-b border-border/40">
-            <p className="font-mono text-[11px] tracking-widest text-muted-foreground/50 uppercase mb-2">
-              overview
-            </p>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {data.enrichment.overview}
-            </p>
-          </div>
-        )}
-
         {/* Media metadata */}
-        {(data.enrichment?.releaseDate ||
+        {(data.enrichment?.overview ||
+          data.enrichment?.releaseDate ||
           data.enrichment?.year ||
-          (data.enrichment?.genres && data.enrichment.genres.length > 0)) && (
+          data.enrichment?.runtime ||
+          data.enrichment?.status ||
+          data.enrichment?.contentRating ||
+          (data.enrichment?.genres && data.enrichment.genres.length > 0) ||
+          (data.enrichment?.seriesDetails &&
+            (data.enrichment.seriesDetails.totalSeasons != null ||
+              data.enrichment.seriesDetails.totalEpisodes != null ||
+              data.enrichment.seriesDetails.isSeasonPack))) && (
           <div className="py-4 border-b border-border/40 space-y-3">
             <p className="font-mono text-[11px] tracking-widest text-muted-foreground/50 uppercase">
               media info
             </p>
+            {data.enrichment?.tagline && (
+              <p className="font-mono text-xs text-muted-foreground/50 italic">
+                &ldquo;{data.enrichment.tagline}&rdquo;
+              </p>
+            )}
+            {data.enrichment?.overview && (
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {data.enrichment.overview}
+              </p>
+            )}
             <div className="flex flex-wrap gap-x-6 gap-y-2 font-mono text-sm text-muted-foreground/70">
               {data.enrichment?.year && (
                 <span>
@@ -271,7 +297,48 @@ function TorrentDetailComponent() {
                   </span>
                 </span>
               )}
+              {data.enrichment?.runtime != null && data.enrichment.runtime > 0 && (
+                <span className="flex items-center gap-1.5">
+                  <Clock className="size-3.5 shrink-0" />
+                  <span className="text-foreground/70">{data.enrichment.runtime} min</span>
+                </span>
+              )}
+              {data.enrichment?.status && (
+                <span>
+                  <span className="text-muted-foreground/40">status </span>
+                  <span className="text-foreground/70">{data.enrichment.status}</span>
+                </span>
+              )}
+              {data.enrichment?.contentRating && (
+                <span className="font-mono text-xs px-1.5 py-0.5 border border-border/50 text-muted-foreground/60 self-center">
+                  {data.enrichment.contentRating}
+                </span>
+              )}
             </div>
+            {data.enrichment?.seriesDetails &&
+              (data.enrichment.seriesDetails.totalSeasons != null ||
+                data.enrichment.seriesDetails.totalEpisodes != null ||
+                data.enrichment.seriesDetails.isSeasonPack) && (
+              <div className="flex flex-wrap gap-x-6 gap-y-2 font-mono text-sm text-muted-foreground/70">
+                {data.enrichment.seriesDetails.totalSeasons != null && (
+                  <span>
+                    <span className="text-muted-foreground/40">seasons </span>
+                    <span className="text-foreground/70">{data.enrichment.seriesDetails.totalSeasons}</span>
+                  </span>
+                )}
+                {data.enrichment.seriesDetails.totalEpisodes != null && (
+                  <span>
+                    <span className="text-muted-foreground/40">episodes </span>
+                    <span className="text-foreground/70">{data.enrichment.seriesDetails.totalEpisodes}</span>
+                  </span>
+                )}
+                {data.enrichment.seriesDetails.isSeasonPack && (
+                  <span className="font-mono text-xs px-1.5 py-0.5 border border-border/50 text-muted-foreground/60">
+                    season pack
+                  </span>
+                )}
+              </div>
+            )}
             {data.enrichment?.genres && data.enrichment.genres.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {data.enrichment.genres.map((genre) => (
@@ -286,6 +353,70 @@ function TorrentDetailComponent() {
             )}
           </div>
         )}
+
+        {/* View on metadata providers */}
+        {data.enrichment &&
+          (data.enrichment.tmdbId ||
+            data.enrichment.imdbId ||
+            data.enrichment.tvdbId ||
+            data.enrichment.anilistId ||
+            data.enrichment.malId) && (() => {
+            const links: { name: string; url: string }[] = [];
+            if (data.enrichment!.tmdbId) {
+              const tmdbType =
+                data.enrichment!.mediaType === "movie" ? "movie" : "tv";
+              links.push({
+                name: "TMDB",
+                url: `https://www.themoviedb.org/${tmdbType}/${data.enrichment!.tmdbId}`,
+              });
+            }
+            if (data.enrichment!.imdbId) {
+              links.push({
+                name: "IMDb",
+                url: `https://www.imdb.com/title/${data.enrichment!.imdbId}/`,
+              });
+            }
+            if (data.enrichment!.tvdbId) {
+              links.push({
+                name: "TVDB",
+                url: `https://www.thetvdb.com/?id=${data.enrichment!.tvdbId}&tab=series`,
+              });
+            }
+            if (data.enrichment!.anilistId) {
+              links.push({
+                name: "AniList",
+                url: `https://anilist.co/anime/${data.enrichment!.anilistId}`,
+              });
+            }
+            if (data.enrichment!.malId) {
+              links.push({
+                name: "MyAnimeList",
+                url: `https://myanimelist.net/anime/${data.enrichment!.malId}`,
+              });
+            }
+            return (
+              <div className="py-4 border-b border-border/40">
+                <p className="font-mono text-[11px] tracking-widest text-muted-foreground/50 uppercase flex items-center gap-1.5 mb-3">
+                  <Layers className="size-3.5" />
+                  view on
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {links.map((link) => (
+                    <a
+                      key={link.name}
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 font-mono text-xs px-2.5 py-1.5 border border-border/50 text-muted-foreground/70 hover:text-primary hover:border-primary/50 transition-colors"
+                    >
+                      <ExternalLink className="size-3" />
+                      {link.name}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
 
         {/* Sources */}
         {data.sources && data.sources.length > 0 && (
