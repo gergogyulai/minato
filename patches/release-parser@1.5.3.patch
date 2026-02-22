@@ -1,8 +1,20 @@
+diff --git a/Users/gergo/Developer/project-minato/node_modules/release-parser/.bun-tag-57706ec7f50d80bf b/.bun-tag-57706ec7f50d80bf
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+diff --git a/Users/gergo/Developer/project-minato/node_modules/release-parser/.bun-tag-89e00f014015672c b/.bun-tag-89e00f014015672c
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+diff --git a/Users/gergo/Developer/project-minato/node_modules/release-parser/.bun-tag-97011d324ecaa73a b/.bun-tag-97011d324ecaa73a
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+diff --git a/Users/gergo/Developer/project-minato/node_modules/release-parser/.bun-tag-a3b3ebe74d585824 b/.bun-tag-a3b3ebe74d585824
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
 diff --git a/ReleaseParser.js b/ReleaseParser.js
-index b087ab0ed1592595fc7611b0447a3970a1ec1df7..d57a7ff0a03a8f0f3f17f36e1b79c076188e7c87 100644
+index b087ab0ed1592595fc7611b0447a3970a1ec1df7..a0e56f1e258d3cfed3e30eb2ec36c3b9d4138269 100644
 --- a/ReleaseParser.js
 +++ b/ReleaseParser.js
-@@ -40,6 +40,30 @@ const ReleaseParser = /** @lends module:ReleaseParser */ ( releaseName, section
+@@ -40,6 +40,43 @@ const ReleaseParser = /** @lends module:ReleaseParser */ ( releaseName, section
  		'country'		: null, // Release country
  		'type'			: null
  	}
@@ -25,6 +37,19 @@ index b087ab0ed1592595fc7611b0447a3970a1ec1df7..d57a7ff0a03a8f0f3f17f36e1b79c076
 +	{
 +		releaseName = releaseName.slice( 0, releaseName.length - groupMatch[0].length ) + '-' + groupMatch[1]
 +	}
++	// Normalize common P2P/torrent metadata delimiters so existing regexes can parse
++	// bracketed blocks like "[2024,.WEB-DL.1080p]" and "./." separator artifacts.
++	// Keep a standard trailing "-GROUP" suffix untouched (e.g. "-PiRaTeS[TGx]").
++	const trailingGroupMatch = releaseName.match( /-([\w.\[\]]+)$/i )
++	const trailingGroup = trailingGroupMatch ? trailingGroupMatch[0] : ''
++	let releaseNameCore = trailingGroup ? releaseName.slice( 0, -trailingGroup.length ) : releaseName
++
++	releaseNameCore = releaseNameCore
++		.replace( /\[([^\]]+)\]/g, ( _match, content ) => '.' + content.replace( /,/g, '.' ) + '.' )
++		.replace( /\.\//g, '..' )
++		.replace( /\/\./g, '..' )
++
++	releaseName = releaseNameCore + trailingGroup
 +	// Replace spaces with dots for uniform separator handling
 +	releaseName = releaseName.replace( /\s+/g, '.' )
 +	// Update stored release name so internal methods use the normalized version
@@ -33,7 +58,7 @@ index b087ab0ed1592595fc7611b0447a3970a1ec1df7..d57a7ff0a03a8f0f3f17f36e1b79c076
  	/**
  	 * Object toString() override: allows the object to decide how it will react when it is treated like a string.
  	 *
-@@ -188,7 +212,16 @@ const ReleaseParser = /** @lends module:ReleaseParser */ ( releaseName, section
+@@ -188,7 +225,16 @@ const ReleaseParser = /** @lends module:ReleaseParser */ ( releaseName, section
  			languageName.forEach ( (name) =>
  			{
  				// Insert current lang pattern
@@ -51,7 +76,7 @@ index b087ab0ed1592595fc7611b0447a3970a1ec1df7..d57a7ff0a03a8f0f3f17f36e1b79c076
  
  				// Check for language tag (exclude "grand" for formula1 rls)
  				let matches = releaseName.match( newRegexPattern )
-@@ -786,8 +819,8 @@ const ReleaseParser = /** @lends module:ReleaseParser */ ( releaseName, section
+@@ -786,8 +832,8 @@ const ReleaseParser = /** @lends module:ReleaseParser */ ( releaseName, section
  		let type = guessTypeByParsedAttributes()
  		// 2nd: no type found? guess by section
  		type = !type ? guessTypeBySection( section ) : type
@@ -62,7 +87,16 @@ index b087ab0ed1592595fc7611b0447a3970a1ec1df7..d57a7ff0a03a8f0f3f17f36e1b79c076
  
  		set( 'type', type )
  	}
-@@ -1205,9 +1238,18 @@ const ReleaseParser = /** @lends module:ReleaseParser */ ( releaseName, section
+@@ -1175,7 +1221,7 @@ const ReleaseParser = /** @lends module:ReleaseParser */ ( releaseName, section
+ 
+ 			// Only needed here for releases that have episodes
+ 			// Maybe year is before episode and have to be removed
+-			let releaseNameNoYear = cleanup( releaseNameCleaned, [ 'disc', 'format', 'year' ] )
++			let releaseNameNoYear = cleanup( releaseNameCleaned, [ 'disc', 'format', 'season', 'year' ] )
+ 
+ 			// Match title
+ 			matches = releaseNameNoYear.match( regexPattern )
+@@ -1205,9 +1251,18 @@ const ReleaseParser = /** @lends module:ReleaseParser */ ( releaseName, section
  				// and it isn't always numeric: 8 / e8 / e08
  				if ( titleExtra && titleExtra.replaceAll( /[a-z]+/gi, '' ).isNumeric() )
  				{
@@ -82,7 +116,18 @@ index b087ab0ed1592595fc7611b0447a3970a1ec1df7..d57a7ff0a03a8f0f3f17f36e1b79c076
  					)
  					{
  						titleExtra = ''
-@@ -1988,7 +2030,7 @@ const ReleaseParser = /** @lends module:ReleaseParser */ ( releaseName, section
+@@ -1825,6 +1880,10 @@ const ReleaseParser = /** @lends module:ReleaseParser */ ( releaseName, section
+ 						attributes.push( patterns.RESOLUTION[ informationValue ] )
+ 						break
+ 
++					case 'season':
++						attributes.push( '(?:season|saison|staffel|temp)[._-]?0?' + informationValue )
++						break
++
+ 					case 'source':
+ 						if ( Array.isArray( informationValue ) )
+ 						{
+@@ -1988,7 +2047,7 @@ const ReleaseParser = /** @lends module:ReleaseParser */ ( releaseName, section
  						break
  
  					case 'group':
@@ -91,7 +136,7 @@ index b087ab0ed1592595fc7611b0447a3970a1ec1df7..d57a7ff0a03a8f0f3f17f36e1b79c076
  						break
  
  					case 'language':
-@@ -2103,6 +2145,18 @@ const ReleaseParser = /** @lends module:ReleaseParser */ ( releaseName, section
+@@ -2103,6 +2162,18 @@ const ReleaseParser = /** @lends module:ReleaseParser */ ( releaseName, section
  		return regexPattern
  	}
  
@@ -110,10 +155,63 @@ index b087ab0ed1592595fc7611b0447a3970a1ec1df7..d57a7ff0a03a8f0f3f17f36e1b79c076
  	/**
  	 * Remove or fix attributes that were falsely parsed.
  	 *
+@@ -2183,6 +2254,43 @@ const ReleaseParser = /** @lends module:ReleaseParser */ ( releaseName, section
+ 			set( 'flags', null )
+ 		}
+ 
++		// Whole-season TV packs can bleed season tokens into title/titleExtra when title parsing
++		// falls back to generic patterns.
++		if ( type === 'tv' && _title && get( 'season' ) && !get( 'episode' ) )
++		{
++			const seasonNumber = get( 'season' ).toString()
++			const seasonSuffix = new RegExp( `\\s+(?:season|saison|staffel|temp)\\s*0*${seasonNumber}$`, 'i' )
++			if ( seasonSuffix.test( _title ) )
++			{
++				_title = _title.replace( seasonSuffix, '' ).trim()
++				set( 'title', _title || get( 'title' ) )
++			}
++
++			const releaseValue = get( 'release' ) || ''
++			const seasonRangeWord = releaseValue.match( /(?:^|[._(-])(?:season|saison|staffel|temp)[._-]?0*(\d+)[._-]+0*(\d+)(?=[._)-])/i )
++			const seasonRangeShort = releaseValue.match( /(?:^|[._(-])s0*(\d+)[._-]+s0*(\d+)(?=[._)-])/i )
++			const titleExtra = get( 'titleExtra' )
++			const rangeEnd = seasonRangeShort ? seasonRangeShort[2] : seasonRangeWord ? seasonRangeWord[2] : null
++
++			if ( rangeEnd && titleExtra )
++			{
++				const extraLooksLikeSeasonRangeEnd = new RegExp( `^s0*${rangeEnd}(?:\\b|\\s|\\()`, 'i' )
++
++				if ( extraLooksLikeSeasonRangeEnd.test( titleExtra ) )
++				{
++					set( 'titleExtra', null )
++
++					// If the upper bound of "Season 1-5" bled into the title, strip only the extra trailing token.
++					const titleWithRangeBleed = new RegExp( `\\s+0*${rangeEnd}$` )
++					const currentTitle = get( 'title' )
++					if ( seasonRangeWord && currentTitle && titleWithRangeBleed.test( currentTitle ) )
++					{
++						set( 'title', currentTitle.replace( titleWithRangeBleed, '' ).trim() )
++					}
++				}
++			}
++		}
++
+ 		if ( type === 'movie' || type === 'xxx' || type === 'tv' )
+ 		{
+ 			// Change source DVD/Bluray to format DVDR if no res and format given
 diff --git a/ReleasePatterns.js b/ReleasePatterns.js
-index 6301b495c980a5d92fd7b4f4ab708e05698fe98b..d782e726482123364039b1eacb85a0d18e05211d 100644
+index 6301b495c980a5d92fd7b4f4ab708e05698fe98b..c1fb56a6a4e67d32da42249f34d1e2eb893f67b0 100644
 --- a/ReleasePatterns.js
 +++ b/ReleasePatterns.js
+@@ -43,7 +43,7 @@ const patterns =
+ 	// For Disc numbers: Disc1 / DVD1 / CD1 / (S01)D01
+ 	REGEX_DISC : regexDisc,
+ 	// Season pattern matches: S01E01 / 1x01 / S01D01
+-	REGEX_SEASON : '/[._-](?:(?:[ST]|saison[._-]?|staffel[._-]?|temp[._-]?)(\\d+)[._-]?(?:(?:ep?|eps[._-]?|episode[._-]?|f(?:olge[._-]?)|d|di[cks][cks]|cd|dvd)\\d+)?|(\\d+)(?:x\\d+))[._-]/i',
++	REGEX_SEASON : '/[._-](?:(?:[ST]|season[._-]?|saison[._-]?|staffel[._-]?|temp[._-]?)(\\d+)[._-]?(?:(?:ep?|eps[._-]?|episode[._-]?|f(?:olge[._-]?)|d|di[cks][cks]|cd|dvd)\\d+)?|(\\d+)(?:x\\d+))[._-]/i',
+ 	// Basic title pattern
+ 	REGEX_TITLE : regexTitle,
+ 	// Good for Ebooks
 @@ -468,6 +468,7 @@ const patterns =
  	// Release flags patterns
  	FLAGS : {
