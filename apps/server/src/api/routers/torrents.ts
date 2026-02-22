@@ -157,8 +157,7 @@ export const torrentRouter = {
       await Promise.all(
         results.map((t) =>
           ingestQueue.add("index", {
-            infoHash: t.infoHash,
-            _benchmark: { ingestedAt: Date.now() },
+            infoHash: t.infoHash
           }),
         ),
       );
