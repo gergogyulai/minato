@@ -122,6 +122,8 @@ export const torrentRouter = {
             {
               name: item.source.name,
               url: item.source.url ?? null,
+              origin: item.source.origin ?? null,
+              originUrl: item.source.originUrl ?? null,
               scraper: scraperId,
             },
           ],

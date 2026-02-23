@@ -59,6 +59,8 @@ export const IngestTorrentsSchema = z.object({
   files: FileInfoSchema.optional(),
   source: z.object({
     name: z.string(),
+    origin: z.string().optional(),
+    originUrl: z.url().optional(),
     url: z.url().optional(),
   })
 });

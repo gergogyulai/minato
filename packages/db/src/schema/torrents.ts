@@ -28,6 +28,8 @@ type FileInfo = {
 
 type Sources = {
   name: string;
+  origin: string | null;
+  originUrl: string | null;
   url: string | null;
   scraper: string;
 };
