@@ -17,6 +17,7 @@ import {
   getContract,
   getCountContract,
 } from "../contracts/torrent.contracts";
+import { meiliClient } from "@project-minato/meilisearch";
 
 export const torrentRouter = {
   get: getContract.handler(async ({ input }) => {
@@ -159,7 +160,7 @@ export const torrentRouter = {
       await Promise.all(
         results.map((t) =>
           ingestQueue.add("index", {
-            infoHash: t.infoHash
+            infoHash: t.infoHash,
           }),
         ),
       );
@@ -241,6 +242,10 @@ export const torrentRouter = {
       .delete(torrents)
       .where(inArray(torrents.infoHash, normalizedHashes))
       .returning({ infoHash: torrents.infoHash });
+
+    await meiliClient
+      .index("torrents")
+      .deleteDocuments(deleted.map((t) => t.infoHash));
 
     return {
       success: true,
