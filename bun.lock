@@ -182,6 +182,7 @@
       "name": "@project-minato/config",
       "dependencies": {
         "@project-minato/db": "workspace:*",
+        "@project-minato/meilisearch": "workspace:*",
         "drizzle-orm": "catalog:",
         "ioredis": "catalog:",
         "zod": "catalog:",

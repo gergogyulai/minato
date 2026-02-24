@@ -127,11 +127,11 @@ export const setupRouter = {
   }),
 
   getScrapers: getScrapersContract.handler(() => {
-    const { setup } = getConfig();
+    const { scraper } = getConfig();
     return {
-      scrapers: AVAILABLE_SCRAPERS.map((scraper) => ({
-        ...scraper,
-        enabled: setup.enabledScrapers.includes(scraper.id),
+      scrapers: AVAILABLE_SCRAPERS.map((s) => ({
+        ...s,
+        enabled: scraper.enabledScrapers.includes(s.id),
       })),
     };
   }),
@@ -144,7 +144,7 @@ export const setupRouter = {
       });
     }
 
-    await writeConfigKey(db, "setup.enabledScrapers", input.enabledScrapers);
+    await writeConfigKey(db, "scraper.enabledScrapers", input.enabledScrapers);
     await advanceSetupProgress("scrapers");
     return { success: true, message: "Scrapers configuration updated successfully" };
   }),
@@ -168,7 +168,7 @@ export const setupRouter = {
   }),
 
   updateFlareSolverr: updateFlareSolverrContract.handler(async ({ input }) => {
-    await writeConfigKey(db, "setup.flareSolverrUrl", input.url);
+    await writeConfigKey(db, "scraper.flareSolverrUrl", input.url);
     await advanceSetupProgress("flaresolverr");
     return { success: true, message: "FlareSolverr URL updated successfully" };
   }),

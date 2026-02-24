@@ -3,19 +3,13 @@ import type { Torrent, Enrichment } from "@project-minato/db";
 import { meiliClient } from "./client";
 import { RANKING_PROFILES } from "./profiles";
 
-/**
- * Meilisearch Document Type
- * Keeps Enrichment and SeriesDetails nested exactly like the DB relations.
- */
+
 export interface MeiliTorrentDocument extends Omit<Torrent, "size"> {
   size: string;
   sourceNames: string[];
-  enrichment?: Enrichment; // Uses the original Enrichment type including seriesDetails
+  enrichment?: Enrichment;
 }
 
-/**
- * Formats a database Torrent into a nested MeiliTorrentDocument.
- */
 export function formatTorrentForMeilisearch(
   torrent: Torrent & { enrichment?: Enrichment | null }
 ): MeiliTorrentDocument {
@@ -47,7 +41,6 @@ export async function setupTorrentIndex(): Promise<Index<MeiliTorrentDocument>> 
   const index = meiliClient.index<MeiliTorrentDocument>(indexName);
 
   // 1. Searchable Attributes
-  // Notice the triple-dot notation for seriesDetails: enrichment.seriesDetails.episodeTitle
   await index.updateSearchableAttributes([
     "infoHash",
     "enrichment.imdbId",
@@ -79,7 +72,6 @@ export async function setupTorrentIndex(): Promise<Index<MeiliTorrentDocument>> 
     "enrichment.mediaType",
     "enrichment.imdbId",
     "enrichment.tmdbId",
-    // Filter by nested series properties
     "enrichment.seriesDetails.seasonNumber",
     "enrichment.seriesDetails.episodeNumber",
     "enrichment.seriesDetails.isSeasonPack",

@@ -1,8 +1,8 @@
 import { settings, settingsMeta, eq, asc } from "@project-minato/db"
 import type { db } from "@project-minato/db"
 import { configSchema } from "./schema"
-import { defaults } from "./defaults"
 import { deepMerge, setDeep } from "./utils"
+import { readEnvOverrides } from "./env-overrides"
 import type { AppConfig } from "./schema"
 
 type DB = typeof db
@@ -24,6 +24,11 @@ export async function loadConfig(db: DB): Promise<LoadedConfig> {
     raw = setDeep(raw, row.key, row.value)
   }
 
-  const config = configSchema.parse(deepMerge(defaults, raw))
+  // Priority: schema defaults < database rows < environment variables.
+  // configSchema.parse({}) already produces full defaults via chained
+  // .default(sectionSchema.parse({})) — no structural skeleton needed.
+  const envOverrides = readEnvOverrides()
+  console.log("[config] Loaded config from database (version %d) with env overrides: %o", version, envOverrides)
+  const config = configSchema.parse(deepMerge(raw, envOverrides))
   return { config, version }
 }
