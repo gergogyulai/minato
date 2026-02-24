@@ -270,7 +270,7 @@ export function startEnrichmentWorker() {
     },
     {
       connection,
-      concurrency: 15,
+      concurrency: 75,
       lockDuration: JOB_TIMEOUT_MS,
     },
   );

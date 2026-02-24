@@ -96,7 +96,7 @@ export function startIngestWorker() {
         await enrichQueue.add("enrich", { infoHash }, { delay: 1000 });
       }
     },
-    { connection },
+    { connection, concurrency: 25 },
   );
 
   worker.on("completed", (job) => {
