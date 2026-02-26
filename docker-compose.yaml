@@ -5,10 +5,12 @@ services:
     restart: unless-stopped
     ports:
       - "7271:7271"
+    networks:
+      - internal-minato
     environment:
       - NODE_ENV=production
       - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
-      - DATABASE_URL=postgresql://${DB_USER:-minato_user}:${DB_PASSWORD:-minato_password}@postgres:5432/minato
+      - DATABASE_URL=postgresql://minato_user:minato_password@postgres:5432/minato
       - TMDB_READ_ACCESS_TOKEN=${TMDB_READ_ACCESS_TOKEN}
       - REDIS_URL=redis://redis:6379
       - MEILISEARCH_HOST=http://meilisearch:7700
@@ -20,33 +22,30 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      meilisearch:
-        condition: service_healthy
-    networks:
-      - minato_network
-
   postgres:
     image: postgres:16-alpine
     container_name: minato-db
     restart: unless-stopped
+    networks:
+      - internal-minato
     environment:
       - POSTGRES_DB=minato
-      - POSTGRES_USER=${DB_USER:-minato_user}
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-minato_password}
+      - POSTGRES_USER=minato_user
+      - POSTGRES_PASSWORD=minato_password
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-minato_user} -d minato"]
+      test: ["CMD-SHELL", "pg_isready -U minato_user -d minato"]
       interval: 5s
       timeout: 5s
       retries: 5
-    networks:
-      - minato_network
 
   redis:
     image: redis:7-alpine
     container_name: minato-redis
     restart: unless-stopped
+    networks:
+      - internal-minato
     volumes:
       - redis_data:/data
     healthcheck:
@@ -54,28 +53,21 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-    networks:
-      - minato_network
 
   meilisearch:
     image: getmeili/meilisearch:v1.12
     container_name: minato-search
     restart: unless-stopped
+    networks:
+      - internal-minato
     environment:
       - MEILI_MASTER_KEY=${MEILI_MASTER_KEY}
       - MEILI_NO_ANALYTICS=true
     volumes:
       - meilisearch_data:/meili_data
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:7700/health"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    networks:
-      - minato_network
 
 networks:
-  minato_network:
+  internal-minato:
     driver: bridge
 
 volumes:
