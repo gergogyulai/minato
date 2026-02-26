@@ -102,6 +102,7 @@ export const enrichments = pgTable(
   tvdbId: integer("tvdb_id"),
   anilistId: integer("anilist_id"),
   malId: integer("mal_id"),
+  provider: text("provider"),
   contentRating: varchar("content_rating", { length: 10 }),
   seriesDetails: jsonb("series_details").$type<{
     seasonNumber?: number | string | null;

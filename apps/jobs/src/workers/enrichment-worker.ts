@@ -211,6 +211,7 @@ export function startEnrichmentWorker() {
               runtime: metadata.runtime ?? 0,
               status: metadata.status ?? "Released",
               genres: metadata.genres,
+              provider: providerInfo.name,
               posterUrl: metadata.posterPath ? localPoster.relative : null,
               backdropUrl: metadata.backdropPath
                 ? localBackdrop.relative
@@ -233,7 +234,7 @@ export function startEnrichmentWorker() {
           }
 
           finalEnrichment = enrichment;
-        }); // Transaction ends here
+        });
 
         if (!finalEnrichment) {
           console.log(
