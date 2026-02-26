@@ -35,7 +35,7 @@ app.use(
 app.get(
   "/assets/*",
   serveStatic({
-    root: path.resolve("../../data/media"),
+    root: path.resolve(process.env.MEDIA_ROOT ?? "../../data/media"),
     // This strips "/assets" so /assets/tm/poster.webp looks for <root>/tm/poster.webp
     rewriteRequestPath: (path) => path.replace(/^\/assets/, ""),
   })

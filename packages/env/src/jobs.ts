@@ -1,15 +1,14 @@
 import "dotenv/config";
+import { z } from "zod";
 import { createEnv } from "@t3-oss/env-core";
 import { sharedSchema } from "./schema";
-import { z } from "zod";
+import { tmdbAccessTokenSchema } from "./schema";
 
 export const env = createEnv({
   server: {
     ...sharedSchema,
-    BETTER_AUTH_SECRET: z.string().min(1),
-    BETTER_AUTH_URL: z.string().url(),
-    CORS_ORIGIN: z.string().url(),
-    MINATO_SEARCH_ENGINE_PROFILE: z.enum(["freshness", "standard"]),
+    TMDB_READ_ACCESS_TOKEN: tmdbAccessTokenSchema,
+    REDIS_HOST: z.string().default("localhost"),
   },
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,

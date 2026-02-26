@@ -18,9 +18,10 @@ import { AniListProvider } from "../lib/providers/anilist";
 import { ProviderRegistry } from "../lib/providers/registry";
 import { getAssetId } from "../lib/providers/types/metadata";
 import { markAsEnriched } from "../utils/enrich";
+import { env } from "@project-minato/env/jobs";
 
 const tmdbProvider = new TMDBProvider({
-  apiKey: process.env.TMDB_READ_ACCESS_TOKEN!,
+  apiKey: env.TMDB_READ_ACCESS_TOKEN,
 });
 
 const anilistProvider = new AniListProvider({});

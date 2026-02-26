@@ -1,7 +1,8 @@
+import { env } from "@project-minato/env/shared";
 import { MeiliSearch } from "meilisearch";
 
 export const meiliClient = new MeiliSearch({
-  host: process.env.MEILISEARCH_HOST || "http://localhost:7700",
+  host: env.MEILISEARCH_HOST,
   apiKey:
-    process.env.MEILISEARCH_MASTER_KEY || "masterKey_change_me_in_production",
+    env.MEILISEARCH_MASTER_KEY,
 });
