@@ -16,7 +16,7 @@ import {
   deleteContract,
   getContract,
   getCountContract,
-} from "../contracts/torrent.contracts";
+} from "@/api/contracts/torrent.contracts";
 import { meiliClient } from "@project-minato/meilisearch";
 
 export const torrentRouter = {

@@ -1,12 +1,11 @@
+import { protectedProcedure } from "@/api";
+import { torrentRouter } from "@/api/routers/torrents";
+import { blacklistRouter } from "@/api/routers/blacklist";
+import { searchRouter } from "@/api/routers/search";
+import { setupRouter } from "@/api/routers/setup";
+import { adminRouter } from "@/api/routers/admin.config.update";
+
 import type { RouterClient } from "@orpc/server";
-
-import { protectedProcedure } from "../index";
-
-import { torrentRouter } from "./torrents";
-import { blacklistRouter } from "./blacklist";
-import { searchRouter } from "./search";
-import { setupRouter } from "./setup";
-import { adminRouter } from "./admin.config.update";
 
 export const appRouter = {
   privateData: protectedProcedure.handler(({ context }) => {

@@ -1,10 +1,10 @@
 import { GraphQLClient, gql } from "graphql-request";
-import type { MetadataProvider } from "./types/provider";
-import type { EnrichmentMetadata } from "./types/metadata";
+import type { MetadataProvider } from "@/lib/providers/types/provider";
+import type { EnrichmentMetadata } from "@/lib/providers/types/metadata";
 import {
   calculateTitleSimilarity,
   TITLE_SIMILARITY_THRESHOLD,
-} from "../common";
+} from "@/lib/common";
 
 const ANILIST_API_URL = "https://graphql.anilist.co";
 

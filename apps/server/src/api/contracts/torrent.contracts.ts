@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { publicProcedure } from "..";
+import { publicProcedure } from "@/api";
 import { IngestTorrentsSchema } from "@/schemas/ingest-torrents.schema";
 import { IngestTorrentsResponseSchema } from "@/schemas/ingest-torrents.schema";
 import {

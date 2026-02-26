@@ -1,4 +1,4 @@
-import { publicProcedure } from "../index";
+import { publicProcedure } from "@/api";
 import {
   GetSetupStatusResponseSchema,
   CreateAdminSchema,

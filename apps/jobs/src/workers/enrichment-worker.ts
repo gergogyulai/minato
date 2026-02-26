@@ -7,17 +7,17 @@ import {
   enrichments,
   type NewEnrichment,
 } from "@project-minato/db";
-import { tmdbRateLimiter } from "../rate-limiter";
+import { tmdbRateLimiter } from "@/rate-limiter";
 import {
   formatTorrentForMeilisearch,
   MeiliBatcher,
 } from "@project-minato/meilisearch";
-import { getLocalAssetPaths, ingestAsset } from "../utils/media";
-import { TMDBProvider } from "../lib/providers/tmdb";
-import { AniListProvider } from "../lib/providers/anilist";
-import { ProviderRegistry } from "../lib/providers/registry";
-import { getAssetId } from "../lib/providers/types/metadata";
-import { markAsEnriched } from "../utils/enrich";
+import { getLocalAssetPaths, ingestAsset } from "@/utils/media";
+import { TMDBProvider } from "@/lib/providers/tmdb";
+import { AniListProvider } from "@/lib/providers/anilist";
+import { ProviderRegistry } from "@/lib/providers/registry";
+import { getAssetId } from "@/lib/providers/types/metadata";
+import { markAsEnriched } from "@/utils/enrich";
 import { env } from "@project-minato/env/jobs";
 
 const tmdbProvider = new TMDBProvider({

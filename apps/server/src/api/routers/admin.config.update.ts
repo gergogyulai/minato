@@ -7,7 +7,7 @@ import {
   getConfig,
   writeConfigKey,
 } from "@project-minato/config";
-import { protectedProcedure } from "../index";
+import { protectedProcedure } from "@/api";
 
 const DOT_PATH_RE = /^[a-z][a-zA-Z0-9]*(\.[a-z][a-zA-Z0-9]*)+$/
 

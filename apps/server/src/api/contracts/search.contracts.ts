@@ -1,4 +1,4 @@
-import { publicProcedure } from "..";
+import { publicProcedure } from "@/api";
 import { z } from "zod";
 import type { MeiliTorrentDocument } from "@project-minato/meilisearch";
 

@@ -1,5 +1,5 @@
-import type { MetadataProvider } from "./types/provider";
-import type { EnrichmentMetadata } from "./types/metadata";
+import type { MetadataProvider } from "@/lib/providers/types/provider";
+import type { EnrichmentMetadata } from "@/lib/providers/types/metadata";
 
 /**
  * Configuration for a provider in the registry

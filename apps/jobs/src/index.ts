@@ -1,12 +1,12 @@
 import pc from "picocolors";
-import { startIngestWorker } from "./workers/ingest-worker";
-import { startEnrichmentWorker } from "./workers/enrichment-worker";
-import { startReindexWorker } from "./workers/reindex-worker";
-import { logger } from "./utils/logger";
+import { startIngestWorker } from "@/workers/ingest-worker";
+import { startEnrichmentWorker } from "@/workers/enrichment-worker";
+import { startReindexWorker } from "@/workers/reindex-worker";
+import { logger } from "@/utils/logger";
 import { connection } from "@project-minato/queue";
 import { db } from "@project-minato/db";
 import { getConfig, initConfig, setupConfigSubscriber } from "@project-minato/config";
-import { checkInfrastructure } from "./utils/infra";
+import { checkInfrastructure } from "@/utils/infra";
 
 async function bootstrap() {
   console.clear();
@@ -19,7 +19,7 @@ async function bootstrap() {
 
     await initConfig(db);
     setupConfigSubscriber(db);
-    
+
     logger.step("Config", "LOADED");
     console.log("");
 

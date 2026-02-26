@@ -5,7 +5,7 @@ import {
   torrents,
   inArray,
 } from "@project-minato/db";
-import { blacklistContracts } from "../contracts/blacklist.contracts";
+import { blacklistContracts } from "@/api/contracts/blacklist.contracts";
 
 const torrent = {
   // Block an infoHash and remove existing records.

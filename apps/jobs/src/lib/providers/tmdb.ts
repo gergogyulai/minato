@@ -1,10 +1,10 @@
 import { TMDB } from "tmdb-ts";
-import type { MetadataProvider } from "./types/provider";
-import type { EnrichmentMetadata } from "./types/metadata";
+import type { MetadataProvider } from "@/lib/providers/types/provider";
+import type { EnrichmentMetadata } from "@/lib/providers/types/metadata";
 import {
   calculateTitleSimilarity,
   TITLE_SIMILARITY_THRESHOLD,
-} from "../common";
+} from "@/lib/common";
 
 const TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/";
 

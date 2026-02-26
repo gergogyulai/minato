@@ -2,7 +2,7 @@ import { connection } from "@project-minato/queue";
 import { meiliClient, setupTorrentIndex } from "@project-minato/meilisearch";
 import { sql } from "drizzle-orm";
 import { db } from "@project-minato/db";
-import { logger } from "./logger";
+import { logger } from "@/utils/logger";
 
 export async function checkInfrastructure() {
   try {

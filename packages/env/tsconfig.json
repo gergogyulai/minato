@@ -1,3 +1,9 @@
 {
-  "extends": "@project-minato/typescript/tsconfig.base.json"
+  "extends": "@project-minato/typescript/tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
 }
