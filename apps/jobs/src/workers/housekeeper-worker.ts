@@ -21,7 +21,7 @@ export function startHousekeeperWorker() {
             return await cleanupDatabaseOrphans(job);
 
           case HOUSEKEEPER_JOBS.CLEANUP_UNUSED_ASSETS:
-            return await cleanupUnusedAssets(job);
+            return await cleanupUnusedAssets();
 
           case HOUSEKEEPER_JOBS.RECOVER_STALLED_JOBS:
             return await recoverStalledJobs(job);
