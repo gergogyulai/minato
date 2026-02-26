@@ -1,11 +1,21 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
+  "globalEnv": ["NODE_ENV"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": ["dist/**", ".next/**"]
+      "outputs": ["dist/**", ".next/**"],
+      "env": [
+        "DATABASE_URL",
+        "BETTER_AUTH_SECRET",
+        "BETTER_AUTH_URL",
+        "CORS_ORIGIN",
+        "MEDIA_ROOT",
+        "MINATO_SEARCH_ENGINE_PROFILE",
+        "TMDB_READ_ACCESS_TOKEN",
+        "VITE_SERVER_URL"
+      ]
     },
     "lint": {
       "dependsOn": ["^lint"]
@@ -19,18 +29,19 @@
     },
     "db:push": {
       "cache": false,
-      "persistent": true
+      "env": ["DATABASE_URL"]
     },
     "db:studio": {
       "cache": false,
       "persistent": true
     },
     "db:migrate": {
-      "cache": false
+      "cache": false,
+      "env": ["DATABASE_URL"]
     },
     "db:generate": {
       "cache": false,
-      "persistent": true
-    },
+      "env": ["DATABASE_URL"]
+    }
   }
 }
