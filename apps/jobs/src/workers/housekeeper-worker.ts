@@ -1,33 +1,12 @@
 import { Worker, Job } from 'bullmq';
 import { HOUSEKEEPER_JOBS, connection } from '@project-minato/queue';
-
-async function syncMeilisearch(job: Job) {
-  console.log('[Housekeeper] Syncing Meilisearch index...');
-}
-
-async function cleanupDatabaseOrphans(job: Job) {
-  console.log('[Housekeeper] Cleaning up database orphans...');
-}
-
-async function cleanupUnusedAssets(job: Job) {
-  console.log('[Housekeeper] Cleaning up unused storage assets...');
-}
-
-async function recoverStalled(job: Job) {
-  console.log('[Housekeeper] Recovering stalled torrents...');
-}
-
-async function refreshStaleMetadata(job: Job) {
-  console.log('[Housekeeper] Refreshing stale metadata from TMDB...');
-}
-
-async function purgeBlacklisted(job: Job) {
-  console.log('[Housekeeper] Purging blacklisted content...');
-}
-
-async function performForceReindex(job: Job) {
-  console.log('[Housekeeper] Performing force reindex of all torrents...');
-}
+import { syncMeilisearch } from '@/workers/housekeeper/sync-meilisearch';
+import { cleanupDatabaseOrphans } from '@/workers/housekeeper/cleanup-db-orphans';
+import { cleanupUnusedAssets } from '@/workers/housekeeper/cleanup-unused-assets';
+import { refreshStaleMetadata } from '@/workers/housekeeper/refresh-stale-metadata';
+import { recoverStalledJobs } from '@/workers/housekeeper/recover-stalled-jobs';
+import { purgeBlacklisted } from '@/workers/housekeeper/purge-blacklisted';
+import { performForceReindex } from '@/workers/housekeeper/force-reindex';
 
 export function startHousekeeperWorker() {
   return new Worker(
@@ -45,7 +24,7 @@ export function startHousekeeperWorker() {
             return await cleanupUnusedAssets(job);
 
           case HOUSEKEEPER_JOBS.RECOVER_STALLED_JOBS:
-            return await recoverStalled(job);
+            return await recoverStalledJobs(job);
 
           case HOUSEKEEPER_JOBS.REFRESH_STALE_METADATA:
             return await refreshStaleMetadata(job);
