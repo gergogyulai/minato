@@ -1,6 +1,6 @@
 import Redis from "ioredis"
 import type { db } from "@project-minato/db"
-import { getVersion, reloadConfig } from "./store"
+import { getVersion, reloadConfig } from "@/store"
 
 type DB = typeof db
 

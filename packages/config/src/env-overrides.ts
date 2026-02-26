@@ -1,4 +1,4 @@
-import { setDeep } from "./utils"
+import { setDeep } from "@/utils"
 import { RANKING_PROFILES_OPTIONS } from "@project-minato/meilisearch"
 
 type Parser<T = unknown> = (raw: string, env: string) => T | undefined

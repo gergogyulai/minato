@@ -1,4 +1,4 @@
-import { meiliClient } from "./client";
+import { meiliClient } from "@/client";
 
 export const RANKING_PROFILES_OPTIONS = ["quality", "health", "freshness"] as const;
 
