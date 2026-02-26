@@ -13,6 +13,11 @@ export const QUEUES = {
   HOUSEKEEPER: "housekeeper_queue",
 } as const;
 
+export const ENRICH_JOBS = {
+  ENRICH: "enrich",
+  REFRESH: "refresh",
+} as const;
+
 export const HOUSEKEEPER_JOBS = {
   PURGE_BLACKLISTED: "purge_blacklisted",
   CLEANUP_DB_ORPHANS: "cleanup_db_orphans",

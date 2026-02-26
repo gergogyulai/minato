@@ -1,5 +1,5 @@
 import { Worker, Job } from "bullmq";
-import { connection, QUEUES } from "@project-minato/queue";
+import { connection, QUEUES, ENRICH_JOBS } from "@project-minato/queue";
 import {
   db,
   torrents,
@@ -18,6 +18,7 @@ import { AniListProvider } from "@/lib/providers/anilist";
 import { ProviderRegistry } from "@/lib/providers/registry";
 import { getAssetId } from "@/lib/providers/types/metadata";
 import { markAsEnriched } from "@/utils/enrich";
+import { withTimeout } from "@/utils/with-timeout";
 import { env } from "@project-minato/env/jobs";
 
 const tmdbProvider = new TMDBProvider({
@@ -35,6 +36,7 @@ const providerRegistry = new ProviderRegistry({
 
 interface EnrichJobData {
   infoHash: string;
+  provider?: string;
 }
 
 const ENRICH_BATCH_SIZE = 50;
@@ -50,24 +52,13 @@ export function startEnrichmentWorker() {
 
   const worker = new Worker<EnrichJobData>(
     QUEUES.ENRICH,
-    async (job: Job<EnrichJobData>) => {
-      let timeoutId: NodeJS.Timeout;
-
-      // 1. Fail-safe timeout promise
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        timeoutId = setTimeout(
-          () => reject(new Error(`Job timed out after ${JOB_TIMEOUT_MS}ms`)),
-          JOB_TIMEOUT_MS,
-        );
-      });
-
-      // 2. The actual job logic
-      const processPromise = async () => {
-        console.log(
-          `[Enrichment Worker] Processing job ${job.id} for torrent ${job.data.infoHash}`,
-        );
-
+    (job: Job<EnrichJobData>) =>
+      withTimeout(async () => {
         const { infoHash } = job.data;
+        const isRefresh = job.name === ENRICH_JOBS.REFRESH;
+        console.log(
+          `[Enrichment Worker] Processing job ${job.id} (${isRefresh ? "refresh" : "enrich"}) for ${infoHash}`,
+        );
 
         const [torrent] = await db
           .select()
@@ -80,35 +71,34 @@ export function startEnrichmentWorker() {
           return;
         }
 
-        // Skip if already enriched
-        if (torrent.enrichedAt) {
+        if (torrent.enrichedAt && !isRefresh) {
           console.log(
-            `[Enrichment Worker] Torrent ${infoHash} already enriched, skipping`,
+            `[Enrichment Worker] ${infoHash} already enriched, skipping`,
           );
           return;
         }
 
-        // Rate limit before calling TMDB (or any provider)
-        await tmdbRateLimiter.waitForToken();
-        const year = Number(torrent.releaseData?.year);
-        const cleanTitle = torrent.releaseData?.title;
+        // Fetch existing enrichment once — used for provider resolution on refresh
+        // and reused inside the transaction to avoid a second round-trip.
+        const existingEnrichment = isRefresh
+          ? await db.query.enrichments.findFirst({
+              where: eq(enrichments.torrentInfoHash, infoHash),
+            })
+          : undefined;
+
         const torrentType = torrent.type?.toLowerCase() as
           | "movie"
           | "tv"
           | "anime";
+        const cleanTitle = torrent.releaseData?.title;
+        const year = Number(torrent.releaseData?.year);
 
-        console.log(
-          `[Enrichment Worker] Enriching torrent ${infoHash} with title "${cleanTitle}", year ${year}, type "${torrentType}"`,
-        );
-
-        // Check if any provider supports this type
-        const supportedProviders = torrentType
-          ? providerRegistry.getProvidersForType(torrentType)
-          : [];
-
-        if (!torrentType || supportedProviders.length === 0) {
+        if (
+          !torrentType ||
+          providerRegistry.getProvidersForType(torrentType).length === 0
+        ) {
           console.log(
-            `[Enrichment Worker] Torrent ${infoHash} has unsupported type "${torrent.type}" or no providers available, skipping enrichment`,
+            `[Enrichment Worker] ${infoHash}: unsupported type "${torrent.type}", skipping`,
           );
           await markAsEnriched(infoHash);
           return;
@@ -116,160 +106,170 @@ export function startEnrichmentWorker() {
 
         if (!cleanTitle) {
           console.log(
-            `[Enrichment Worker] Torrent ${infoHash} has no valid title or year for enrichment`,
+            `[Enrichment Worker] ${infoHash}: no title available, skipping`,
           );
           await markAsEnriched(infoHash);
           return;
         }
 
-        // Use provider registry with automatic fallback
-        const enrichedResult = await providerRegistry.findWithFallback(
-          cleanTitle,
-          year,
-          torrentType,
+        await tmdbRateLimiter.waitForToken();
+
+        console.log(
+          `[Enrichment Worker] ${isRefresh ? "Refreshing" : "Enriching"} ${infoHash}: "${cleanTitle}" (${torrentType}, ${year})`,
         );
 
+        // On refresh, prefer the original provider (or an explicit job override).
+        // Fall back to the full provider chain if needed.
+        let enrichedResult = null;
+
+        if (isRefresh) {
+          const preferredName =
+            job.data.provider ?? existingEnrichment?.provider ?? null;
+          if (preferredName) {
+            const preferred = providerRegistry.getProvider(preferredName);
+            if (preferred) {
+              try {
+                const metadata = await preferred.find(
+                  cleanTitle,
+                  year || undefined,
+                  torrentType,
+                );
+                if (metadata) {
+                  enrichedResult = {
+                    metadata,
+                    provider: { name: preferred.name, priority: 0 },
+                  };
+                }
+              } catch (err) {
+                console.error(
+                  `[Enrichment Worker] Provider "${preferredName}" failed for ${infoHash}, falling back:`,
+                  err,
+                );
+              }
+            } else {
+              console.warn(
+                `[Enrichment Worker] Provider "${preferredName}" not in registry, falling back`,
+              );
+            }
+          }
+        }
+
         if (!enrichedResult) {
-          console.log(
-            `[Enrichment Worker] No metadata found for torrent ${infoHash} from any provider`,
+          enrichedResult = await providerRegistry.findWithFallback(
+            cleanTitle,
+            year,
+            torrentType,
           );
+        }
+
+        if (!enrichedResult) {
+          console.log(`[Enrichment Worker] No metadata found for ${infoHash}`);
           await markAsEnriched(infoHash);
           return;
         }
 
         const { metadata, provider: providerInfo } = enrichedResult;
         console.log(
-          `[Enrichment Worker] Found metadata for ${infoHash} using provider "${providerInfo.name}"`,
+          `[Enrichment Worker] ${infoHash}: metadata found via "${providerInfo.name}"`,
         );
 
-        const assetTasks = [];
-
-        // Get the provider-specific ID for asset storage
         const assetId = getAssetId(metadata);
 
-        if (metadata.posterPath) {
-          const posterUrl =
-            providerRegistry.getAssetUrl(
-              providerInfo.name,
-              metadata.posterPath,
-              "poster",
-            ) || metadata.posterPath;
+        await Promise.allSettled(
+          [
+            metadata.posterPath &&
+              ingestAsset({
+                id: assetId,
+                url:
+                  providerRegistry.getAssetUrl(
+                    providerInfo.name,
+                    metadata.posterPath,
+                    "poster",
+                  ) || metadata.posterPath,
+                type: "poster",
+              }),
+            metadata.backdropPath &&
+              ingestAsset({
+                id: assetId,
+                url:
+                  providerRegistry.getAssetUrl(
+                    providerInfo.name,
+                    metadata.backdropPath,
+                    "backdrop",
+                  ) || metadata.backdropPath,
+                type: "backdrop",
+              }),
+          ].filter(Boolean),
+        );
 
-          assetTasks.push(
-            ingestAsset({
-              id: assetId,
-              url: posterUrl,
-              type: "poster",
-            }),
-          );
-        }
-        if (metadata.backdropPath) {
-          const backdropUrl =
-            providerRegistry.getAssetUrl(
-              providerInfo.name,
-              metadata.backdropPath,
-              "backdrop",
-            ) || metadata.backdropPath;
+        const localPoster = getLocalAssetPaths(assetId, "poster");
+        const localBackdrop = getLocalAssetPaths(assetId, "backdrop");
 
-          assetTasks.push(
-            ingestAsset({
-              id: assetId,
-              url: backdropUrl,
-              type: "backdrop",
-            }),
-          );
-        }
+        const enrichmentData: NewEnrichment = {
+          torrentInfoHash: infoHash,
+          mediaType: metadata.mediaType,
+          tmdbId: metadata.tmdbId ?? null,
+          imdbId: metadata.imdbId ?? null,
+          tvdbId: metadata.tvdbId ?? null,
+          anilistId: metadata.anilistId ?? null,
+          malId: metadata.malId ?? null,
+          title: metadata.title,
+          overview: metadata.overview,
+          tagline: metadata.tagline ?? null,
+          releaseDate: new Date(metadata.releaseDate),
+          year: metadata.releaseYear,
+          runtime: metadata.runtime ?? 0,
+          status: metadata.status ?? "Released",
+          genres: metadata.genres,
+          provider: providerInfo.name,
+          posterUrl: metadata.posterPath ? localPoster.relative : null,
+          backdropUrl: metadata.backdropPath ? localBackdrop.relative : null,
+          seriesDetails: {
+            totalEpisodes: metadata.totalEpisodes ?? null,
+            totalSeasons: metadata.totalSeasons ?? null,
+            episodeNumber: torrent.releaseData?.episode ?? null,
+            seasonNumber: torrent.releaseData?.season ?? null,
+            episodeTitle: metadata.episodeTitle ?? null,
+          },
+          contentRating: metadata.contentRating ?? null,
+        };
 
-        // Wait for asset ingestion
-        await Promise.allSettled(assetTasks);
-
-        let finalEnrichment;
-
-        // DB Transaction: Keep this strictly limited to finding/inserting the enrichment
-        await db.transaction(async (tx) => {
-          let enrichment = await tx.query.enrichments.findFirst({
-            where: eq(enrichments.torrentInfoHash, infoHash),
-          });
-
-          if (!enrichment) {
-            const localPoster = getLocalAssetPaths(assetId, "poster");
-            const localBackdrop = getLocalAssetPaths(assetId, "backdrop");
-
-            const enrichmentData: NewEnrichment = {
-              torrentInfoHash: infoHash,
-              mediaType: metadata.mediaType,
-              tmdbId: metadata.tmdbId ?? null,
-              imdbId: metadata.imdbId ?? null,
-              tvdbId: metadata.tvdbId ?? null,
-              anilistId: metadata.anilistId ?? null,
-              malId: metadata.malId ?? null,
-              title: metadata.title,
-              overview: metadata.overview,
-              tagline: metadata.tagline ?? null,
-              releaseDate: new Date(metadata.releaseDate),
-              year: metadata.releaseYear,
-              runtime: metadata.runtime ?? 0,
-              status: metadata.status ?? "Released",
-              genres: metadata.genres,
-              provider: providerInfo.name,
-              posterUrl: metadata.posterPath ? localPoster.relative : null,
-              backdropUrl: metadata.backdropPath
-                ? localBackdrop.relative
-                : null,
-              seriesDetails: {
-                totalEpisodes: metadata.totalEpisodes ?? null,
-                totalSeasons: metadata.totalSeasons ?? null,
-                episodeNumber: torrent.releaseData?.episode ?? null,
-                seasonNumber: torrent.releaseData?.season ?? null,
-                episodeTitle: metadata.episodeTitle ?? null,
-              },
-              contentRating: metadata.contentRating ?? null,
-            };
-
-            const [newEnrichment] = await tx
+        // Upsert on refresh, plain insert otherwise (guarded by the existingEnrichment check).
+        // markAsEnriched runs outside the transaction to avoid connection pool deadlocks.
+        const finalEnrichment = await db.transaction(async (tx) => {
+          if (!existingEnrichment || isRefresh) {
+            const [upserted] = await tx
               .insert(enrichments)
               .values(enrichmentData)
+              .onConflictDoUpdate({
+                target: enrichments.torrentInfoHash,
+                set: enrichmentData,
+              })
               .returning();
-            enrichment = newEnrichment;
+            return upserted;
           }
-
-          finalEnrichment = enrichment;
+          return existingEnrichment;
         });
 
         if (!finalEnrichment) {
           console.log(
-            `[Enrichment Worker] No enrichment data found for torrent ${infoHash}`,
+            `[Enrichment Worker] ${infoHash}: enrichment write returned nothing`,
           );
           return;
         }
 
-        // Update torrent flags OUTSIDE the transaction to prevent connection pool deadlocks
         await markAsEnriched(infoHash);
 
         const enriched = await db.query.torrents.findFirst({
           where: eq(torrents.infoHash, infoHash),
-          with: {
-            enrichment: true,
-          },
+          with: { enrichment: true },
         });
 
-        if (!enriched) {
-          return;
+        if (enriched) {
+          await meiliBatcher.add(formatTorrentForMeilisearch(enriched));
+          console.log(`[Enrichment Worker] ${infoHash}: Meilisearch updated`);
         }
-
-        const enrichedDoc = formatTorrentForMeilisearch(enriched);
-        await meiliBatcher.add(enrichedDoc);
-        console.log(
-          `[Enrichment Worker] Updated torrent ${infoHash} in Meilisearch with enrichment data`,
-        );
-      };
-
-      try {
-        await Promise.race([processPromise(), timeoutPromise]);
-      } finally {
-        clearTimeout(timeoutId!);
-      }
-    },
+      }, JOB_TIMEOUT_MS),
     {
       connection,
       concurrency: 75,
@@ -286,9 +286,7 @@ export function startEnrichmentWorker() {
   });
 
   worker.on("closing", async () => {
-    console.log(
-      "[Enrichment Worker] Worker closing, flushing remaining batch...",
-    );
+    console.log("[Enrichment Worker] Closing, flushing batch...");
     await meiliBatcher.flush();
   });
 
