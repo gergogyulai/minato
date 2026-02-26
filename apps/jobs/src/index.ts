@@ -4,34 +4,9 @@ import { startEnrichmentWorker } from "./workers/enrichment-worker";
 import { startReindexWorker } from "./workers/reindex-worker";
 import { logger } from "./utils/logger";
 import { connection } from "@project-minato/queue";
-import { meiliClient, setupTorrentIndex } from "@project-minato/meilisearch";
 import { db } from "@project-minato/db";
-import { sql } from "drizzle-orm";
 import { getConfig, initConfig, setupConfigSubscriber } from "@project-minato/config";
-
-async function checkConnections() {
-  try {
-    await connection.ping();
-    logger.step("Redis", "CONNECTED");
-
-    await meiliClient.health();
-    logger.step("MeiliSearch", "CONNECTED");
-
-    // Tip: If setupTorrentIndex logs internally, consider moving it
-    // or suppressing its output until this step is reached.
-    await setupTorrentIndex();
-    logger.step("MeiliSearch Index", "INITIALIZED");
-
-    await db.execute(sql`SELECT 1`);
-    logger.step("Database", "CONNECTED");
-    console.log("");
-
-    return true;
-  } catch (err) {
-    logger.error("Health check failed");
-    throw err;
-  }
-}
+import { checkInfrastructure } from "./utils/infra";
 
 async function bootstrap() {
   console.clear();
@@ -40,12 +15,11 @@ async function bootstrap() {
   console.log("");
 
   try {
-    // 1. Validate Infrastructure
-    await checkConnections();
+    await checkInfrastructure();
 
-    // 2. Load Config
     await initConfig(db);
     setupConfigSubscriber(db);
+    
     logger.step("Config", "LOADED");
     console.log("");
 
