@@ -1,11 +1,11 @@
 import pc from "picocolors";
 import { startIngestWorker } from "@/workers/ingest-worker";
 import { startEnrichmentWorker } from "@/workers/enrichment-worker";
-import { startReindexWorker } from "@/workers/reindex-worker";
+import { startHousekeeperWorker } from "@/workers/housekeeper-worker";
 import { logger } from "@/utils/logger";
 import { connection } from "@project-minato/queue";
 import { db } from "@project-minato/db";
-import { getConfig, initConfig, setupConfigSubscriber } from "@project-minato/config";
+import { initConfig, setupConfigSubscriber } from "@project-minato/config";
 import { checkInfrastructure } from "@/utils/infra";
 
 async function bootstrap() {
@@ -25,11 +25,11 @@ async function bootstrap() {
     // 3. Start Workers
     const ingestWorker = startIngestWorker();
     const enrichmentWorker = startEnrichmentWorker();
-    const reindexWorker = startReindexWorker();
+    const housekeeperWorker = startHousekeeperWorker();
 
     logger.step("Ingest Worker", "ACTIVE");
     logger.step("Enrichment Worker", "ACTIVE");
-    logger.step("Reindex Worker", "ACTIVE");
+    logger.step("Housekeeper Worker", "ACTIVE");
 
     logger.success("System heartbeat stable");
     console.log(pc.dim("Press Ctrl+C to terminate process\n"));
@@ -42,7 +42,7 @@ async function bootstrap() {
         await Promise.all([
           ingestWorker.close(),
           enrichmentWorker.close(),
-          reindexWorker.close(),
+          housekeeperWorker.close(),
           connection.quit(),
         ]);
 

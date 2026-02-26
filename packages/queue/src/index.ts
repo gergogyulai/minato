@@ -1,22 +1,31 @@
-import { Queue, Worker, QueueEvents } from 'bullmq';
-import Redis from 'ioredis';
+import { Queue, Worker, QueueEvents } from "bullmq";
+import { env } from "@project-minato/env/jobs";
+import Redis from "ioredis";
 
-const connection = new Redis({
-  host: process.env.REDIS_HOST || "localhost",
-  port: 6379,
+const connection = new Redis(env.REDIS_URL, {
+  tls: env.REDIS_URL.startsWith('rediss://') ? {} : undefined,
   maxRetriesPerRequest: null,
 });
 
-const redis = connection;
-
 export const QUEUES = {
-  INGEST : 'torrent_ingest',
-  ENRICH: 'torrent_enrich',
-  FULLREINDEX: 'torrent_reindex',
+  INGEST: "torrent_ingest",
+  ENRICH: "torrent_enrich",
+  HOUSEKEEPER: "housekeeper_queue",
+} as const;
+
+export const HOUSEKEEPER_JOBS = {
+  PURGE_BLACKLISTED: "purge_blacklisted",
+  CLEANUP_DB_ORPHANS: "cleanup_db_orphans",
+  CLEANUP_UNUSED_ASSETS: "cleanup_unused_assets",
+  SYNC_MEILISEARCH: "sync_meilisearch",
+  REFRESH_TMDB: "refresh_tmdb",
+  VACUUM_DB: "vacuum_db",
+  RECOVER_STALLED_JOBS: "recover_stalled_jobs",
+  FORCE_REINDEX: "force_reindex",
 } as const;
 
 export const ingestQueue = new Queue(QUEUES.INGEST, { connection });
 export const enrichQueue = new Queue(QUEUES.ENRICH, { connection });
-export const reindexQueue = new Queue(QUEUES.FULLREINDEX, { connection });
+export const housekeeperQueue = new Queue(QUEUES.HOUSEKEEPER, { connection });
 
-export { Worker, QueueEvents, connection, redis }; 
+export { Worker, QueueEvents, connection };

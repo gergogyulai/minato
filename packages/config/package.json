@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@project-minato/db": "workspace:*",
+    "@project-minato/env": "workspace:*",
     "@project-minato/meilisearch": "workspace:*",
     "@t3-oss/env-core": "^0.13.1",
     "drizzle-orm": "catalog:",
