@@ -112,7 +112,5 @@ export function startIngestWorker() {
     await meiliBatcher.flush();
   });
 
-  console.log("[Ingest Worker] Started and listening for jobs...");
-
   return worker;
 }

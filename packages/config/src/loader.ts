@@ -24,11 +24,7 @@ export async function loadConfig(db: DB): Promise<LoadedConfig> {
     raw = setDeep(raw, row.key, row.value)
   }
 
-  // Priority: schema defaults < database rows < environment variables.
-  // configSchema.parse({}) already produces full defaults via chained
-  // .default(sectionSchema.parse({})) — no structural skeleton needed.
   const envOverrides = readEnvOverrides()
-  console.log("[config] Loaded config from database (version %d) with env overrides: %o", version, envOverrides)
   const config = configSchema.parse(deepMerge(raw, envOverrides))
   return { config, version }
 }

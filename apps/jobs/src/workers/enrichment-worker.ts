@@ -291,7 +291,5 @@ export function startEnrichmentWorker() {
     await meiliBatcher.flush();
   });
 
-  console.log("[Enrichment Worker] Started and listening for jobs...");
-
   return worker;
 }

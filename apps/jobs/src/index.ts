@@ -21,22 +21,16 @@ async function bootstrap() {
     setupConfigSubscriber(db);
 
     logger.step("Config", "LOADED");
-    console.log("");
-
-    const config = getConfig();
-    console.log(config)
 
     // 3. Start Workers
     const ingestWorker = startIngestWorker();
     const enrichmentWorker = startEnrichmentWorker();
     const reindexWorker = startReindexWorker();
 
-    console.log("");
-    logger.step("Ingest Worker", "PASS_1_ACTIVE");
-    logger.step("Enrichment Worker", "PASS_2_ACTIVE");
-    logger.step("Reindex Worker", "REINDEX_ACTIVE");
+    logger.step("Ingest Worker", "ACTIVE");
+    logger.step("Enrichment Worker", "ACTIVE");
+    logger.step("Reindex Worker", "ACTIVE");
 
-    console.log("");
     logger.success("System heartbeat stable");
     console.log(pc.dim("Press Ctrl+C to terminate process\n"));
 
