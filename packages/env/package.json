@@ -5,7 +5,9 @@
   "type": "module",
   "exports": {
     "./server": "./src/server.ts",
-    "./web": "./src/web.ts"
+    "./shared": "./src/shared.ts",
+    "./web": "./src/web.ts",
+    "./jobs": "./src/jobs.ts"
   },
   "dependencies": {
     "@t3-oss/env-core": "^0.13.1",

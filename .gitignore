@@ -11,6 +11,7 @@ build
 # Environment variables
 .env
 .env*.local
+!.env.example
 
 # Asset files from scraper
 data
@@ -51,18 +52,7 @@ coverage
 .cache
 tmp
 temp
-
-## Local development things
-/knaben.ts
-/knaben_json_ingest.ts
-/knaben_keyword_scrape.ts
-/knaben_hits.json
-/knaben_hits_2.json
-/bitmagnet.ts
-/scrapers
-SCRAPERS.md
-/idea
-/apps/web2
+idea
 
 .agents
 skills-lock.json

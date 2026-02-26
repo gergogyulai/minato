@@ -1,0 +1,51 @@
+# Dependencies
+node_modules
+**/node_modules
+.bun/install/cache
+
+# Build outputs
+dist
+**/dist
+.next
+out
+build
+.turbo
+
+# Local Environment & Secrets
+.env
+.env.*
+!.env.example
+*.local
+**/*.local
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDEs and tools
+.idea
+.vscode
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+.git
+.gitignore
+.github
+
+# Project files
+README.md
+LICENSE
+ROADMAP.md
+TODO.md
+.agents
+skills-lock.json
+data
+
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore

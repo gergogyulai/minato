@@ -1,15 +1,3 @@
-diff --git a/Users/gergo/Developer/project-minato/node_modules/release-parser/.bun-tag-57706ec7f50d80bf b/.bun-tag-57706ec7f50d80bf
-new file mode 100644
-index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-diff --git a/Users/gergo/Developer/project-minato/node_modules/release-parser/.bun-tag-89e00f014015672c b/.bun-tag-89e00f014015672c
-new file mode 100644
-index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-diff --git a/Users/gergo/Developer/project-minato/node_modules/release-parser/.bun-tag-97011d324ecaa73a b/.bun-tag-97011d324ecaa73a
-new file mode 100644
-index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-diff --git a/Users/gergo/Developer/project-minato/node_modules/release-parser/.bun-tag-a3b3ebe74d585824 b/.bun-tag-a3b3ebe74d585824
-new file mode 100644
-index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
 diff --git a/ReleaseParser.js b/ReleaseParser.js
 index b087ab0ed1592595fc7611b0447a3970a1ec1df7..a0e56f1e258d3cfed3e30eb2ec36c3b9d4138269 100644
 --- a/ReleaseParser.js
