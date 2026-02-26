@@ -25,7 +25,7 @@ const tmdbProvider = new TMDBProvider({
   apiKey: env.TMDB_READ_ACCESS_TOKEN,
 });
 
-const anilistProvider = new AniListProvider({});
+const anilistProvider = new AniListProvider();
 
 const providerRegistry = new ProviderRegistry({
   providers: [

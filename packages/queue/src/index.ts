@@ -23,8 +23,7 @@ export const HOUSEKEEPER_JOBS = {
   CLEANUP_DB_ORPHANS: "cleanup_db_orphans",
   CLEANUP_UNUSED_ASSETS: "cleanup_unused_assets",
   SYNC_MEILISEARCH: "sync_meilisearch",
-  REFRESH_TMDB: "refresh_tmdb",
-  VACUUM_DB: "vacuum_db",
+  REFRESH_STALE_METADATA: "refresh_stale_metadata",
   RECOVER_STALLED_JOBS: "recover_stalled_jobs",
   FORCE_REINDEX: "force_reindex",
 } as const;

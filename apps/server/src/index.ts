@@ -12,7 +12,7 @@ import { createContext } from "@/api/context";
 import { appRouter } from "@/api/routers/index";
 import { feeds } from "@/feeds";
 import { db } from "@project-minato/db";
-import { redis } from "@project-minato/queue";
+import { connection as redis } from "@project-minato/queue";
 import { meiliClient } from "@project-minato/meilisearch";
 import { sql } from "@project-minato/db";
 import { serveStatic } from "hono/bun";
