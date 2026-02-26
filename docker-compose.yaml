@@ -1,6 +1,6 @@
 services:
   minato:
-    image: gergogyulai/project-minato:latest
+    image: gergogyulai/minato:dev
     container_name: minato
     restart: unless-stopped
     ports:
@@ -8,7 +8,7 @@ services:
     environment:
       - NODE_ENV=production
       - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
-      - DATABASE_URL=postgresql://minato_user:minato_password@postgres:5432/minato
+      - DATABASE_URL=postgresql://${DB_USER:-minato_user}:${DB_PASSWORD:-minato_password}@postgres:5432/minato
       - TMDB_READ_ACCESS_TOKEN=${TMDB_READ_ACCESS_TOKEN}
       - REDIS_URL=redis://redis:6379
       - MEILISEARCH_HOST=http://meilisearch:7700
@@ -22,6 +22,8 @@ services:
         condition: service_healthy
       meilisearch:
         condition: service_healthy
+    networks:
+      - minato_network
 
   postgres:
     image: postgres:16-alpine
@@ -29,15 +31,17 @@ services:
     restart: unless-stopped
     environment:
       - POSTGRES_DB=minato
-      - POSTGRES_USER=minato_user
-      - POSTGRES_PASSWORD=minato_password
+      - POSTGRES_USER=${DB_USER:-minato_user}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-minato_password}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U minato_user -d minato"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-minato_user} -d minato"]
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - minato_network
 
   redis:
     image: redis:7-alpine
@@ -50,6 +54,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - minato_network
 
   meilisearch:
     image: getmeili/meilisearch:v1.12
@@ -65,6 +71,12 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - minato_network
+
+networks:
+  minato_network:
+    driver: bridge
 
 volumes:
   minato_assets:
