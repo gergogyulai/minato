@@ -29,6 +29,7 @@
     },
     "db:push": {
       "cache": false,
+      "persistent": true,
       "env": ["DATABASE_URL"]
     },
     "db:studio": {
@@ -37,7 +38,8 @@
     },
     "db:migrate": {
       "cache": false,
-      "env": ["DATABASE_URL"]
+      "env": ["DATABASE_URL"],
+      "persistent": true
     },
     "db:generate": {
       "cache": false,

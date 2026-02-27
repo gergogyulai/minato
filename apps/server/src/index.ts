@@ -17,7 +17,7 @@ import { meiliClient } from "@project-minato/meilisearch";
 import { sql } from "@project-minato/db";
 import { serveStatic } from "hono/bun";
 import path from "node:path";
-import { bootstrap } from "./bootstrap";
+import { startup } from "./startup";
 
 const app = new Hono()
 
@@ -160,6 +160,6 @@ app.use("/api/v1*", async (c, next) => {
 	await next();
 });
 
-await bootstrap();
+await startup();
 
 export default app;

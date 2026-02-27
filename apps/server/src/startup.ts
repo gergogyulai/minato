@@ -2,7 +2,7 @@ import { db } from "@project-minato/db"
 import { initConfig, setupConfigSubscriber, getConfig } from "@project-minato/config"
 import { applyGlobalSearchProfile } from "@project-minato/meilisearch"
 
-export async function bootstrap(): Promise<void> {
+export async function startup(): Promise<void> {
   await initConfig(db)
   setupConfigSubscriber(db)
 
