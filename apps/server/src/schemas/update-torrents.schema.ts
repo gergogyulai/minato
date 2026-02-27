@@ -40,7 +40,6 @@ export const UpdateTorrentSchema = z.object({
   type: z.string().optional().describe("Release type (movie, tv, etc.)"),
   group: z.string().optional().describe("Release group"),
   resolution: z.string().optional().describe("Video resolution"),
-  releaseTitle: z.string().optional().describe("Parsed release title"),
 });
 
 export const UpdateTorrentResponseSchema = z.object({

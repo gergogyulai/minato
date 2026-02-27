@@ -48,13 +48,7 @@ export const torrents = pgTable(
     magnet: text("magnet"),
     sources: jsonb("sources").$type<Sources[]>().notNull().default([]),
     isDirty: boolean("is_dirty").default(true),
-
-    type: text("type").$type<releaseType>(),
-    group: text("group"),
-    resolution: text("resolution"),
-    releaseTitle: text("release_title"),
     releaseData: jsonb("release_data").$type<ReleaseData>(),
-
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()

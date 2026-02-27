@@ -56,10 +56,6 @@ export function startIngestWorker() {
         .update(torrents)
         .set({
           releaseData: release.data,
-          type: release.data.type,
-          group: release.data.group,
-          resolution: release.data.resolution,
-          releaseTitle: release.data.title,
           indexedAt: new Date(),
           isDirty: false,
         })
@@ -81,13 +77,14 @@ export function startIngestWorker() {
 
       console.log(
         `[Ingest Worker] Document queued for torrent ${infoHash} - Title: ${
-          updatedTorrent.releaseTitle || updatedTorrent.trackerTitle
+          updatedTorrent.releaseData?.title || updatedTorrent.trackerTitle
         }`,
       );
 
       // Check for enrichment eligibility
       if (
-        (updatedTorrent.type === "Movie" || updatedTorrent.type === "TV") &&
+        (updatedTorrent.releaseData?.type === "Movie" ||
+          updatedTorrent.releaseData?.type === "TV") &&
         !updatedTorrent.enrichedAt
       ) {
         console.log(

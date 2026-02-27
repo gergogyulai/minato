@@ -24,7 +24,7 @@ export const torrentRouter = {
     const { infoHash } = input;
 
     const torrent = await db.query.torrents.findFirst({
-      where: (torrents, { eq }) => eq(torrents.infoHash, infoHash),
+      where: (torrents: any) => eq(torrents.infoHash, infoHash),
       with: {
         enrichment: true,
       },
@@ -213,8 +213,6 @@ export const torrentRouter = {
     if (updateFields.group !== undefined) updateData.group = updateFields.group;
     if (updateFields.resolution !== undefined)
       updateData.resolution = updateFields.resolution;
-    if (updateFields.releaseTitle !== undefined)
-      updateData.releaseTitle = updateFields.releaseTitle;
 
     if (Object.keys(updateData).length === 0) {
       throw new ORPCError("BAD_REQUEST", {

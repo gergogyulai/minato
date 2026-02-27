@@ -86,7 +86,7 @@ export function startEnrichmentWorker() {
             })
           : undefined;
 
-        const torrentType = torrent.type?.toLowerCase() as
+        const torrentType = torrent.releaseData?.type?.toLowerCase() as
           | "movie"
           | "tv"
           | "anime";
@@ -98,7 +98,7 @@ export function startEnrichmentWorker() {
           providerRegistry.getProvidersForType(torrentType).length === 0
         ) {
           console.log(
-            `[Enrichment Worker] ${infoHash}: unsupported type "${torrent.type}", skipping`,
+            `[Enrichment Worker] ${infoHash}: unsupported type "${torrentType}", skipping`,
           );
           await markAsEnriched(infoHash);
           return;

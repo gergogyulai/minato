@@ -47,9 +47,9 @@ export async function setupTorrentIndex(): Promise<Index<MeiliTorrentDocument>> 
     "enrichment.tmdbId",
     "enrichment.title",
     "trackerTitle",
-    "releaseTitle",
-    "type",
-    "group",
+    "releaseData.title",
+    "releaseData.type",
+    "releaseData.group",
     "enrichment.overview",
     "enrichment.seriesDetails.episodeTitle", 
     "enrichment.tagline",
@@ -57,9 +57,9 @@ export async function setupTorrentIndex(): Promise<Index<MeiliTorrentDocument>> 
 
   // 2. Filterable Attributes
   await index.updateFilterableAttributes([
-    "type",
-    "resolution",
-    "group",
+    "releaseData.type",
+    "releaseData.resolution",
+    "releaseData.group",
     "sourceNames",
     "seeders",
     "leechers",
@@ -80,7 +80,7 @@ export async function setupTorrentIndex(): Promise<Index<MeiliTorrentDocument>> 
   // 3. Sortable Attributes
   await index.updateSortableAttributes([
     "trackerTitle",
-    "releaseTitle",
+    "releaseData.title",
     "seeders",
     "leechers",
     "size",
