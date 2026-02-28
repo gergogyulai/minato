@@ -19,3 +19,5 @@ export type TorrentWithRelations = BuildQueryResult<
 export const db = drizzle(env.DATABASE_URL, { schema });
 export * from "./schema";
 export * from "drizzle-orm";
+export { runMigrations } from "./migrate";
+export type { MigrationResult } from "./migrate";
