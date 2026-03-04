@@ -1,6 +1,6 @@
 import Redis from "ioredis";
 import type { db } from "@project-minato/db";
-import { getVersion, reloadConfig } from "@/store";
+import { getVersion, reloadConfig } from "./store";
 import { env } from "@project-minato/env/shared";
 
 type DB = typeof db;

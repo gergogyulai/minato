@@ -1,5 +1,5 @@
 import type { db } from "@project-minato/db"
-import { loadConfig } from "@/loader"
+import { loadConfig } from "./loader"
 import type { AppConfig } from "@/schema"
 
 type DB = typeof db

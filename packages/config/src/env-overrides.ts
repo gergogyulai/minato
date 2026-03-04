@@ -1,4 +1,4 @@
-import { setDeep } from "@/utils"
+import { setDeep } from "./utils"
 import { RANKING_PROFILES_OPTIONS } from "@project-minato/meilisearch"
 import { createEnv } from "@t3-oss/env-core"
 import { z } from "zod"

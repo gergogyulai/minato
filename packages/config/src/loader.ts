@@ -1,9 +1,9 @@
 import { settings, settingsMeta, eq, asc } from "@project-minato/db"
 import type { db } from "@project-minato/db"
-import { configSchema } from "@/schema"
-import { deepMerge, setDeep } from "@/utils"
-import { readEnvOverrides } from "@/env-overrides"
-import type { AppConfig } from "@/schema"
+import { configSchema } from "./schema"
+import { deepMerge, setDeep } from "./utils"
+import { readEnvOverrides } from "./env-overrides"
+import type { AppConfig } from "./schema"
 
 type DB = typeof db
 

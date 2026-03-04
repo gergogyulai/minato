@@ -1,7 +1,7 @@
 import { settings, settingsMeta, eq, sql } from "@project-minato/db"
 import type { db } from "@project-minato/db"
-import { reloadConfig, refreshLocalCache, getVersion } from "@/store"
-import { publishReload } from "@/pubsub"
+import { reloadConfig, refreshLocalCache, getVersion } from "./store"
+import { publishReload } from "./pubsub"
 
 type DB = typeof db
 

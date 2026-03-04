@@ -1,7 +1,7 @@
 import { env } from "@project-minato/env/shared";
 import { drizzle } from "drizzle-orm/node-postgres";
 
-import * as schema from "@/schema";
+import * as schema from "./schema";
 import type {
   BuildQueryResult,
   ExtractTablesWithRelations,

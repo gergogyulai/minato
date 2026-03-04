@@ -1,4 +1,4 @@
-import { meiliClient } from "@/client";
+import { meiliClient } from "./client";
 
 /**
  * A utility class to batch document additions to Meilisearch.

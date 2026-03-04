@@ -9,7 +9,6 @@ export const env = createEnv({
     BETTER_AUTH_SECRET: z.string().min(1),
     BETTER_AUTH_URL: z.string().url(),
     CORS_ORIGIN: z.string().url(),
-    MINATO_SEARCH_ENGINE_PROFILE: z.enum(["freshness", "standard"]),
   },
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,
