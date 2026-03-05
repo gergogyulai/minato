@@ -13,7 +13,17 @@ export async function startup(): Promise<void> {
     process.exit(1);
   }
 
-  await initConfig(db)
+  try {
+    await initConfig(db)
+  } catch (err) {
+    console.error(
+      "[Startup] Config initialization failed — the database schema may not be set up yet.",
+      "Ensure migrations ran successfully before starting the server.",
+      err,
+    );
+    process.exit(1);
+  }
+
   setupConfigSubscriber(db)
 
   const config = getConfig();

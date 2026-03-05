@@ -78,9 +78,10 @@ export async function runMigrations(): Promise<MigrationResult> {
 
   const journalPath = path.join(migrationsDir, "meta", "_journal.json");
   if (!fs.existsSync(journalPath)) {
-    // No migrations have been generated yet — nothing to do.
-    console.log("[Migration] No migration journal found, skipping.");
-    return { appliedCount: 0, requiresReindex: false };
+    throw new Error(
+      `[Migration] Migration journal not found at: ${journalPath}. ` +
+        `Run 'drizzle-kit generate' to create migrations before starting the server.`,
+    );
   }
 
   const migrationClient = postgres(connectionString, { max: 1 });

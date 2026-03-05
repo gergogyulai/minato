@@ -7,8 +7,8 @@ export const env = createEnv({
   server: {
     ...sharedSchema,
     BETTER_AUTH_SECRET: z.string().min(1),
-    BETTER_AUTH_URL: z.string().url(),
-    CORS_ORIGIN: z.string().url(),
+    BETTER_AUTH_URL: z.string().url().optional(),
+    CORS_ORIGIN: z.string().url().optional(),
   },
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,

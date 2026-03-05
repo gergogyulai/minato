@@ -10,8 +10,8 @@ const overridesEnv = createEnv({
       .string()
       .transform((s) => s.split(",").map((v) => v.trim()).filter(Boolean))
       .optional(),
-    MINATO_WORKERS_INGEST_CONCURRENCY:     z.coerce.number().int().min(1).max(50).optional(),
-    MINATO_WORKERS_ENRICHMENT_CONCURRENCY: z.coerce.number().int().min(1).max(20).optional(),
+    MINATO_WORKERS_INGEST_CONCURRENCY:     z.number().int().min(1).max(50).optional(),
+    MINATO_WORKERS_ENRICHMENT_CONCURRENCY: z.number().int().min(1).max(20).optional(),
     MINATO_SEARCH_ENGINE_PROFILE:          z.enum(RANKING_PROFILES_OPTIONS).optional(),
   },
   runtimeEnv: process.env,

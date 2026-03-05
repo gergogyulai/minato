@@ -7,7 +7,8 @@
     "./server": "./src/server.ts",
     "./shared": "./src/shared.ts",
     "./web": "./src/web.ts",
-    "./jobs": "./src/jobs.ts"
+    "./jobs": "./src/jobs.ts",
+    "./origin": "./src/origin.ts"
   },
   "dependencies": {
     "@t3-oss/env-core": "^0.13.1",

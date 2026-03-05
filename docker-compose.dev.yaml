@@ -1,9 +1,9 @@
-name: project-minato
+name: project-minato-dev
 
 services:
   meilisearch:
     image: getmeili/meilisearch:v1.6
-    container_name: project-minato-meilisearch
+    container_name: project-minato-dev-meilisearch
     environment:
       - MEILI_HOST=0.0.0.0
       - MEILI_MASTER_KEY=masterKey_change_me_in_production
@@ -11,7 +11,7 @@ services:
     ports:
       - "7700:7700"
     volumes:
-      - project-minato_meili_data:/meili_data
+      - project-minato-dev_meili_data:/meili_data
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
       interval: 10s
@@ -21,12 +21,12 @@ services:
 
   redis:
     image: redis:alpine
-    container_name: project-minato-redis
+    container_name: project-minato-dev-redis
     command: redis-server --save 60 1 --loglevel warning
     ports:
       - "6379:6379"
     volumes:
-      - project-minato_redis_data:/data
+      - project-minato-dev_redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -36,7 +36,7 @@ services:
 
   postgres:
     image: postgres
-    container_name: project-minato-postgres
+    container_name: project-minato-dev-postgres
     environment:
       POSTGRES_DB: project-minato
       POSTGRES_USER: postgres
@@ -44,7 +44,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - project-minato_postgres_data:/var/lib/postgresql
+      - project-minato-dev_postgres_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -54,7 +54,7 @@ services:
 
   flaresolverr:
     image: ghcr.io/flaresolverr/flaresolverr:latest
-    container_name: project-minato-flaresolverr
+    container_name: project-minato-dev-flaresolverr
     environment:
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - LOG_FILE=${LOG_FILE:-none}
@@ -64,11 +64,11 @@ services:
     ports:
       - "${PORT:-8191}:8191"
     volumes:
-      - project-minato_flaresolverr_data:/config
+      - project-minato-dev_flaresolverr_data:/config
     restart: unless-stopped
 
 volumes:
-  project-minato_meili_data:
-  project-minato_redis_data:
-  project-minato_postgres_data:
-  project-minato_flaresolverr_data:
+  project-minato-dev_meili_data:
+  project-minato-dev_redis_data:
+  project-minato-dev_postgres_data:
+  project-minato-dev_flaresolverr_data:

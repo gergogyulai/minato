@@ -12,6 +12,8 @@
   "scripts": {},
   "dependencies": {
     "@better-auth/passkey": "^1.4.18",
+    "@better-auth/drizzle-adapter": "catalog:",
+    "@better-auth/api-key": "catalog:",
     "@project-minato/db": "workspace:*",
     "@project-minato/env": "workspace:*",
     "better-auth": "catalog:",

@@ -4,11 +4,14 @@ import { startEnrichmentWorker } from "@/workers/enrichment-worker";
 import { startHousekeeperWorker } from "@/workers/housekeeper-worker";
 import { logger } from "@/utils/logger";
 import { connection } from "@project-minato/queue";
-import { db } from "@project-minato/db";
+import { db, runMigrations } from "@project-minato/db";
 import { initConfig, setupConfigSubscriber } from "@project-minato/config";
 import { checkInfrastructure } from "@/utils/infra";
 
-async function bootstrap() {
+const BOOTSTRAP_MAX_RETRIES = 10;
+const BOOTSTRAP_INITIAL_DELAY_MS = 3_000;
+
+async function bootstrap(attempt = 1): Promise<void> {
   console.clear();
   console.log(pc.magenta(pc.bold("◢ PROJECT MINATO")));
   logger.info("Initializing worker mesh...");
@@ -16,6 +19,12 @@ async function bootstrap() {
 
   try {
     await checkInfrastructure();
+
+    try {
+      await runMigrations();
+    } catch (err) {
+      throw new Error(`Migration failed: ${err instanceof Error ? err.message : err}`);
+    }
 
     await initConfig(db);
     setupConfigSubscriber(db);
@@ -57,7 +66,15 @@ async function bootstrap() {
     process.on("SIGINT", () => shutdown("SIGINT"));
     process.on("SIGTERM", () => shutdown("SIGTERM"));
   } catch (err) {
-    logger.error("Bootstrap failed");
+    if (attempt <= BOOTSTRAP_MAX_RETRIES) {
+      const delay = BOOTSTRAP_INITIAL_DELAY_MS * attempt;
+      logger.warn(
+        `Bootstrap failed (attempt ${attempt}/${BOOTSTRAP_MAX_RETRIES}) — retrying in ${delay / 1000}s...`,
+      );
+      await new Promise((r) => setTimeout(r, delay));
+      return bootstrap(attempt + 1);
+    }
+    logger.error("Bootstrap failed — max retries exhausted");
     console.error(err);
     process.exit(1);
   }

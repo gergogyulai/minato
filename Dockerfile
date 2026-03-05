@@ -2,7 +2,8 @@
 FROM oven/bun:1.3.9 AS builder
 WORKDIR /app
 
-ENV NODE_ENV=production
+# Do NOT set NODE_ENV=production here — Bun skips devDependencies when it is set,
+# and we need drizzle-kit (a devDependency) to generate migrations during the build.
 
 COPY package.json bun.lock turbo.json biome.json tsconfig.json ./
 COPY patches ./patches
@@ -15,39 +16,49 @@ COPY packages ./packages
 
 RUN bun install --ignore-scripts
 
-# Build server (tsdown → apps/server/dist) and web (vite → apps/web/dist)
-# jobs has no build step — it is run directly from source by bun at runtime
+# Generate DB migrations from schema (drizzle-kit generate reads TS schema only,
+# no live DB connection required — the output is committed-style SQL + journal files)
+RUN cd packages/db && bunx drizzle-kit generate
+
+# Build server (tsdown → apps/server/dist), jobs (tsdown → apps/jobs/dist) and web (vite → apps/web/dist)
 RUN bun run build
 
+# The server bundle is pure ESM; tsdown shims __dirname to the output dir
+# (apps/server/dist/), so migrations must sit alongside the bundle.
+RUN cp -r packages/db/src/migrations apps/server/dist/migrations
+
 # --- Stage 2: Final Production Image ---
-FROM oven/bun:1.3.9-slim
+FROM oven/bun:1.3.9-alpine
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y \
-  supervisor \
-  nginx \
-  && rm -rf /var/lib/apt/lists/*
+# supervisor and nginx — apk implicitly --no-cache avoids keeping the index
+RUN apk add --no-cache supervisor nginx
 
 ## copy frontend static assets — served by nginx
 COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
 
 ## copy server bundle
 COPY --from=builder /app/apps/server/dist ./apps/server/dist
-COPY --from=builder /app/apps/server/package.json ./apps/server/package.json
 
-## copy jobs source (no build step — bun runs TypeScript directly)
-COPY --from=builder /app/apps/jobs/src ./apps/jobs/src
-COPY --from=builder /app/apps/jobs/package.json ./apps/jobs/package.json
+## copy jobs bundle
+COPY --from=builder /app/apps/jobs/dist ./apps/jobs/dist
 
-## copy workspace packages (runtime deps for jobs)
-COPY --from=builder /app/packages ./packages
+## Install external packages fresh:
+##   - better-auth + @better-auth/passkey: left external due to dynamic require()
+##   - sharp: native addon, needs Alpine/musl prebuilt (not the glibc one from builder)
+COPY apps/jobs/package.json /tmp/jobs-pkg.json
+RUN bun -e "const {readFileSync,writeFileSync}=require('fs'); \
+  const jobs=JSON.parse(readFileSync('/tmp/jobs-pkg.json','utf8')); \
+  writeFileSync('package.json',JSON.stringify({dependencies:{ \
+    sharp:jobs.dependencies.sharp, \
+    'better-auth':'^1.4.9', \
+    '@better-auth/passkey':'^1.4.18' \
+  }}));" \
+  && bun install --production \
+  && rm package.json
 
-## copy production dependencies (workspace symlinks are dereferenced by Docker COPY)
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
-
-## copy nginx config
-COPY docker/nginx.conf /etc/nginx/sites-available/default
+## copy nginx config (Alpine nginx uses http.d/, not sites-available/)
+COPY docker/nginx.conf /etc/nginx/http.d/default.conf
 
 ## copy supervisor config
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf

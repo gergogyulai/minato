@@ -1,4 +1,5 @@
 import { env } from "@project-minato/env/server";
+import { inferOriginFromRequest } from "@project-minato/env/origin";
 import { OpenAPIHandler } from "@orpc/openapi/fetch";
 import { OpenAPIReferencePlugin } from "@orpc/openapi/plugins";
 import { ZodToJsonSchemaConverter } from "@orpc/zod/zod4";
@@ -25,7 +26,21 @@ app.use(logger());
 app.use(
 	"/*",
 	cors({
-    origin: (origin) => (origin === "null" || origin === env.CORS_ORIGIN ? origin : env.CORS_ORIGIN),
+    origin: (origin, c) => {
+      if (origin === "null") {
+        return origin;
+      }
+      if (env.CORS_ORIGIN) {
+        return origin === env.CORS_ORIGIN ? origin : env.CORS_ORIGIN;
+      }
+
+      const inferredOrigin = inferOriginFromRequest(c.req.raw);
+      if (!inferredOrigin) {
+        return null;
+      }
+
+      return origin === inferredOrigin ? origin : null;
+    },
     allowMethods: ["GET", "POST", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization", "User-Agent"],
     credentials: true,

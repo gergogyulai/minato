@@ -1,10 +1,12 @@
 {
   "name": "@project-minato/jobs",
   "type": "module",
-  "main": "src/index.ts",
+  "main": "dist/index.mjs",
   "scripts": {
+    "build": "tsdown",
+    "check-types": "tsc -b",
     "dev": "bun run --hot src/index.ts",
-    "start": "bun run src/index.ts"
+    "start": "bun run dist/index.mjs"
   },
   "dependencies": {
     "@project-minato/config": "workspace:*",
@@ -27,6 +29,7 @@
   "devDependencies": {
     "@project-minato/typescript": "workspace:*",
     "@types/bun": "catalog:",
+    "tsdown": "^0.20.3",
     "typescript": "catalog:"
   }
 }
