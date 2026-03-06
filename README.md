@@ -6,7 +6,7 @@
 
 # Project Blueprint: "Project Minato"
 
-A high-performance torrent scraping and indexing suite with a Torznab-compatible API, Next.js dashboard, and Go-based public tracker scrapers (The Pirate Bay, 1337x, knaben.org) and DHT crawlers.
+A high-performance torrent scraping and indexing suite with a Torznab-compatible API, dashboard, and Go-based public tracker scrapers (The Pirate Bay, 1337x, knaben.org) and DHT crawlers.
 
 ## 1. System Architecture
 
