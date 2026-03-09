@@ -5,15 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1772614876660,
-      "tag": "0000_unknown_redwing",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1773052736761,
-      "tag": "0001_adorable_black_tarantula",
+      "when": 1773053255192,
+      "tag": "0000_previous_shockwave",
       "breakpoints": true
     }
   ]

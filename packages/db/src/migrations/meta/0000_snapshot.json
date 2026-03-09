@@ -1,5 +1,5 @@
 {
-  "id": "c9d8ed5c-56e2-4f4d-8914-02eb6daaef85",
+  "id": "8c493a78-5b16-4d6d-a915-0647154316d3",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -1108,6 +1108,12 @@
           "notNull": true,
           "default": "'[]'::jsonb"
         },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "is_dirty": {
           "name": "is_dirty",
           "type": "boolean",
@@ -1198,6 +1204,21 @@
           "columns": [
             {
               "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "type_idx": {
+          "name": "type_idx",
+          "columns": [
+            {
+              "expression": "type",
               "isExpression": false,
               "asc": true,
               "nulls": "last"

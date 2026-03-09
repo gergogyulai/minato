@@ -20,11 +20,11 @@ async function bootstrap(attempt = 1): Promise<void> {
   try {
     await checkInfrastructure();
 
-    try {
-      await runMigrations();
-    } catch (err) {
-      throw new Error(`Migration failed: ${err instanceof Error ? err.message : err}`);
-    }
+    // try {
+    //   await runMigrations();
+    // } catch (err) {
+    //   throw new Error(`Migration failed: ${err instanceof Error ? err.message : err}`);
+    // }
 
     await initConfig(db);
     setupConfigSubscriber(db);

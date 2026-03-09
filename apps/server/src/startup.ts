@@ -5,24 +5,24 @@ import { housekeeperQueue, HOUSEKEEPER_JOBS } from "@project-minato/queue"
 
 export async function startup(): Promise<void> {
   let requiresReindex = false;
-  try {
-    const migrationResult = await runMigrations();
-    requiresReindex = migrationResult.requiresReindex;
-  } catch (err) {
-    console.error("[Startup] Migration failed — aborting startup:", err);
-    process.exit(1);
-  }
+  // try {
+  //   const migrationResult = await runMigrations();
+  //   requiresReindex = migrationResult.requiresReindex;
+  // } catch (err) {
+  //   console.error("[Startup] Migration failed — aborting startup:", err);
+  //   process.exit(1);
+  // }
 
-  try {
-    await initConfig(db)
-  } catch (err) {
-    console.error(
-      "[Startup] Config initialization failed — the database schema may not be set up yet.",
-      "Ensure migrations ran successfully before starting the server.",
-      err,
-    );
-    process.exit(1);
-  }
+  // try {
+  //   await initConfig(db)
+  // } catch (err) {
+  //   console.error(
+  //     "[Startup] Config initialization failed — the database schema may not be set up yet.",
+  //     "Ensure migrations ran successfully before starting the server.",
+  //     err,
+  //   );
+  //   process.exit(1);
+  // }
 
   setupConfigSubscriber(db)
 

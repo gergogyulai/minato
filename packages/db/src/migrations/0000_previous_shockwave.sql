@@ -140,6 +140,7 @@ CREATE TABLE "torrents" (
 	"files" jsonb,
 	"magnet" text,
 	"sources" jsonb DEFAULT '[]'::jsonb NOT NULL,
+	"type" text,
 	"is_dirty" boolean DEFAULT true,
 	"release_data" jsonb,
 	"created_at" timestamp DEFAULT now() NOT NULL,
@@ -182,4 +183,5 @@ CREATE INDEX "mal_id_idx" ON "enrichments" USING btree ("mal_id");--> statement-
 CREATE INDEX "info_hash_idx" ON "enrichments" USING btree ("torrent_info_hash");--> statement-breakpoint
 CREATE INDEX "is_dirty_partial_idx" ON "torrents" USING btree ("is_dirty") WHERE is_dirty IS TRUE;--> statement-breakpoint
 CREATE INDEX "sources_gin_idx" ON "torrents" USING gin ("sources");--> statement-breakpoint
-CREATE INDEX "created_at_idx" ON "torrents" USING btree ("created_at");
+CREATE INDEX "created_at_idx" ON "torrents" USING btree ("created_at");--> statement-breakpoint
+CREATE INDEX "type_idx" ON "torrents" USING btree ("type");
