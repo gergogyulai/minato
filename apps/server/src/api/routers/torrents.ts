@@ -20,35 +20,6 @@ import {
 import { meiliClient } from "@project-minato/meilisearch";
 
 export const torrentRouter = {
-  get: getContract.handler(async ({ input }) => {
-    const { infoHash } = input;
-
-    const torrent = await db.query.torrents.findFirst({
-      where: (torrents: any) => eq(torrents.infoHash, infoHash),
-      with: {
-        enrichment: true,
-      },
-    });
-
-    if (!torrent) {
-      throw new ORPCError("NOT_FOUND", {
-        message: `Torrent with info hash ${infoHash} not found`,
-      });
-    }
-
-    return torrent as any;
-  }),
-
-  getCount: getCountContract.handler(async () => {
-    const result = await db
-      .select({ count: sql<number>`cast(count(*) as integer)` })
-      .from(torrents);
-
-    return {
-      count: result[0]?.count ?? 0,
-    };
-  }),
-
   ingest: ingestContract.handler(async ({ input, context }) => {
     const scraperId = context.honoContext.req.header("X-Minato-Scraper");
 
@@ -175,6 +146,34 @@ export const torrentRouter = {
         message: "Internal Server Error",
       });
     }
+  }),
+  get: getContract.handler(async ({ input }) => {
+    const { infoHash } = input;
+
+    const torrent = await db.query.torrents.findFirst({
+      where: (torrents: any) => eq(torrents.infoHash, infoHash),
+      with: {
+        enrichment: true,
+      },
+    });
+
+    if (!torrent) {
+      throw new ORPCError("NOT_FOUND", {
+        message: `Torrent with info hash ${infoHash} not found`,
+      });
+    }
+
+    return torrent as any;
+  }),
+
+  getCount: getCountContract.handler(async () => {
+    const result = await db
+      .select({ count: sql<number>`cast(count(*) as integer)` })
+      .from(torrents);
+
+    return {
+      count: result[0]?.count ?? 0,
+    };
   }),
 
   update: updateContract.handler(async ({ input }) => {
