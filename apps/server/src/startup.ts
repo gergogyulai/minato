@@ -14,7 +14,7 @@ export async function startup(): Promise<void> {
   // }
 
   // try {
-  //   await initConfig(db)
+  await initConfig(db);
   // } catch (err) {
   //   console.error(
   //     "[Startup] Config initialization failed — the database schema may not be set up yet.",
