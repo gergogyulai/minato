@@ -84,14 +84,6 @@ stack-up:
 stack-down:
     docker compose -f docker-compose.yaml down
 
-# Start the debug stack
-debug-up:
-    docker compose -f docker-compose.debug.yaml up -d
-
-# Stop the debug stack
-debug-down:
-    docker compose -f docker-compose.debug.yaml down
-
 # ─── docker image ────────────────────────────────────────────────────────────
 
 # Build dev image for the current platform (no push)
