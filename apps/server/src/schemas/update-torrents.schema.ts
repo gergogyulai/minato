@@ -37,9 +37,7 @@ export const UpdateTorrentSchema = z.object({
     .optional()
     .describe("Array of file information"),
   magnet: z.string().optional().describe("Magnet link"),
-  type: z.string().optional().describe("Release type (movie, tv, etc.)"),
-  group: z.string().optional().describe("Release group"),
-  resolution: z.string().optional().describe("Video resolution"),
+  type: z.string().optional().describe("Content type override (movie, tv, anime, etc.)"),
 });
 
 export const UpdateTorrentResponseSchema = z.object({

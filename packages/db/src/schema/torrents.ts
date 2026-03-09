@@ -47,6 +47,7 @@ export const torrents = pgTable(
     files: jsonb("files").$type<FileInfo[]>(),
     magnet: text("magnet"),
     sources: jsonb("sources").$type<Sources[]>().notNull().default([]),
+    type: text("type"),
     isDirty: boolean("is_dirty").default(true),
     releaseData: jsonb("release_data").$type<ReleaseData>(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -65,6 +66,7 @@ export const torrents = pgTable(
       .where(sql`is_dirty IS TRUE`),
     index("sources_gin_idx").using("gin", table.sources),
     index("created_at_idx").on(table.createdAt),
+    index("type_idx").on(table.type),
   ],
 );
 

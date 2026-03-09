@@ -210,9 +210,6 @@ export const torrentRouter = {
     if (updateFields.magnet !== undefined)
       updateData.magnet = updateFields.magnet;
     if (updateFields.type !== undefined) updateData.type = updateFields.type;
-    if (updateFields.group !== undefined) updateData.group = updateFields.group;
-    if (updateFields.resolution !== undefined)
-      updateData.resolution = updateFields.resolution;
 
     if (Object.keys(updateData).length === 0) {
       throw new ORPCError("BAD_REQUEST", {

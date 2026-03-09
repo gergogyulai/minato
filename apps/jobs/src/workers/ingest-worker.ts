@@ -56,6 +56,7 @@ export function startIngestWorker() {
         .update(torrents)
         .set({
           releaseData: release.data,
+          type: release.data.type ?? null,
           indexedAt: new Date(),
           isDirty: false,
         })
@@ -84,7 +85,8 @@ export function startIngestWorker() {
       // Check for enrichment eligibility
       if (
         (updatedTorrent.releaseData?.type === "Movie" ||
-          updatedTorrent.releaseData?.type === "TV") &&
+          updatedTorrent.releaseData?.type === "TV" ||
+          updatedTorrent.releaseData?.type === "Anime") &&
         !updatedTorrent.enrichedAt
       ) {
         console.log(

@@ -38,7 +38,7 @@ export const searchRouter = {
     
     if (resolutionFilter && resolutionFilter.length > 0) {
       const resolutionFilters = resolutionFilter
-        .map((r) => `resolution = "${r}"`)
+        .map((r) => `releaseData.resolution = "${r}"`)
         .join(" OR ");
       filters.push(`(${resolutionFilters})`);
     }
@@ -50,7 +50,7 @@ export const searchRouter = {
     
     if (groupFilter && groupFilter.length > 0) {
       const groupFilters = groupFilter
-        .map((g) => `group = "${g}"`)
+        .map((g) => `releaseData.group = "${g}"`)
         .join(" OR ");
       filters.push(`(${groupFilters})`);
     }
@@ -59,7 +59,7 @@ export const searchRouter = {
     if (parsed.filters.season) {
       const seasonValue = Number.parseInt(parsed.filters.season, 10);
       if (!Number.isNaN(seasonValue)) {
-        filters.push(`enrichment.seasonNumber = ${seasonValue}`);
+        filters.push(`enrichment.seriesDetails.seasonNumber = ${seasonValue}`);
       }
     }
 
@@ -67,7 +67,7 @@ export const searchRouter = {
     if (parsed.filters.ep) {
       const episodeValue = Number.parseInt(parsed.filters.ep, 10);
       if (!Number.isNaN(episodeValue)) {
-        filters.push(`enrichment.episodeNumber = ${episodeValue}`);
+        filters.push(`enrichment.seriesDetails.episodeNumber = ${episodeValue}`);
       }
     }
 
@@ -136,8 +136,8 @@ export const searchRouter = {
       attributesToSearchOn,
       facets: [
         "type",
-        "resolution",
-        "group",
+        "releaseData.resolution",
+        "releaseData.group",
         "sourceNames",
         "enrichment.genres",
         "enrichment.mediaType",
