@@ -62,7 +62,7 @@ services:
       - CAPTCHA_SOLVER=${CAPTCHA_SOLVER:-none}
       - TZ=Europe/London
     ports:
-      - "${PORT:-8191}:8191"
+      - "8191:8191"
     volumes:
       - project-minato-dev_flaresolverr_data:/config
     restart: unless-stopped
