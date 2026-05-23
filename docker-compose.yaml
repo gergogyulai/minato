@@ -1,20 +1,25 @@
+name: minato
+
 services:
   minato:
-    image: gergogyulai/minato:dev
+    image: gergogyulai/minato:latest
     container_name: minato
     restart: unless-stopped
     ports:
       - "7271:7271"
     networks:
-      - internal-minato
+      - internal
     environment:
       - NODE_ENV=production
       - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
+      - BETTER_AUTH_URL=${BETTER_AUTH_URL:-}
+      - CORS_ORIGIN=${CORS_ORIGIN:-}
       - DATABASE_URL=postgresql://minato_user:minato_password@postgres:5432/minato
-      - TMDB_READ_ACCESS_TOKEN=${TMDB_READ_ACCESS_TOKEN}
       - REDIS_URL=redis://redis:6379
       - MEILISEARCH_HOST=http://meilisearch:7700
-      - MEILISEARCH_MASTER_KEY=${MEILI_MASTER_KEY}
+      - MEILISEARCH_MASTER_KEY=${MEILISEARCH_MASTER_KEY}
+      - TMDB_READ_ACCESS_TOKEN=${TMDB_READ_ACCESS_TOKEN}
+      - MEDIA_ROOT=/data/media
     volumes:
       - minato_assets:/data
     depends_on:
@@ -22,12 +27,15 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+
   postgres:
     image: postgres:16-alpine
-    container_name: minato-db
+    container_name: minato-postgres
     restart: unless-stopped
     networks:
-      - internal-minato
+      - internal
     environment:
       - POSTGRES_DB=minato
       - POSTGRES_USER=minato_user
@@ -38,36 +46,42 @@ services:
       test: ["CMD-SHELL", "pg_isready -U minato_user -d minato"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   redis:
     image: redis:7-alpine
     container_name: minato-redis
     restart: unless-stopped
     networks:
-      - internal-minato
+      - internal
+    command: redis-server --save 60 1 --loglevel warning
     volumes:
       - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   meilisearch:
     image: getmeili/meilisearch:v1.12
-    container_name: minato-search
+    container_name: minato-meilisearch
     restart: unless-stopped
     networks:
-      - internal-minato
+      - internal
     environment:
-      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY}
+      - MEILI_MASTER_KEY=${MEILISEARCH_MASTER_KEY}
       - MEILI_NO_ANALYTICS=true
     volumes:
       - meilisearch_data:/meili_data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
 networks:
-  internal-minato:
+  internal:
     driver: bridge
 
 volumes:

@@ -148,7 +148,7 @@ function TorrentDetailComponent() {
         <div className="flex gap-6 mb-0">
           {data.enrichment?.posterUrl && (
             <img
-              src={"http://localhost:3000/assets" + data.enrichment.posterUrl}
+              src={"/assets" + data.enrichment.posterUrl}
               alt={title ?? "Poster"}
               className="w-20 shrink-0 aspect-2/3 object-cover border border-border/40"
             />

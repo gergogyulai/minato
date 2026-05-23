@@ -239,6 +239,7 @@
         "@project-minato/db": "workspace:*",
         "@project-minato/env": "workspace:*",
         "dotenv": "catalog:",
+        "drizzle-orm": "catalog:",
         "meilisearch": "^0.55.0",
       },
       "devDependencies": {

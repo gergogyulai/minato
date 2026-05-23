@@ -21,7 +21,7 @@ export const queryClient = new QueryClient({
 });
 
 export const link = new RPCLink({
-  url: `${env.VITE_SERVER_URL}/api/v1/rpc`,
+  url: `${import.meta.env.PROD ? window.location.origin : (env.VITE_SERVER_URL ?? "http://localhost:3000")}/api/v1/rpc`,
   fetch(url, options) {
     return fetch(url, {
       ...options,

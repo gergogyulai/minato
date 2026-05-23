@@ -16,16 +16,17 @@ COPY packages ./packages
 
 RUN bun install --ignore-scripts
 
-# Generate DB migrations from schema (drizzle-kit generate reads TS schema only,
-# no live DB connection required — the output is committed-style SQL + journal files)
-RUN cd packages/db && bunx drizzle-kit generate
+# Migrations are authored locally with `bun run db:generate` and committed to
+# the repo — they are the source of truth. We don't regenerate at build time.
 
 # Build server (tsdown → apps/server/dist), jobs (tsdown → apps/jobs/dist) and web (vite → apps/web/dist)
 RUN bun run build
 
-# The server bundle is pure ESM; tsdown shims __dirname to the output dir
-# (apps/server/dist/), so migrations must sit alongside the bundle.
-RUN cp -r packages/db/src/migrations apps/server/dist/migrations
+# tsdown bundles to a single ESM file and shims __dirname to the output dir;
+# the migration runner resolves migrations relative to __dirname, so we copy
+# them next to each bundle that runs migrations at boot.
+RUN cp -r packages/db/src/migrations apps/server/dist/migrations \
+ && cp -r packages/db/src/migrations apps/jobs/dist/migrations
 
 # --- Stage 2: Final Production Image ---
 FROM oven/bun:1.3.9-alpine
@@ -44,15 +45,19 @@ COPY --from=builder /app/apps/server/dist ./apps/server/dist
 COPY --from=builder /app/apps/jobs/dist ./apps/jobs/dist
 
 ## Install external packages fresh:
-##   - better-auth + @better-auth/passkey: left external due to dynamic require()
+##   - better-auth + @better-auth/* adapters: left external due to dynamic require()
+##   - drizzle-orm: required at runtime by @better-auth/drizzle-adapter (dynamic require)
 ##   - sharp: native addon, needs Alpine/musl prebuilt (not the glibc one from builder)
 COPY apps/jobs/package.json /tmp/jobs-pkg.json
 RUN bun -e "const {readFileSync,writeFileSync}=require('fs'); \
   const jobs=JSON.parse(readFileSync('/tmp/jobs-pkg.json','utf8')); \
   writeFileSync('package.json',JSON.stringify({dependencies:{ \
     sharp:jobs.dependencies.sharp, \
-    'better-auth':'^1.4.9', \
-    '@better-auth/passkey':'^1.4.18' \
+    'better-auth':'^1.5.3', \
+    '@better-auth/api-key':'^1.5.3', \
+    '@better-auth/passkey':'^1.5.3', \
+    '@better-auth/drizzle-adapter':'^1.5.3', \
+    'drizzle-orm':'^0.45.1' \
   }}));" \
   && bun install --production \
   && rm package.json

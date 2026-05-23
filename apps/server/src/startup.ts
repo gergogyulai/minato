@@ -1,48 +1,43 @@
-import { db, runMigrations } from "@project-minato/db"
-import { initConfig, setupConfigSubscriber, getConfig } from "@project-minato/config"
-import { applyGlobalSearchProfile } from "@project-minato/meilisearch"
-import { housekeeperQueue, HOUSEKEEPER_JOBS } from "@project-minato/queue"
+import { db, runMigrations } from "@project-minato/db";
+import { initConfig, setupConfigSubscriber, getConfig } from "@project-minato/config";
+import { applyGlobalSearchProfile, syncMeilisearch } from "@project-minato/meilisearch";
+import { housekeeperQueue, HOUSEKEEPER_JOBS } from "@project-minato/queue";
 
 export async function startup(): Promise<void> {
-  let requiresReindex = false;
-  // try {
-  //   const migrationResult = await runMigrations();
-  //   requiresReindex = migrationResult.requiresReindex;
-  // } catch (err) {
-  //   console.error("[Startup] Migration failed — aborting startup:", err);
-  //   process.exit(1);
-  // }
+  try {
+    await runMigrations();
+  } catch (err) {
+    console.error("[startup] migrations failed — aborting:", err);
+    process.exit(1);
+  }
 
-  // try {
   await initConfig(db);
-  // } catch (err) {
-  //   console.error(
-  //     "[Startup] Config initialization failed — the database schema may not be set up yet.",
-  //     "Ensure migrations ran successfully before starting the server.",
-  //     err,
-  //   );
-  //   process.exit(1);
-  // }
+  setupConfigSubscriber(db);
 
-  setupConfigSubscriber(db)
+  // syncMeilisearch first — it ensures the index exists and seeds default
+  // settings (including a baseline ranking rules set). applyGlobalSearchProfile
+  // then overrides ranking rules with the user's chosen profile.
+  const searchSync = await syncMeilisearch(db);
 
   const config = getConfig();
   await applyGlobalSearchProfile(config.search.profile);
 
-  if (requiresReindex) {
+  if (searchSync.reindexRequired) {
+    console.log(
+      `[startup] search index version ${searchSync.previousVersion ?? "none"} → ${searchSync.currentVersion}; scheduling full reindex`,
+    );
     try {
       await housekeeperQueue.add(
         HOUSEKEEPER_JOBS.FORCE_REINDEX,
         {},
         {
-          jobId: "post-migration-reindex",
+          jobId: `reindex-v${searchSync.currentVersion}`,
           removeOnComplete: true,
           removeOnFail: false,
         },
       );
-      console.log("[Startup] Full Meilisearch reindex job enqueued.");
     } catch (err) {
-      console.error("[Startup] Failed to enqueue reindex job:", err);
+      console.error("[startup] failed to enqueue reindex job:", err);
     }
   }
 }
