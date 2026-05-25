@@ -1,0 +1,111 @@
+---
+title: Reverse Proxy
+description: Put Minato behind Traefik, Caddy, or nginx Proxy Manager for HTTPS and a custom domain.
+---
+
+Minato listens on port `7271`. To serve it on a domain with HTTPS, put it behind a reverse proxy. The proxy handles TLS termination and forwards traffic to the container.
+
+When deploying behind a domain, set these two env vars on the `minato` service:
+
+```bash
+BETTER_AUTH_URL=https://minato.example.com
+CORS_ORIGIN=https://minato.example.com
+```
+
+Without these, authentication cookies and CORS won't work correctly.
+
+---
+
+## Traefik
+
+The most common setup for homelab Docker environments.
+
+**Assumptions:**
+- Traefik is already running with a `web-public` Docker network
+- A `letsencrypt` certificate resolver is configured
+- You have a DNS A record pointing `minato.example.com` at your server
+
+Add Minato to your `docker-compose.yaml`:
+
+```yaml
+services:
+  minato:
+    image: gergogyulai/minato:latest
+    container_name: minato
+    restart: unless-stopped
+    networks:
+      - internal
+      - web-public          # join Traefik's network
+    environment:
+      - NODE_ENV=production
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
+      - BETTER_AUTH_URL=https://minato.example.com
+      - CORS_ORIGIN=https://minato.example.com
+      - DATABASE_URL=postgresql://minato_user:minato_password@postgres:5432/minato
+      - REDIS_URL=redis://redis:6379
+      - MEILISEARCH_HOST=http://meilisearch:7700
+      - MEILISEARCH_MASTER_KEY=${MEILISEARCH_MASTER_KEY}
+      - TMDB_READ_ACCESS_TOKEN=${TMDB_READ_ACCESS_TOKEN}
+      - MEDIA_ROOT=/data/media
+    volumes:
+      - minato_assets:/data
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.minato.rule=Host(`minato.example.com`)"
+      - "traefik.http.routers.minato.entrypoints=websecure"
+      - "traefik.http.routers.minato.tls.certresolver=letsencrypt"
+      - "traefik.http.services.minato.loadbalancer.server.port=7271"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+
+  # ... postgres, redis, meilisearch stay on `internal` network only
+
+networks:
+  internal:
+    driver: bridge
+  web-public:
+    external: true
+```
+
+Remove the `ports` block — Traefik connects directly to the container on the shared network. Port `7271` doesn't need to be published to the host.
+
+---
+
+## Caddy
+
+If you run Caddy as a reverse proxy:
+
+**Caddyfile:**
+
+```
+minato.example.com {
+    reverse_proxy minato:7271
+}
+```
+
+With Caddy's automatic HTTPS, this is all you need. Make sure the Caddy container and the `minato` container share a Docker network.
+
+---
+
+## nginx Proxy Manager
+
+If you're using nginx Proxy Manager (NPM):
+
+1. Add a new **Proxy Host** in the NPM UI
+2. **Domain**: `minato.example.com`
+3. **Forward Hostname/IP**: `minato` (the container name, if NPM is on the same Docker network) or your server's local IP
+4. **Forward Port**: `7271`
+5. Enable **SSL** and request a Let's Encrypt certificate
+
+Make sure the `minato` container and the NPM container are on the same Docker network, or use the host IP with port `7271` exposed.
+
+---
+
+## Path-based proxying
+
+Minato is not designed to run on a subpath (e.g. `example.com/minato/`). Use a subdomain instead.

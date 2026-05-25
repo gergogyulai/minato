@@ -1,0 +1,189 @@
+---
+title: Sidecar Scrapers
+description: Run a scraper in its own container — any language, your own scheduling, full lifecycle control.
+---
+
+A sidecar is a Docker container you add to your Minato stack. It communicates with Minato over HTTP and manages its own lifecycle entirely.
+
+## When to use a sidecar
+
+A sidecar is the right choice in these situations:
+
+**You need a language other than TypeScript/JavaScript.** Python, Go, Rust — anything works. You own the container, so you control the runtime.
+
+**You need native system dependencies.** A real Chrome/Chromium for JavaScript-rendered sites, a C library, a Go binary, anything that can't be installed via npm. Community scrapers are limited to what Bun/Node can run.
+
+**You need to own your own schedule.** Minato schedules community scrapers centrally. If your scraper needs to trigger based on an external event (a webhook, a message queue, a watched RSS feed), or at an interval that doesn't fit a simple cron, a sidecar gives you full control. You decide when to run and when to push data to Minato.
+
+**Your lifecycle is fundamentally different.** A scraper that maintains a persistent connection to a tracker's announce URL, or one that participates in DHT and streams data continuously, doesn't fit the "run once, exit" model even as a daemon. Sidecars are natural for these because you control `restart` policy, resource limits, and process management entirely through Docker.
+
+If none of these apply, a [community scraper](/docs/scrapers/community) is simpler to build and easier for users to install.
+
+---
+
+## Adding a sidecar to your stack
+
+```yaml
+services:
+  my-scraper:
+    image: author/my-scraper:latest
+    restart: unless-stopped
+    environment:
+      MINATO_API_URL: http://minato:3000
+      MINATO_API_KEY: mk_live_xxxx
+      MINATO_SCRAPER_ID: my-scraper
+    depends_on:
+      - minato
+```
+
+Get `MINATO_API_KEY` from **Settings → API Keys** in the dashboard.
+
+---
+
+## Choosing an integration depth
+
+| | Ingest-only | Full integration |
+|---|---|---|
+| Push torrents | ✅ | ✅ |
+| Config from dashboard | ❌ | ✅ |
+| Status in dashboard | ❌ | ✅ |
+| Pause / stop / resume | ❌ | ✅ |
+
+Start with ingest-only. Add the other endpoints later if you want users to see your scraper's status in the dashboard or control it without restarting Docker.
+
+---
+
+## Ingest-only
+
+One HTTP call. Send torrents, done.
+
+```
+POST /api/v1/torrents/ingest
+X-Minato-Key: <your key>
+X-Minato-Scraper: <your scraper id>
+Content-Type: application/json
+
+[
+  {
+    "infoHash": "abc123...",
+    "title": "My.Release.2024.1080p",
+    "size": 8589934592,
+    "seeders": 42,
+    "leechers": 7,
+    "source": { "name": "My Scraper", "url": "https://example.com/t/123" }
+  }
+]
+```
+
+Up to 1 000 torrents per request. Duplicates are handled by Minato — just send everything you find.
+
+**Python:**
+
+```python
+import os, requests
+
+requests.post(
+    f"{os.environ['MINATO_API_URL']}/api/v1/torrents/ingest",
+    headers={
+        "X-Minato-Key": os.environ["MINATO_API_KEY"],
+        "X-Minato-Scraper": os.environ["MINATO_SCRAPER_ID"],
+    },
+    json=[{
+        "infoHash": "abc123...",
+        "title": "My.Release.2024.1080p",
+        "size": 8589934592,
+        "source": {"name": "My Scraper"},
+    }],
+)
+```
+
+---
+
+## Full integration
+
+Four endpoints. Call them on startup, then hold the command stream open for the lifetime of the process.
+
+### 1. Register
+
+Call once on startup to announce yourself and receive your config.
+
+```
+POST /api/v1/scraper/register
+X-Minato-Key: <your key>
+
+{
+  "version": "1.0.0",
+  "pid": 12345,
+  "capabilities": ["ingest", "status", "commands"]
+}
+```
+
+Response:
+```json
+{ "config": { "maxPages": 10 } }
+```
+
+The `config` object contains values the user has set in the dashboard, merged over whatever defaults you provided during registration. Use it for the rest of the process lifetime — it won't change until the next restart.
+
+### 2. Status
+
+Send whenever your progress changes. All fields optional. Fire-and-forget — don't retry on failure.
+
+```
+POST /api/v1/scraper/status
+X-Minato-Key: <your key>
+
+{
+  "phase": "running",
+  "progress": { "current": 3, "total": 10 },
+  "message": "Scraping page 3 of 10"
+}
+```
+
+Valid phases: `"idle"`, `"running"`, `"paused"`, `"error"`.
+
+### 3. Commands (SSE stream)
+
+Open a persistent GET connection and keep reading. Minato pushes an event each time the user triggers a command from the dashboard.
+
+```
+GET /api/v1/scraper/commands/<scraper-id>
+X-Minato-Key: <your key>
+Accept: text/event-stream
+```
+
+Events arrive in SSE format:
+
+```
+id: 550e8400-e29b-41d4-a716-446655440000
+event: command
+data: {"id":"550e8400-e29b-41d4-a716-446655440000","command":"pause"}
+```
+
+Commands: `"pause"`, `"stop"`, `"resume"`.
+
+When the connection drops, reconnect after a few seconds and send `Last-Event-ID` set to the last event ID you received — Minato will replay any commands you missed while disconnected.
+
+### 4. Ingest
+
+Same as the ingest-only endpoint. Send batches whenever you have data.
+
+---
+
+## TorrentInput fields
+
+| Field | Required | Description |
+|---|---|---|
+| `infoHash` | ✅ | 40-char hex info hash |
+| `title` | ✅ | Release name |
+| `size` | ✅ | Total size in bytes |
+| `seeders` | | |
+| `leechers` | | |
+| `magnet` | | Full magnet URI |
+| `category` | | Tracker category label |
+| `publishedAt` | | ISO 8601 |
+| `files` | | `[{ filename, size }]` |
+| `source.name` | ✅ | Label shown in the Minato UI |
+| `source.url` | | Torrent detail page |
+| `source.origin` | | Tracker / index name |
+| `source.originUrl` | | Tracker / index homepage |

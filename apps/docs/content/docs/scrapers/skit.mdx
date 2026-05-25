@@ -1,0 +1,110 @@
+---
+title: Skit SDK
+description: API reference for @minato/skit — the TypeScript SDK for Minato scrapers.
+---
+
+`@minato/skit` handles everything except your actual scraping logic: registering with Minato, loading config, buffering ingested torrents, reporting status, and listening for commands.
+
+## `defineScraper<TConfig>(definition)`
+
+The entry point. Export its return value as your module's default export.
+
+```typescript
+import { defineScraper } from "@minato/skit";
+
+export default defineScraper({
+  config: { maxPages: 10 },
+  async run({ ingest, config, signal, status, meta }) {
+    // your logic
+  },
+});
+```
+
+`TConfig` is inferred from the `config` object if you don't specify it explicitly. To get typed config, pass it as a type parameter:
+
+```typescript
+type Config = { maxPages: number; delayMs: number };
+
+export default defineScraper<Config>({ ... });
+```
+
+## Context
+
+`run()` receives a single `ctx` argument:
+
+| Property | Type | Description |
+|---|---|---|
+| `ingest` | `IngestClient` | Queue torrents for ingestion |
+| `config` | `TConfig` | User config merged over your defaults |
+| `signal` | `AbortSignal` | Aborted when the user sends pause or stop |
+| `status` | `StatusReporter` | Report progress to the dashboard |
+| `meta` | `{ id, name, version }` | Values from `scraper.json` |
+
+## `ingest`
+
+```typescript
+ingest.add(torrent: TorrentInput): void
+```
+
+Queues a torrent. Batches are sent to Minato automatically — you never need to call `flush()` yourself.
+
+### `TorrentInput`
+
+| Field | Required | Type | Description |
+|---|---|---|---|
+| `infoHash` | ✅ | `string` | 40-char hex info hash |
+| `title` | ✅ | `string` | Release name as shown on the tracker |
+| `size` | ✅ | `number` | Total size in bytes |
+| `seeders` | | `number` | |
+| `leechers` | | `number` | |
+| `magnet` | | `string` | Full magnet URI |
+| `category` | | `string` | Tracker-specific category label |
+| `publishedAt` | | `string` | ISO 8601 publish date |
+| `files` | | `Array<{ filename, size }>` | File list |
+| `source.name` | ✅ | `string` | Shown in the UI as the source label |
+| `source.url` | | `string` | Link to the torrent detail page |
+| `source.origin` | | `string` | Tracker or index name |
+| `source.originUrl` | | `string` | Tracker or index homepage |
+
+## `config`
+
+The value from `scraper.json`'s `defaultConfig`, with any dashboard overrides already applied. Just use it directly — no merging needed.
+
+```typescript
+const { maxPages, delayMs } = config;
+```
+
+## `signal`
+
+An `AbortSignal` that fires when the user sends a **pause** or **stop** command from the dashboard. Check it at any loop boundary:
+
+```typescript
+for (const page of pages) {
+  if (signal.aborted) break;
+  // ...
+}
+```
+
+Buffered torrents are flushed before the process exits regardless of how it stops.
+
+## `status`
+
+```typescript
+status.update({
+  phase?: "idle" | "running" | "paused" | "error",
+  progress?: { current: number; total?: number },
+  message?: string,
+})
+```
+
+All fields are optional. Send updates whenever meaningful progress occurs. Failures are silently ignored — a bad status call never affects your scraper.
+
+## `meta`
+
+```typescript
+meta.id       // "my-scraper"
+meta.name     // "My Scraper"
+meta.version  // "1.0.0"
+```
+
+Use `meta.name` as `source.name` to keep the source label consistent with the scraper name shown in the dashboard.

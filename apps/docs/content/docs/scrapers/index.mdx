@@ -1,0 +1,86 @@
+---
+title: Scrapers
+description: Add data sources to your Minato instance from the registry or a Git repository.
+---
+
+Scrapers are what feeds your Minato instance. They pull torrents from external sources and push them into your library automatically.
+
+There are two kinds of scrapers you can add:
+
+- **Community scrapers** — installed from the Minato registry or any public Git repository
+- **Sidecar scrapers** — a separate container you add to your `docker-compose.yaml`
+
+## Installing a community scraper
+
+Go to **Settings → Scrapers** and choose how you want to install:
+
+### From the registry
+
+Browse the official Minato scraper registry, pick a scraper, and click **Install**. Minato handles everything — no further steps needed.
+
+### From a Git repository
+
+If a scraper isn't in the registry, you can install it directly from its source repository. Paste the repository URL into the **Install from URL** field:
+
+- `https://github.com/user/my-scraper`
+- `https://gitlab.com/user/my-scraper`
+- `https://codeberg.org/user/my-scraper`
+- `https://bitbucket.org/user/my-scraper`
+
+Minato clones the repository and starts the scraper. You'll see it appear in your scraper list once it's ready.
+
+## Updating a scraper
+
+Go to **Settings → Scrapers**, find the scraper, and click **Update**. Minato pulls the latest version from the source it was installed from and restarts the scraper.
+
+Your configuration is preserved across updates.
+
+## Removing a scraper
+
+Go to **Settings → Scrapers**, find the scraper, and click **Remove**. The scraper is stopped and uninstalled. Your configuration is deleted along with it.
+
+## Configuring a scraper
+
+Each scraper ships with default settings. You can override them per-instance from the dashboard without editing any files.
+
+Go to **Settings → Scrapers**, find the scraper, and open its **Config** panel. Changes take effect the next time the scraper runs.
+
+## Controlling a scraper
+
+From **Settings → Scrapers** you can send commands to any running scraper:
+
+| Command | Effect |
+|---|---|
+| **Pause** | Signals the scraper to stop mid-run and wait |
+| **Stop** | Signals the scraper to finish and exit cleanly |
+| **Resume** | Restarts a paused or stopped scraper |
+
+Scrapers that support commands respond immediately. Scrapers that don't declare command support finish their current run first.
+
+## Adding a sidecar scraper
+
+Sidecars are full Docker containers. Wire them into your stack by adding a service to `docker-compose.yaml`:
+
+```yaml
+services:
+  my-scraper:
+    image: author/my-scraper:latest
+    restart: unless-stopped
+    environment:
+      MINATO_API_URL: http://minato:3000
+      MINATO_API_KEY: mk_live_xxxx
+      MINATO_SCRAPER_ID: my-scraper
+    depends_on:
+      - minato
+```
+
+Generate the API key from **Settings → API Keys** and paste it in. See [Sidecar Scrapers](/docs/scrapers/sidecar) for the full setup guide.
+
+---
+
+Want to write your own scraper?
+
+<Cards>
+  <Card title="Writing a community scraper" href="/docs/scrapers/community" />
+  <Card title="Sidecar scrapers" href="/docs/scrapers/sidecar" />
+</Cards>

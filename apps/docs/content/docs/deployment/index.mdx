@@ -1,0 +1,170 @@
+---
+title: Getting Started
+description: Deploy Minato on your homelab or server in a few minutes with Docker Compose.
+---
+
+Minato ships as a single Docker image. It runs the API server, background workers, and the web frontend all together, managed internally by supervisord and proxied by nginx. The only external services you need are PostgreSQL, Redis, and Meilisearch — all included in the compose file below.
+
+## Prerequisites
+
+- **Docker 24+** and **Docker Compose v2** (`docker compose`, not `docker-compose`)
+- A **TMDB Read Access Token** — free, get one at [themoviedb.org](https://developer.themoviedb.org/docs/getting-started)
+
+## 1. Create the compose file
+
+Create a `docker-compose.yaml` in an empty directory:
+
+```yaml
+name: minato
+
+services:
+  minato:
+    image: gergogyulai/minato:latest
+    container_name: minato
+    restart: unless-stopped
+    ports:
+      - "7271:7271"
+    networks:
+      - internal
+    environment:
+      - NODE_ENV=production
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
+      - BETTER_AUTH_URL=${BETTER_AUTH_URL:-}
+      - CORS_ORIGIN=${CORS_ORIGIN:-}
+      - DATABASE_URL=postgresql://minato_user:minato_password@postgres:5432/minato
+      - REDIS_URL=redis://redis:6379
+      - MEILISEARCH_HOST=http://meilisearch:7700
+      - MEILISEARCH_MASTER_KEY=${MEILISEARCH_MASTER_KEY}
+      - TMDB_READ_ACCESS_TOKEN=${TMDB_READ_ACCESS_TOKEN}
+      - MEDIA_ROOT=/data/media
+    volumes:
+      - minato_assets:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: minato-postgres
+    restart: unless-stopped
+    networks:
+      - internal
+    environment:
+      - POSTGRES_DB=minato
+      - POSTGRES_USER=minato_user
+      - POSTGRES_PASSWORD=minato_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U minato_user -d minato"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: minato-redis
+    restart: unless-stopped
+    networks:
+      - internal
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.12
+    container_name: minato-meilisearch
+    restart: unless-stopped
+    networks:
+      - internal
+    environment:
+      - MEILI_MASTER_KEY=${MEILISEARCH_MASTER_KEY}
+      - MEILI_NO_ANALYTICS=true
+    volumes:
+      - meilisearch_data:/meili_data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  minato_assets:
+  postgres_data:
+  redis_data:
+  meilisearch_data:
+```
+
+## 2. Create the .env file
+
+In the same directory, create a `.env` file with your secrets:
+
+```bash
+# Generate with: openssl rand -base64 32
+BETTER_AUTH_SECRET=
+
+# Meilisearch master key — generate with: openssl rand -hex 32
+MEILISEARCH_MASTER_KEY=
+
+# TMDB Read Access Token — https://developer.themoviedb.org
+TMDB_READ_ACCESS_TOKEN=
+
+# Only needed if you're putting Minato behind a domain (see Reverse Proxy)
+# BETTER_AUTH_URL=https://minato.example.com
+# CORS_ORIGIN=https://minato.example.com
+```
+
+`BETTER_AUTH_SECRET` and `MEILISEARCH_MASTER_KEY` are secrets — generate them with the commands shown, don't reuse passwords.
+
+The Postgres password in the compose file (`minato_password`) is fine for a local homelab setup where the database is not exposed to the network. If you want to change it, update it in both the `DATABASE_URL` environment variable on the `minato` service and the `POSTGRES_PASSWORD` environment variable on the `postgres` service.
+
+## 3. Start
+
+```bash
+docker compose up -d
+```
+
+On first boot, Minato runs database migrations automatically. Once the `minato` container is healthy, the UI is available at **http://localhost:7271**.
+
+Logs while it's starting:
+
+```bash
+docker compose logs -f minato
+```
+
+## Updating
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+Migrations run automatically on startup — no manual steps after a version bump.
+
+## Stopping and removing
+
+```bash
+# Stop without removing data
+docker compose down
+
+# Stop and remove all data (irreversible)
+docker compose down -v
+```
+
+<Cards>
+  <Card title="Configuration reference" href="/docs/deployment/configuration" />
+  <Card title="Reverse proxy setup" href="/docs/deployment/reverse-proxy" />
+</Cards>
