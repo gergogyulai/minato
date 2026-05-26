@@ -1,0 +1,14 @@
+{
+  "name": "eztv",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@project-minato/config": "workspace:*",
+    "@project-minato/skit": "workspace:*",
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}
