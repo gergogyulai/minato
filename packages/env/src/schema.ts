@@ -15,7 +15,6 @@ export const sharedSchema = {
   DATABASE_URL: z.string().url(),
   MEILISEARCH_HOST: z.string().min(1),
   MEILISEARCH_MASTER_KEY: z.string().min(1),
-  MEDIA_ROOT: z.string().min(1),
 };
 
 export const tmdbAccessTokenSchema = {

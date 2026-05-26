@@ -2,13 +2,13 @@
 import { readdir, rm, stat } from "node:fs/promises";
 import path from "node:path";
 import { db, enrichments, sql } from "@project-minato/db";
+import { mediaRoot } from "@project-minato/env/paths";
 
 /**
  * RESPONSIBILITY: Cleanup sharded local storage.
  * Matches filesystem folders against 'poster_url' or 'backdrop_url' in DB.
  */
 export async function cleanupUnusedAssets() {
-  const mediaRoot = process.env.MEDIA_ROOT || "../../data/media";
   let foldersDeleted = 0;
   let totalScanned = 0;
 

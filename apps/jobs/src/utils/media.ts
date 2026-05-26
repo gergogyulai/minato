@@ -1,6 +1,7 @@
 import path from "node:path";
 import fs from "node:fs/promises";
 import sharp from "sharp";
+import { mediaRoot } from "@project-minato/env/paths";
 
 interface AssetInput {
   id: string; // The InfoHash or TMDB/IMDb ID
@@ -64,8 +65,6 @@ export function getLocalAssetPaths(
   const relativeDir = `/${shard}/${strId}`;
   const relativeFile = `${relativeDir}/${type}.webp`;
 
-  // The absolute path on the disk for filesystem operations
-  const mediaRoot = process.env.MEDIA_ROOT || "../../data/media";
   const absolutePath = path.join(mediaRoot, relativeFile);
 
   return {
