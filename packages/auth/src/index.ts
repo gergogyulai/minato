@@ -35,5 +35,13 @@ export const auth = betterAuth({
       httpOnly: true,
     },
   },
-  plugins: [nextCookies(), apiKey(), admin(), passkey()],
+  plugins: [
+    nextCookies(),
+    apiKey({
+      defaultPrefix: "mk_",
+      enableMetadata: true,
+    }),
+    admin(),
+    passkey(),
+  ],
 });

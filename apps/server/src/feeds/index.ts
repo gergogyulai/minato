@@ -1,9 +1,30 @@
 import { Hono } from "hono";
 import { create } from "xmlbuilder2";
+import { auth } from "@project-minato/auth";
 
 export const feeds = new Hono();
 
+function torznabError(message: string): string {
+  return create({ version: "1.0", encoding: "UTF-8" }, {
+    error: { "@code": "100", "@description": message },
+  }).end({ prettyPrint: true });
+}
+
 feeds.get("/torznab", async (c) => {
+  const apiKeyValue = c.req.query("apikey");
+  if (!apiKeyValue) {
+    return c.body(torznabError("Missing apikey parameter"), 401, {
+      "Content-Type": "application/rss+xml",
+    });
+  }
+
+  const result = await auth.api.verifyApiKey({ body: { key: apiKeyValue } });
+  if (!result.valid) {
+    return c.body(torznabError("Invalid or expired API key"), 401, {
+      "Content-Type": "application/rss+xml",
+    });
+  }
+
   const obj = {
     rss: {
       "@version": "2.0",

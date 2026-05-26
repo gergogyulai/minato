@@ -18,16 +18,11 @@ import {
   getCountContract,
 } from "@/api/contracts/torrent.contracts";
 import { meiliClient } from "@project-minato/meilisearch";
+import { requireScraperKey, requireAdmin } from "@/api";
 
 export const torrentRouter = {
-  ingest: ingestContract.handler(async ({ input, context }) => {
-    const scraperId = context.honoContext.req.header("X-Minato-Scraper");
-
-    if (!scraperId || scraperId.trim() === "") {
-      throw new ORPCError("BAD_REQUEST", {
-        message: "Missing or invalid X-Minato-Scraper header",
-      });
-    }
+  ingest: ingestContract.use(requireScraperKey).handler(async ({ input, context }) => {
+    const { scraperId } = context;
 
     const validatedData = input;
 
@@ -176,7 +171,7 @@ export const torrentRouter = {
     };
   }),
 
-  update: updateContract.handler(async ({ input }) => {
+  update: updateContract.use(requireAdmin).handler(async ({ input }) => {
     const { infoHash, ...updateFields } = input;
 
     // Check if torrent exists
@@ -228,7 +223,7 @@ export const torrentRouter = {
     };
   }),
 
-  delete: deleteContract.handler(async ({ input }) => {
+  delete: deleteContract.use(requireAdmin).handler(async ({ input }) => {
     const { infoHashes } = input;
     const normalizedHashes = infoHashes.map((h) => h.toLowerCase());
 

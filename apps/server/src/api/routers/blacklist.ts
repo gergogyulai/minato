@@ -6,10 +6,11 @@ import {
   inArray,
 } from "@project-minato/db";
 import { blacklistContracts } from "@/api/contracts/blacklist.contracts";
+import { requireAdmin } from "@/api";
 
 const torrent = {
   // Block an infoHash and remove existing records.
-  add: blacklistContracts.torrent.add.handler(async ({ input }) => {
+  add: blacklistContracts.torrent.add.use(requireAdmin).handler(async ({ input }) => {
     const { infoHashes, reason, deleteFromDatabase } = input;
 
     await db.transaction(async (tx) => {
@@ -37,7 +38,7 @@ const torrent = {
   }),
 
   // Unblock an infoHash.
-  remove: blacklistContracts.torrent.remove.handler(async ({ input }) => {
+  remove: blacklistContracts.torrent.remove.use(requireAdmin).handler(async ({ input }) => {
     const { infoHashes } = input;
 
     await db
@@ -61,7 +62,7 @@ const torrent = {
 
 const tracker = {
   // Block a tracker URL/pattern.
-  add: blacklistContracts.tracker.add.handler(async ({ input }) => {
+  add: blacklistContracts.tracker.add.use(requireAdmin).handler(async ({ input }) => {
     const { urls, reason } = input;
 
     await db.insert(blacklistedTrackers).values({
@@ -76,7 +77,7 @@ const tracker = {
   }),
 
   // Unblock a tracker.
-  remove: blacklistContracts.tracker.remove.handler(async ({ input }) => {
+  remove: blacklistContracts.tracker.remove.use(requireAdmin).handler(async ({ input }) => {
     const { ids } = input;
 
     await db

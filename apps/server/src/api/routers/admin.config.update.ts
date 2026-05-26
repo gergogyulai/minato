@@ -7,7 +7,7 @@ import {
   getConfig,
   writeConfigKey,
 } from "@project-minato/config";
-import { protectedProcedure } from "@/api";
+import { adminProcedure } from "@/api";
 
 const DOT_PATH_RE = /^[a-z][a-zA-Z0-9]*(\.[a-z][a-zA-Z0-9]*)+$/
 
@@ -33,7 +33,7 @@ function getSubSchema(dotPath: string): z.ZodTypeAny | null {
 
 export const adminRouter = {
   config: {
-    update: protectedProcedure
+    update: adminProcedure
       .input(
         z.object({
           key: z.string(),
@@ -65,7 +65,7 @@ export const adminRouter = {
         return { success: true, key, version: getVersion() }
       }),
 
-    get: protectedProcedure.handler(() => {
+    get: adminProcedure.handler(() => {
       return { config: getConfig(), version: getVersion() }
     }),
   },
