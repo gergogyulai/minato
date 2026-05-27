@@ -12,6 +12,7 @@ COPY patches ./patches
 COPY apps/server ./apps/server
 COPY apps/jobs ./apps/jobs
 COPY apps/web ./apps/web
+COPY apps/scraper ./apps/scraper
 COPY packages ./packages
 
 RUN bun install --ignore-scripts
@@ -28,12 +29,19 @@ RUN bun run build
 RUN cp -r packages/db/src/migrations apps/server/dist/migrations \
  && cp -r packages/db/src/migrations apps/jobs/dist/migrations
 
+# Install first-party scraper dependencies at build time.
+# Community scrapers are volume-mounted at runtime and get their deps installed
+# by the supervisor on first spawn.
+RUN for dir in /app/apps/scraper/*/; do \
+      [ -f "$dir/package.json" ] && bun install --cwd "$dir" || true; \
+    done
+
 # --- Stage 2: Final Production Image ---
 FROM oven/bun:1.3.9-alpine
 WORKDIR /app
 
-# supervisor and nginx — apk implicitly --no-cache avoids keeping the index
-RUN apk add --no-cache supervisor nginx
+# supervisor, nginx, nodejs/npm (needed for scrapers that declare runtime: "node")
+RUN apk add --no-cache supervisor nginx nodejs npm
 
 ## copy frontend static assets — served by nginx
 COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
@@ -43,6 +51,9 @@ COPY --from=builder /app/apps/server/dist ./apps/server/dist
 
 ## copy jobs bundle
 COPY --from=builder /app/apps/jobs/dist ./apps/jobs/dist
+
+## copy first-party scrapers (source + pre-installed node_modules baked in builder)
+COPY --from=builder /app/apps/scraper ./apps/scraper
 
 ## Install external packages fresh:
 ##   - better-auth + @better-auth/* adapters: left external due to dynamic require()
@@ -68,12 +79,12 @@ COPY docker/nginx.conf /etc/nginx/http.d/default.conf
 ## copy supervisor config
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-ENV MEDIA_ROOT=/data/media
+ENV MEDIA_ROOT=/config/media
 ENV NODE_ENV=production
 
-RUN mkdir -p /data/media
+RUN mkdir -p /config/media /config/scrapers /app/apps/scraper
 
-VOLUME /data
+VOLUME /config
 
 EXPOSE 7271
 

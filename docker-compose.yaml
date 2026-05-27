@@ -19,9 +19,9 @@ services:
       - MEILISEARCH_HOST=http://meilisearch:7700
       - MEILISEARCH_MASTER_KEY=${MEILISEARCH_MASTER_KEY}
       - TMDB_READ_ACCESS_TOKEN=${TMDB_READ_ACCESS_TOKEN}
-      - MEDIA_ROOT=/data/media
+      - MEDIA_ROOT=/config/media
     volumes:
-      - minato_assets:/data
+      - minato_config:/config
     depends_on:
       postgres:
         condition: service_healthy
@@ -85,7 +85,7 @@ networks:
     driver: bridge
 
 volumes:
-  minato_assets:
+  minato_config:
   postgres_data:
   redis_data:
   meilisearch_data:
