@@ -14,7 +14,7 @@ build
 !.env.example
 
 # Asset files from scraper
-data
+config
 
 # IDEs and editors
 .vscode/*

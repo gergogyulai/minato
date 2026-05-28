@@ -1,0 +1,8 @@
+{
+  "json.schemas": [
+    {
+      "fileMatch": ["apps/scraper/*/package.json"],
+      "url": "./packages/skit/schema/scraper-package.schema.json"
+    }
+  ]
+}
