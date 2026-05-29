@@ -40,8 +40,8 @@ RUN for dir in /app/apps/scraper/*/; do \
 FROM oven/bun:1.3.9-alpine
 WORKDIR /app
 
-# supervisor, nginx, nodejs/npm (needed for scrapers that declare runtime: "node")
-RUN apk add --no-cache supervisor nginx nodejs npm
+# supervisor, nginx, curl (for healthcheck)
+RUN apk add --no-cache supervisor nginx curl
 
 ## copy frontend static assets — served by nginx
 COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
@@ -87,5 +87,8 @@ RUN mkdir -p /config/media /config/scrapers /app/apps/scraper
 VOLUME /config
 
 EXPOSE 7271
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:7271/api/v1/health || exit 1
 
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

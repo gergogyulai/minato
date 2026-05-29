@@ -11,7 +11,7 @@ A sidecar is the right choice in these situations:
 
 **You need a language other than TypeScript/JavaScript.** Python, Go, Rust — anything works. You own the container, so you control the runtime.
 
-**You need native system dependencies.** A real Chrome/Chromium for JavaScript-rendered sites, a C library, a Go binary, anything that can't be installed via npm. Community scrapers are limited to what Bun/Node can run.
+**You need native system dependencies.** A real Chrome/Chromium for JavaScript-rendered sites, a C library, a Go binary, anything that can't be installed via npm. Community scrapers are limited to what Bun can run.
 
 **You need to own your own schedule.** Minato schedules community scrapers centrally. If your scraper needs to trigger based on an external event (a webhook, a message queue, a watched RSS feed), or at an interval that doesn't fit a simple cron, a sidecar gives you full control. You decide when to run and when to push data to Minato.
 

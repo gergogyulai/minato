@@ -1,0 +1,32 @@
+{
+	"name": "thepiratebay",
+	"version": "1.0.0",
+	"title": "The Pirate Bay",
+	"description": "The Pirate Bay multi-category torrent scraper for Minato",
+	"author": "project-minato",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/gergogyulai/project-minato"
+	},
+	"module": "index.ts",
+	"type": "module",
+	"private": true,
+	"minato": {
+		"capabilities": [
+			"ingest",
+			"status",
+			"commands"
+		]
+	},
+	"dependencies": {
+		"cheerio": "^1.2.0"
+	},
+	"devDependencies": {
+		"@project-minato/config": "workspace:*",
+		"@project-minato/skit": "workspace:*",
+		"@types/bun": "latest"
+	},
+	"peerDependencies": {
+		"typescript": "^5"
+	}
+}

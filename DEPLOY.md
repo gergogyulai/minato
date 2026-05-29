@@ -32,12 +32,20 @@ services:
       - MEILISEARCH_HOST=http://meilisearch:7700
       - MEILISEARCH_MASTER_KEY=${MEILI_MASTER_KEY}
       - MEDIA_ROOT=/data/media
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7271/api/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     volumes:
       - minato_assets:/data
     depends_on:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      meilisearch:
         condition: service_healthy
 
   postgres:
@@ -83,6 +91,11 @@ services:
       - MEILI_NO_ANALYTICS=true
     volumes:
       - meilisearch_data:/meili_data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 networks:
   internal-minato:

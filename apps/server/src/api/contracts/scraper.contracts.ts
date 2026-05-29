@@ -38,7 +38,6 @@ const manifestSnapshotSchema = z.object({
 	name: z.string(),
 	version: z.string(),
 	author: z.string().optional(),
-	runtime: z.enum(["bun", "node"]).optional(),
 	entry: z.string(),
 	capabilities: z.array(z.string()),
 	defaultConfig: z.record(z.string(), z.unknown()).optional(),
