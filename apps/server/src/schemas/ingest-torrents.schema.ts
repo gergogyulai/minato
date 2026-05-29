@@ -37,21 +37,29 @@ const FileInfoSchema = z
   });
 
 
+// Accept both number (the SDK's ergonomic shape — JS numbers are safe up to
+// 2^53, well past any torrent's bytes) and string (for callers that need
+// the full 64-bit range). Always materialize as a digit string so the
+// downstream bigint check and Postgres `bigint` column work uniformly.
+const sizeSchema = z
+  .union([
+    z.number().int().nonnegative(),
+    z.string().regex(/^\d+$/, "Size must be digits"),
+  ])
+  .transform((v) => (typeof v === "number" ? String(v) : v))
+  .refine((val) => {
+    try {
+      const b = BigInt(val);
+      return b >= 0n && b <= 9223372036854775807n;
+    } catch {
+      return false;
+    }
+  }, "Size exceeds 64-bit integer limit");
+
 export const IngestTorrentsSchema = z.object({
   infoHash: z.string().length(40).transform((val) => val.toLowerCase()),
   title: z.string(),
-  size: z
-    .string()
-    .regex(/^\d+$/, "Size must be a string of digits")
-    .refine((val) => {
-      try {
-        const b = BigInt(val);
-        // Postgres bigint
-        return b >= 0n && b <= 9223372036854775807n;
-      } catch {
-        return false;
-      }
-    }, "Size exceeds 64-bit integer limit"),
+  size: sizeSchema,
   seeders: z.number().default(0),
   leechers: z.number().default(0),
   category: z.string().optional().default("uncategorized"),
@@ -60,8 +68,11 @@ export const IngestTorrentsSchema = z.object({
   source: z.object({
     name: z.string(),
     origin: z.string().optional(),
-    originUrl: z.url().optional(),
-    url: z.url().optional(),
+    // `originUrl` and `url` are display fields surfaced in the dashboard —
+    // we don't dial them, so strict URL validation buys nothing and rejects
+    // legitimate scraper output (e.g. relative tracker paths).
+    originUrl: z.string().optional(),
+    url: z.string().optional(),
   })
 });
 

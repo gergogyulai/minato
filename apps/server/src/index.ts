@@ -12,6 +12,7 @@ import { logger } from "hono/logger";
 import { createContext } from "@/api/context";
 import { appRouter } from "@/api/routers/index";
 import { feeds } from "@/feeds";
+import { handleCommandsSse, handleEnsureKey } from "@/scraper/sse";
 import { db } from "@project-minato/db";
 import { connection as redis } from "@project-minato/queue";
 import { meiliClient } from "@project-minato/meilisearch";
@@ -57,6 +58,16 @@ app.get(
 );
 
 app.all("/api/v1/auth/*", (c) => auth.handler(c.req.raw));
+
+// Scraper command stream — raw SSE, outside oRPC because the OpenAPI handler
+// doesn't support long-lived streams. Validated against scraper API keys.
+app.get("/api/v1/scraper/commands/:scraperId", (c) =>
+  handleCommandsSse(c, c.req.param("scraperId")),
+);
+
+// Supervisor-only endpoint for first-run key provisioning. Authenticates via
+// the internal supervisor secret, not a session or API key.
+app.post("/api/v1/internal/scraper/ensure-key", (c) => handleEnsureKey(c));
 
 app.route("/api/v1/feeds", feeds);
 

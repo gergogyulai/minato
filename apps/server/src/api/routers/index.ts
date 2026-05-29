@@ -4,6 +4,8 @@ import { blacklistRouter } from "@/api/routers/blacklist";
 import { searchRouter } from "@/api/routers/search";
 import { setupRouter } from "@/api/routers/setup";
 import { adminRouter } from "@/api/routers/admin.config.update";
+import { scraperRouter } from "@/api/routers/scraper";
+import { apiKeysRouter } from "@/api/routers/api-keys";
 
 import type { RouterClient } from "@orpc/server";
 
@@ -19,6 +21,8 @@ export const appRouter = {
   search: searchRouter,
   setup: setupRouter,
   admin: adminRouter,
+  scraper: scraperRouter,
+  apiKeys: apiKeysRouter,
 };
 export type AppRouter = typeof appRouter;
 export type AppRouterClient = RouterClient<typeof appRouter>;

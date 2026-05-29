@@ -1,5 +1,11 @@
+import { randomBytes } from "node:crypto";
 import { db, runMigrations } from "@project-minato/db";
-import { initConfig, setupConfigSubscriber, getConfig } from "@project-minato/config";
+import {
+  initConfig,
+  setupConfigSubscriber,
+  getConfig,
+  writeConfigKey,
+} from "@project-minato/config";
 import { applyGlobalSearchProfile, syncMeilisearch } from "@project-minato/meilisearch";
 import { housekeeperQueue, HOUSEKEEPER_JOBS } from "@project-minato/queue";
 
@@ -13,6 +19,13 @@ export async function startup(): Promise<void> {
 
   await initConfig(db);
   setupConfigSubscriber(db);
+
+  // First-run provisioning: the supervisor needs a shared secret to call the
+  // internal ensure-key endpoint. Generated once and persisted in `settings`.
+  if (!getConfig().internalSupervisorSecret) {
+    const secret = randomBytes(32).toString("hex");
+    await writeConfigKey(db, "internalSupervisorSecret", secret, { silent: true });
+  }
 
   // syncMeilisearch first — it ensures the index exists and seeds default
   // settings (including a baseline ranking rules set). applyGlobalSearchProfile
