@@ -1,8 +1,10 @@
-// apps/jobs/src/services/housekeeping-service.ts
 import { readdir, rm, stat } from "node:fs/promises";
 import path from "node:path";
 import { db, enrichments, sql } from "@project-minato/db";
 import { mediaRoot } from "@project-minato/env/paths";
+import { logger } from "@/utils/logger";
+
+const log = logger.child({ task: 'cleanup-unused-assets' });
 
 /**
  * RESPONSIBILITY: Cleanup sharded local storage.
@@ -48,17 +50,17 @@ export async function cleanupUnusedAssets() {
             try {
               await rm(pathToDelete, { recursive: true, force: true });
               foldersDeleted++;
-              console.debug(`[Housekeeper] Deleted orphaned folder: ${pathToDelete}`);
+              log.debug({ path: pathToDelete }, 'Deleted orphaned folder');
             } catch (err) {
-              console.error(`[Housekeeper] Error deleting ${pathToDelete}:`, err);
+              log.error({ err, path: pathToDelete }, 'Error deleting folder');
             }
           }
         }
       }
     }
-  } catch (error) {
-    console.error("[Housekeeper] Asset cleanup failed:", error);
-    throw error;
+  } catch (err) {
+    log.error({ err }, 'Asset cleanup failed');
+    throw err;
   }
 
   return { totalScanned, foldersDeleted };

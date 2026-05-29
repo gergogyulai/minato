@@ -1,16 +1,13 @@
-import pc from 'picocolors';
+import pino from "pino";
 
-export const logger = {
-  info: (msg: string) =>
-    console.log(`${pc.blue('ℹ')} ${pc.dim('[minato]')} ${msg}`),
-  success: (msg: string) =>
-    console.log(`${pc.green('✔')} ${pc.bold(msg)}`),
-  warn: (msg: string) =>
-    console.log(`${pc.yellow('⚠')} ${msg}`),
-  error: (msg: string) =>
-    console.log(`${pc.red('✖')} ${pc.red(msg)}`),
-  step: (name: string, status: string) =>
-    console.log(
-      `${pc.cyan('↳')} ${pc.bold(name.padEnd(18))} ${pc.dim('→')} ${pc.green(status)}`
-    ),
-};
+const isDev = process.env.NODE_ENV !== "production";
+
+export const logger = pino({
+  level: "info",
+  ...(isDev && {
+    transport: {
+      target: "pino-pretty",
+      options: { colorize: true, translateTime: "SYS:HH:MM:ss", ignore: "pid,hostname" },
+    },
+  }),
+});

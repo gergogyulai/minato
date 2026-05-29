@@ -2,6 +2,9 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import sharp from "sharp";
 import { mediaRoot } from "@project-minato/env/paths";
+import { logger } from "@/utils/logger";
+
+const log = logger.child({ module: 'media' });
 
 interface AssetInput {
   id: string; // The InfoHash or TMDB/IMDb ID
@@ -45,9 +48,9 @@ export async function ingestAsset({ id, url, type }: AssetInput) {
     await pipeline.toFile(absolute);
 
     return { path: absolute, status: "downloaded and processed" };
-  } catch (error) {
-    console.error(`[MediaIngest] Error processing ${type} for ${id}:`, error);
-    throw error;
+  } catch (err) {
+    log.error({ err, id, type }, 'Error processing asset');
+    throw err;
   }
 }
 

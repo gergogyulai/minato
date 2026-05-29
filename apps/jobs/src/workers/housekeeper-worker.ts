@@ -7,6 +7,9 @@ import { refreshStaleMetadata } from '@/workers/housekeeper/refresh-stale-metada
 import { recoverStalledJobs } from '@/workers/housekeeper/recover-stalled-jobs';
 import { purgeBlacklisted } from '@/workers/housekeeper/purge-blacklisted';
 import { performForceReindex } from '@/workers/housekeeper/force-reindex';
+import { logger } from '@/utils/logger';
+
+const log = logger.child({ worker: 'housekeeper' });
 
 export function startHousekeeperWorker() {
   return new Worker(
@@ -36,18 +39,14 @@ export function startHousekeeperWorker() {
             return await performForceReindex(job);
 
           default:
-            console.log(`[Housekeeper] Received unknown job name: ${job.name}`);
+            log.warn({ jobName: job.name }, "Unknown job name");
             throw new Error(`Unknown job name: ${job.name}`);
         }
-      } catch (error) {
-        console.error(
-          `[Housekeeper] Job failed: ${
-            error instanceof Error ? error.message : error
-          }`
-        );
-        throw error;
+      } catch (err) {
+        log.error({ err, jobName: job.name }, "Job failed");
+        throw err;
       } finally {
-        console.log(`[Housekeeper] Task ${job.name} finished`);
+        log.debug({ jobName: job.name }, "Task finished");
       }
     },
     {

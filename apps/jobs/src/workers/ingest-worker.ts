@@ -6,13 +6,16 @@ import {
   MeiliBatcher,
 } from "@project-minato/meilisearch";
 import ReleaseParser from "release-parser";
+import { logger } from "@/utils/logger";
+
+const log = logger.child({ worker: "ingest" });
 
 interface IngestJobData {
   infoHash: string;
 }
 
 const INGEST_BATCH_SIZE = 500;
-const INGEST_BATCH_TIMEOUT = 5000; // 3 seconds
+const INGEST_BATCH_TIMEOUT = 5000;
 
 export function startIngestWorker() {
   const meiliBatcher = new MeiliBatcher(
@@ -24,11 +27,8 @@ export function startIngestWorker() {
   const worker = new Worker<IngestJobData>(
     QUEUES.INGEST,
     async (job: Job<IngestJobData>) => {
-      console.log(
-        `[Ingest Worker] Processing job ${job.id} for torrent ${job.data.infoHash}`,
-      );
-
       const { infoHash } = job.data;
+      log.debug({ jobId: job.id, infoHash }, "Processing job");
 
       const [torrent] = await db
         .select()
@@ -37,18 +37,15 @@ export function startIngestWorker() {
         .limit(1);
 
       if (!torrent) {
-        console.error(`[Ingest Worker] Torrent not found: ${infoHash}`);
+        log.warn({ infoHash }, "Torrent not found");
         return;
       }
 
       let release;
       try {
         release = ReleaseParser(torrent.trackerTitle);
-      } catch (error) {
-        console.error(
-          `[Ingest Worker] Release parsing failed for torrent ${infoHash}:`,
-          error,
-        );
+      } catch (err) {
+        log.error({ err, infoHash }, "Release parsing failed");
         return;
       }
 
@@ -69,29 +66,25 @@ export function startIngestWorker() {
         .limit(1);
 
       if (!updatedTorrent) {
-        console.error(`[Ingest Worker] Updated torrent not found: ${infoHash}`);
+        log.warn({ infoHash }, "Updated torrent not found");
         return;
       }
 
       const torrentDoc = formatTorrentForMeilisearch(updatedTorrent);
       await meiliBatcher.add(torrentDoc);
 
-      console.log(
-        `[Ingest Worker] Document queued for torrent ${infoHash} - Title: ${
-          updatedTorrent.releaseData?.title || updatedTorrent.trackerTitle
-        }`,
+      log.debug(
+        { infoHash, title: updatedTorrent.releaseData?.title ?? updatedTorrent.trackerTitle },
+        "Document queued",
       );
 
-      // Check for enrichment eligibility
       if (
         (updatedTorrent.releaseData?.type === "Movie" ||
           updatedTorrent.releaseData?.type === "TV" ||
           updatedTorrent.releaseData?.type === "Anime") &&
         !updatedTorrent.enrichedAt
       ) {
-        console.log(
-          `[Ingest Worker] Torrent ${infoHash} is enrichable, queuing for enrichment`,
-        );
+        log.debug({ infoHash }, "Queuing for enrichment");
         await enrichQueue.add("enrich", { infoHash }, { delay: 1000 });
       }
     },
@@ -99,15 +92,15 @@ export function startIngestWorker() {
   );
 
   worker.on("completed", (job) => {
-    console.log(`[Ingest Worker] Job ${job.id} completed`);
+    log.debug({ jobId: job.id }, "Job completed");
   });
 
   worker.on("failed", (job, err) => {
-    console.error(`[Ingest Worker] Job ${job?.id} failed:`, err);
+    log.error({ jobId: job?.id, err }, "Job failed");
   });
 
   worker.on("closing", async () => {
-    console.log("[Ingest Worker] Worker closing, flushing remaining batch...");
+    log.info("Worker closing, flushing remaining batch...");
     await meiliBatcher.flush();
   });
 

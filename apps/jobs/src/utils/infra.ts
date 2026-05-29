@@ -7,21 +7,20 @@ import { logger } from "@/utils/logger";
 export async function checkInfrastructure() {
   try {
     await connection.ping();
-    logger.step("Redis", "CONNECTED");
+    logger.info("Redis connected");
 
     await meiliClient.health();
-    logger.step("MeiliSearch", "CONNECTED");
+    logger.info("MeiliSearch connected");
 
     await setupTorrentIndex();
-    logger.step("MeiliSearch Index", "INITIALIZED");
+    logger.info("MeiliSearch index initialized");
 
     await db.execute(sql`SELECT 1`);
-    logger.step("Database", "CONNECTED");
-    console.log("");
+    logger.info("Database connected");
 
     return true;
   } catch (err) {
-    logger.error("Health check failed");
+    logger.error({ err }, "Health check failed");
     throw err;
   }
 }

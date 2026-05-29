@@ -2,17 +2,20 @@ import { Job } from 'bullmq';
 import { db, torrents, enrichments } from '@project-minato/db';
 import { eq } from 'drizzle-orm';
 import { meiliClient, formatTorrentForMeilisearch } from '@project-minato/meilisearch';
+import { logger } from '@/utils/logger';
+
+const log = logger.child({ task: 'force-reindex' });
 
 const BATCH_SIZE = 1000;
 
 export async function performForceReindex(_job: Job) {
   const index = meiliClient.index('torrents');
 
-  console.log('[ForceReindex] Starting full Meilisearch reindex...');
+  log.info('Starting full Meilisearch reindex...');
 
   const deleteTask = await index.deleteAllDocuments();
   await meiliClient.tasks.waitForTask(deleteTask.taskUid, { timeout: 60_000 });
-  console.log('[ForceReindex] Index cleared.');
+  log.info('Index cleared.');
 
   // 2. Stream all torrents from the DB in batches and re-index them.
   let offset = 0;
@@ -38,12 +41,12 @@ export async function performForceReindex(_job: Job) {
     totalIndexed += documents.length;
     offset += rows.length;
 
-    console.log(`[ForceReindex] Indexed ${totalIndexed} documents so far...`);
+    log.info({ totalIndexed }, 'Progress...');
 
     // If we got fewer rows than the batch size this was the last page.
     if (rows.length < BATCH_SIZE) break;
   }
 
-  console.log(`[ForceReindex] Done. Indexed ${totalIndexed} documents in total.`);
+  log.info({ totalIndexed }, 'Reindex complete.');
   return { totalIndexed };
 }

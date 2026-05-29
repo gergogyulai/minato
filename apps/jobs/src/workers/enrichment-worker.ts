@@ -20,6 +20,9 @@ import { getAssetId } from "@/lib/providers/types/metadata";
 import { markAsEnriched } from "@/utils/enrich";
 import { withTimeout } from "@/utils/with-timeout";
 import { env } from "@project-minato/env/jobs";
+import { logger } from "@/utils/logger";
+
+const log = logger.child({ worker: "enrichment" });
 
 const tmdbProvider = new TMDBProvider({
   apiKey: env.TMDB_READ_ACCESS_TOKEN,
@@ -56,9 +59,7 @@ export function startEnrichmentWorker() {
       withTimeout(async () => {
         const { infoHash } = job.data;
         const isRefresh = job.name === ENRICH_JOBS.REFRESH;
-        console.log(
-          `[Enrichment Worker] Processing job ${job.id} (${isRefresh ? "refresh" : "enrich"}) for ${infoHash}`,
-        );
+        log.debug({ jobId: job.id, infoHash, isRefresh }, "Processing job");
 
         const [torrent] = await db
           .select()
@@ -67,14 +68,12 @@ export function startEnrichmentWorker() {
           .limit(1);
 
         if (!torrent) {
-          console.error(`[Enrichment Worker] Torrent not found: ${infoHash}`);
+          log.warn({ infoHash }, "Torrent not found");
           return;
         }
 
         if (torrent.enrichedAt && !isRefresh) {
-          console.log(
-            `[Enrichment Worker] ${infoHash} already enriched, skipping`,
-          );
+          log.debug({ infoHash }, "Already enriched, skipping");
           return;
         }
 
@@ -97,26 +96,20 @@ export function startEnrichmentWorker() {
           !torrentType ||
           providerRegistry.getProvidersForType(torrentType).length === 0
         ) {
-          console.log(
-            `[Enrichment Worker] ${infoHash}: unsupported type "${torrentType}", skipping`,
-          );
+          log.debug({ infoHash, torrentType }, "Unsupported type, skipping");
           await markAsEnriched(infoHash);
           return;
         }
 
         if (!cleanTitle) {
-          console.log(
-            `[Enrichment Worker] ${infoHash}: no title available, skipping`,
-          );
+          log.debug({ infoHash }, "No title available, skipping");
           await markAsEnriched(infoHash);
           return;
         }
 
         await tmdbRateLimiter.waitForToken();
 
-        console.log(
-          `[Enrichment Worker] ${isRefresh ? "Refreshing" : "Enriching"} ${infoHash}: "${cleanTitle}" (${torrentType}, ${year})`,
-        );
+        log.info({ infoHash, cleanTitle, torrentType, year, isRefresh }, "Enriching");
 
         // On refresh, prefer the original provider (or an explicit job override).
         // Fall back to the full provider chain if needed.
@@ -141,15 +134,10 @@ export function startEnrichmentWorker() {
                   };
                 }
               } catch (err) {
-                console.error(
-                  `[Enrichment Worker] Provider "${preferredName}" failed for ${infoHash}, falling back:`,
-                  err,
-                );
+                log.warn({ err, infoHash, provider: preferredName }, "Provider failed, falling back");
               }
             } else {
-              console.warn(
-                `[Enrichment Worker] Provider "${preferredName}" not in registry, falling back`,
-              );
+              log.warn({ infoHash, provider: preferredName }, "Provider not in registry, falling back");
             }
           }
         }
@@ -163,15 +151,13 @@ export function startEnrichmentWorker() {
         }
 
         if (!enrichedResult) {
-          console.log(`[Enrichment Worker] No metadata found for ${infoHash}`);
+          log.debug({ infoHash }, "No metadata found");
           await markAsEnriched(infoHash);
           return;
         }
 
         const { metadata, provider: providerInfo } = enrichedResult;
-        console.log(
-          `[Enrichment Worker] ${infoHash}: metadata found via "${providerInfo.name}"`,
-        );
+        log.info({ infoHash, provider: providerInfo.name }, "Metadata found");
 
         const assetId = getAssetId(metadata);
 
@@ -252,9 +238,7 @@ export function startEnrichmentWorker() {
         });
 
         if (!finalEnrichment) {
-          console.log(
-            `[Enrichment Worker] ${infoHash}: enrichment write returned nothing`,
-          );
+          log.warn({ infoHash }, "Enrichment write returned nothing");
           return;
         }
 
@@ -267,7 +251,7 @@ export function startEnrichmentWorker() {
 
         if (enriched) {
           await meiliBatcher.add(formatTorrentForMeilisearch(enriched));
-          console.log(`[Enrichment Worker] ${infoHash}: Meilisearch updated`);
+          log.debug({ infoHash }, "Meilisearch updated");
         }
       }, JOB_TIMEOUT_MS),
     {
@@ -278,15 +262,15 @@ export function startEnrichmentWorker() {
   );
 
   worker.on("completed", (job) => {
-    console.log(`[Enrichment Worker] Job ${job.id} completed`);
+    log.debug({ jobId: job.id }, "Job completed");
   });
 
   worker.on("failed", (job, err) => {
-    console.error(`[Enrichment Worker] Job ${job?.id} failed:`, err);
+    log.error({ jobId: job?.id, err }, "Job failed");
   });
 
   worker.on("closing", async () => {
-    console.log("[Enrichment Worker] Closing, flushing batch...");
+    log.info("Worker closing, flushing batch...");
     await meiliBatcher.flush();
   });
 

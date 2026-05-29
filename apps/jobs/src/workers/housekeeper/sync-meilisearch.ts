@@ -1,5 +1,8 @@
 import { Job } from 'bullmq';
+import { logger } from '@/utils/logger';
 
-export async function syncMeilisearch(job: Job) {
-  console.log('[Housekeeper] Syncing Meilisearch index...');
+const log = logger.child({ task: 'sync-meilisearch' });
+
+export async function syncMeilisearch(_job: Job) {
+  log.info('Syncing Meilisearch index...');
 }
