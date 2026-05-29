@@ -5,7 +5,8 @@
   "description": "TypeScript SDK for writing Minato scrapers",
   "main": "./src/index.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./run": "./src/run.ts"
   },
   "scripts": {
     "check-types": "tsc -b"

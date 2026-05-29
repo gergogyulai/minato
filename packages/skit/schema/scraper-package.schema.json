@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://minato.dev/schemas/scraper-package.schema.json",
+  "title": "Minato Scraper Package",
+  "description": "package.json schema for a Minato scraper",
+  "required": [
+    "title",
+    "description",
+    "module",
+    "author",
+    "repository"
+  ],
+  "allOf": [
+    { "$ref": "https://json.schemastore.org/package.json" },
+    {
+      "properties": {
+        "minato": {
+          "description": "Minato scraper manifest.",
+          "type": "object",
+          "required": ["capabilities"],
+          "additionalProperties": false,
+          "properties": {
+            "runtime": {
+              "type": "string",
+              "enum": ["bun", "node"],
+              "default": "bun",
+              "description": "Runtime used to execute the scraper. 'bun' gives access to Bun APIs; 'node' runs TypeScript via tsx. Defaults to 'bun'."
+            },
+            "capabilities": {
+              "type": "array",
+              "description": "Capabilities this scraper exposes. Declare only what you actually use.",
+              "items": {
+                "type": "string",
+                "enum": ["ingest", "status", "commands"],
+                "description": "'ingest' — posting torrents (always required). 'status' — progress bar and phase visible in the dashboard. 'commands' — pause / stop / resume from the dashboard."
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            },
+            "defaultConfig": {
+              "type": "object",
+              "description": "Default configuration values. Users can override these from the Minato dashboard without touching your code. Keep values flat — strings, numbers, or booleans only.",
+              "additionalProperties": {
+                "oneOf": [
+                  { "type": "string" },
+                  { "type": "number" },
+                  { "type": "boolean" }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
