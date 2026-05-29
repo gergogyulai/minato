@@ -1,113 +1,53 @@
 ---
-title: Writing a Community Scraper
-description: Build a Minato scraper in TypeScript — understand the lifecycle model, scheduling, and when to use a sidecar instead.
+title: Community Scrapers
+description: Write a Minato scraper in TypeScript and publish it from a Git repository.
 ---
 
-## Should you write a community scraper?
+A community scraper is a TypeScript module that Minato loads and executes on your server. If you need native binaries, non-npm languages, or full Docker lifecycle control, use a [sidecar](/docs/scrapers/sidecar) instead.
 
-Start here. Community scrapers are the right choice if all of the following are true:
+## Quick start
 
-- **Language**: TypeScript or JavaScript
-- **Dependencies**: nothing beyond npm packages (no native binaries, no Python, no system packages)
-- **Lifecycle**: you're fine with Minato deciding when your scraper runs, or it's something that runs forever in the background
-
-If any of those don't hold, see [Sidecar Scrapers](/docs/scrapers/sidecar).
-
-The most common reason people reach for a sidecar unnecessarily is native dependencies — for example, needing `puppeteer` with a real Chrome binary, or a Python library with C extensions. If all you need is HTTP fetching and HTML parsing, `cheerio` or a plain `fetch` is enough and a community scraper is the better choice.
-
----
-
-## How scheduling works
-
-**Minato owns the schedule. Your scraper owns nothing.**
-
-When you write a community scraper, you write a function that runs once, does its work, and returns. Minato is responsible for deciding when to invoke it — based on a schedule the user configures in the dashboard.
-
-This means:
-
-- **Don't** implement your own sleep-and-repeat loop inside `run()` to simulate a schedule
-- **Don't** use `setInterval` or `setTimeout` to run periodically
-- **Do** write `run()` as a single pass: fetch what you need, push it, return
-
-```typescript
-// Correct — one pass, then exit
-async run({ ingest }) {
-  const results = await fetchAllPages();
-  for (const r of results) ingest.add(r);
-}
-
-// Wrong — trying to own the schedule from inside the scraper
-async run({ ingest }) {
-  while (true) {
-    const results = await fetchAllPages();
-    for (const r of results) ingest.add(r);
-    await Bun.sleep(60 * 60 * 1000); // don't do this
-  }
-}
-```
-
-The user controls how often your scraper runs from the dashboard. You don't need to think about it.
-
-### Daemon scrapers
-
-Some scrapers can't be one-shot by nature — a DHT crawler that maintains an open UDP socket, an IRC bot listening for new releases, a WebSocket feed. These need to run continuously rather than be scheduled.
-
-Declare this in `scraper.json`:
-
-```json
-{
-  "lifecycle": "daemon"
-}
-```
-
-With `"lifecycle": "daemon"`, Minato keeps your scraper running at all times and restarts it if it crashes, but never schedules it. The scheduling UI is hidden for daemon scrapers.
-
-The default (no `lifecycle` field, or `"lifecycle": "scheduled"`) is the one-shot scheduled model.
-
----
-
-## Minimal example
+Two files are all you need.
 
 ```
 my-scraper/
-  scraper.json
+  package.json
   index.ts
 ```
 
-**`scraper.json`**
+**`package.json`**
 
 ```json
 {
-  "id": "my-scraper",
-  "name": "My Scraper",
+  "name": "my-scraper",
   "version": "1.0.0",
-  "author": "your-username",
-  "runtime": "bun",
-  "entry": "index.ts",
-  "capabilities": ["ingest", "status", "commands"]
+  "type": "module",
+  "minato": {
+    "name": "My Scraper",
+    "entry": "index.ts",
+    "capabilities": ["ingest", "status", "commands"]
+  }
 }
 ```
 
 **`index.ts`**
 
 ```typescript
-import { defineScraper } from "@minato/skit";
+import { defineScheduledScraper } from "@minato/skit";
 
-export default defineScraper({
+export default defineScheduledScraper({
+  recommendedSchedule: "0 */6 * * *",
   async run({ ingest, signal, status, meta }) {
     status.update({ phase: "running" });
 
     const torrents = await fetchTorrents();
-
     for (const t of torrents) {
       if (signal.aborted) break;
       ingest.add({
         infoHash: t.hash,
         title: t.name,
-        size: t.size,
-        seeders: t.seeders,
-        leechers: t.leechers,
-        source: { name: meta.name, url: t.pageUrl },
+        size: t.bytes,
+        source: { name: meta.name, url: t.url },
       });
     }
 
@@ -118,112 +58,136 @@ export default defineScraper({
 
 ---
 
-## scraper.json reference
+## Lifecycle
 
-| Field | Required | Description |
-|---|---|---|
-| `id` | ✅ | Unique kebab-case identifier, e.g. `"my-scraper"` |
-| `name` | ✅ | Display name shown in the dashboard |
-| `version` | ✅ | semver string |
-| `author` | | Your username or handle |
-| `runtime` | | `"bun"` (default) or `"node"` |
-| `entry` | ✅ | Relative path to the entrypoint file |
-| `capabilities` | ✅ | See below |
-| `lifecycle` | | `"scheduled"` (default) or `"daemon"` — see above |
-| `defaultConfig` | | Default values for user-editable config |
+A scraper is either **scheduled** or a **daemon**. The factory function you export determines which.
 
-### Capabilities
+### Scheduled
 
-Declare only what your scraper actually uses.
+`run()` does one complete pass and returns. Minato treats the return as completion and schedules the next run. `recommendedSchedule` is your suggested default (5-field UTC cron). The admin can change it per-instance without touching your code.
 
-| Value | Required | What it enables |
-|---|---|---|
-| `"ingest"` | ✅ always | Posting torrents |
-| `"status"` | | Progress bar and phase visible in the dashboard |
-| `"commands"` | | Pause / stop / resume from the dashboard |
+```typescript
+export default defineScheduledScraper({
+  recommendedSchedule: "0 */6 * * *",
+  async run({ ingest }) {
+    const results = await fetchAllPages();
+    for (const r of results) ingest.add(r);
+  },
+});
+```
+
+Write `run()` as a single pass. Don't implement a repeat loop inside it.
+
+### Daemon
+
+For scrapers that can't complete in one shot: DHT nodes, WebSocket feeds, IRC bots. Minato keeps `run()` alive indefinitely and restarts it on crash. When `signal` aborts, clean up and return.
+
+```typescript
+export default defineDaemonScraper({
+  async run({ ingest, signal }) {
+    const socket = await openConnection();
+    socket.on("data", (chunk) => ingest.add(parseTorrent(chunk)));
+    await new Promise<void>((resolve) =>
+      signal.addEventListener("abort", resolve),
+    );
+    socket.close();
+  },
+});
+```
 
 ---
 
-## Exposing config to users
+## Config
 
-Put any configurable value in `defaultConfig`. Users can override these from the dashboard — they never need to touch your code. Config is preserved across updates.
+Put user-editable values in `minato.defaultConfig`. They appear as configurable fields in the dashboard and persist across scraper updates. Your scraper receives them already merged; dashboard values always override code defaults.
+
+Mirror those values in the `config` field of your definition to get TypeScript types and a fallback for when no override exists.
 
 ```json
 {
-  "defaultConfig": {
-    "maxPages": 10,
-    "delayMs": 500
+  "minato": {
+    "defaultConfig": {
+      "maxPages": 100,
+      "delayMs": 250
+    }
   }
 }
 ```
 
-In your scraper, config arrives ready to use — user overrides already applied:
-
 ```typescript
-export default defineScraper<{ maxPages: number; delayMs: number }>({
-  config: { maxPages: 10, delayMs: 500 },
+export default defineScheduledScraper<{ maxPages: number; delayMs: number }>({
+  config: { maxPages: 100, delayMs: 250 },
 
   async run({ config }) {
     for (let page = 1; page <= config.maxPages; page++) {
-      // ...
       await Bun.sleep(config.delayMs);
+      // ...
     }
   },
 });
 ```
 
-Keep `defaultConfig` flat — strings, numbers, booleans. Nested objects aren't editable in the dashboard UI.
+Keep `defaultConfig` flat: strings, numbers, booleans. Nested objects aren't editable from the dashboard.
 
 ---
 
-## Responding to pause and stop
+## Pause and stop
 
-If you declare `"commands"`, `signal` is an `AbortSignal` that fires the moment the user sends pause or stop from the dashboard. Check it at loop boundaries:
+If you declare `"commands"` in capabilities, `signal` is an `AbortSignal` that fires when the user sends pause or stop from the dashboard. Check it at loop boundaries:
 
 ```typescript
-for (let page = 1; page <= config.maxPages; page++) {
+for (const page of pages) {
   if (signal.aborted) break;
   // ...
 }
 ```
 
-Any torrents you've already queued are flushed before the process exits. You don't need to do anything special on abort.
+Buffered torrents flush automatically before the process exits. Paused scrapers can be resumed on demand; stopped ones wait for their next scheduled run.
 
 ---
 
-## Adding npm dependencies
+## Packaging
 
-Add a `package.json`. Minato installs dependencies on first install and on each update.
+Add a `dependencies` key for any npm packages you need. Minato installs them on first install and each update. Ship source only. No build step.
 
 ```json
 {
-  "name": "my-scraper",
-  "type": "module",
-  "dependencies": {
-    "cheerio": "^1.0.0"
-  }
+  "dependencies": { "cheerio": "^1.0.0" }
 }
 ```
 
-Ship source only — no build step. Minato runs your entrypoint directly.
+Set `"runtime": "node"` in `minato` if you need Node-specific APIs. The default is `"bun"`, which gives access to Bun APIs (`Bun.sleep`, `Bun.file`, etc.) and faster startup.
 
 ---
 
-## Runtime
+## `package.json` reference
 
-```json
-{ "runtime": "bun" }   // default — Bun APIs available (Bun.sleep, Bun.file, etc.)
-{ "runtime": "node" }  // TypeScript via tsx, plain .js via node
-```
+`id` defaults to the top-level `name`. `version` comes from the top-level `version`.
 
-Both are available in the Minato image. Use `"bun"` unless you have a specific reason to need Node.
+| Field | Required | Description |
+|---|---|---|
+| `minato.name` | ✅ | Display name shown in the dashboard |
+| `minato.entry` | ✅ | Entrypoint path, relative to the package root |
+| `minato.capabilities` | ✅ | See below |
+| `minato.id` | | Overrides the internal ID derived from `name` |
+| `minato.author` | | Shown in the registry listing |
+| `minato.runtime` | | `"bun"` (default) or `"node"` |
+| `minato.defaultConfig` | | User-editable config values |
+
+**Capabilities** (declare only what your scraper uses):
+
+| Value | What it unlocks |
+|---|---|
+| `"ingest"` | Required. Posting torrents to Minato. |
+| `"status"` | Progress bar and phase display in the dashboard |
+| `"commands"` | Pause / stop / resume from the dashboard |
 
 ---
 
-## Distributing your scraper
+## Publishing
 
-Push to any public Git host — GitHub, GitLab, Codeberg, or Bitbucket. Users install it by pasting the repository URL into **Settings → Scrapers → Install from URL**.
+Push to any public Git host. Users install by pasting the URL into **Settings → Scrapers → Install from URL**.
 
-To get listed in the official registry for one-click install, open a pull request to the [minato-registry](https://github.com/minato/registry) repository.
+To get listed in the one-click registry, open a pull request to [minato-registry](https://github.com/minato/registry).
 
-For the full Skit SDK API, see [Skit SDK](/docs/scrapers/skit).
+For the full runtime API, see [Skit SDK](/docs/scrapers/skit).

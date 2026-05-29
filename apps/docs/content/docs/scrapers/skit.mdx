@@ -1,44 +1,44 @@
 ---
 title: Skit SDK
-description: API reference for @minato/skit — the TypeScript SDK for Minato scrapers.
+description: API reference for @minato/skit, the TypeScript SDK for Minato scrapers.
 ---
 
-`@minato/skit` handles everything except your actual scraping logic: registering with Minato, loading config, buffering ingested torrents, reporting status, and listening for commands.
-
-## `defineScraper<TConfig>(definition)`
-
-The entry point. Export its return value as your module's default export.
+## Factory functions
 
 ```typescript
-import { defineScraper } from "@minato/skit";
-
-export default defineScraper({
-  config: { maxPages: 10 },
-  async run({ ingest, config, signal, status, meta }) {
-    // your logic
-  },
-});
+import { defineScheduledScraper, defineDaemonScraper } from "@minato/skit";
 ```
 
-`TConfig` is inferred from the `config` object if you don't specify it explicitly. To get typed config, pass it as a type parameter:
+Export the result as your module's `default` export.
+
+| Function | Use when |
+|---|---|
+| `defineScheduledScraper` | `run()` does one pass and exits |
+| `defineDaemonScraper` | `run()` maintains a persistent connection |
+
+Pass `TConfig` as a type parameter to type your config:
 
 ```typescript
 type Config = { maxPages: number; delayMs: number };
-
-export default defineScraper<Config>({ ... });
+export default defineScheduledScraper<Config>({ ... });
 ```
+
+---
 
 ## Context
 
-`run()` receives a single `ctx` argument:
+`run()` receives a single context object:
 
 | Property | Type | Description |
 |---|---|---|
-| `ingest` | `IngestClient` | Queue torrents for ingestion |
-| `config` | `TConfig` | User config merged over your defaults |
-| `signal` | `AbortSignal` | Aborted when the user sends pause or stop |
+| `ingest` | `IngestClient` | Buffer and flush torrents |
+| `config` | `TConfig` | Merged config (dashboard overrides applied) |
+| `signal` | `AbortSignal` | Aborted on pause or stop |
 | `status` | `StatusReporter` | Report progress to the dashboard |
-| `meta` | `{ id, name, version }` | Values from `scraper.json` |
+| `meta` | `{ id, name, version }` | Scraper identity |
+| `flaresolverr` | `FlareSolverr` | Pre-configured Cloudflare bypass client |
+
+---
 
 ## `ingest`
 
@@ -46,37 +46,41 @@ export default defineScraper<Config>({ ... });
 ingest.add(torrent: TorrentInput): void
 ```
 
-Queues a torrent. Batches are sent to Minato automatically — you never need to call `flush()` yourself.
+Buffers a torrent. Minato flushes in batches automatically; you never call `flush()` yourself. `infoHash` is the global deduplication key: the same hash is never stored twice, regardless of which scraper submitted it.
 
 ### `TorrentInput`
 
-| Field | Required | Type | Description |
+| Field | Required | Type | Notes |
 |---|---|---|---|
 | `infoHash` | ✅ | `string` | 40-char hex info hash |
-| `title` | ✅ | `string` | Release name as shown on the tracker |
+| `title` | ✅ | `string` | Release name |
 | `size` | ✅ | `number` | Total size in bytes |
+| `source.name` | ✅ | `string` | Label shown in the UI. Use `meta.name`. |
 | `seeders` | | `number` | |
 | `leechers` | | `number` | |
 | `magnet` | | `string` | Full magnet URI |
 | `category` | | `string` | Tracker-specific category label |
-| `publishedAt` | | `string` | ISO 8601 publish date |
-| `files` | | `Array<{ filename, size }>` | File list |
-| `source.name` | ✅ | `string` | Shown in the UI as the source label |
-| `source.url` | | `string` | Link to the torrent detail page |
+| `publishedAt` | | `string` | ISO 8601 |
+| `files` | | `Array<{ filename, size }>` | |
+| `source.url` | | `string` | Torrent detail page |
 | `source.origin` | | `string` | Tracker or index name |
-| `source.originUrl` | | `string` | Tracker or index homepage |
+| `source.originUrl` | | `string` | Tracker homepage |
+
+---
 
 ## `config`
 
-The value from `scraper.json`'s `defaultConfig`, with any dashboard overrides already applied. Just use it directly — no merging needed.
+The result of merging `minato.defaultConfig` with any overrides the admin set in the dashboard. Dashboard values always win; you can't override them from code. Treat `config` as read-only at runtime.
 
 ```typescript
 const { maxPages, delayMs } = config;
 ```
 
+---
+
 ## `signal`
 
-An `AbortSignal` that fires when the user sends a **pause** or **stop** command from the dashboard. Check it at any loop boundary:
+Fires on both **pause** and **stop**. The scraper can't distinguish between them; that's Minato's concern. Check at loop boundaries and return cleanly when aborted.
 
 ```typescript
 for (const page of pages) {
@@ -85,7 +89,9 @@ for (const page of pages) {
 }
 ```
 
-Buffered torrents are flushed before the process exits regardless of how it stops.
+Buffered torrents flush automatically before exit. A paused scraper can be resumed on demand; a stopped one waits for its next scheduled run.
+
+---
 
 ## `status`
 
@@ -97,7 +103,9 @@ status.update({
 })
 ```
 
-All fields are optional. Send updates whenever meaningful progress occurs. Failures are silently ignored — a bad status call never affects your scraper.
+All fields optional. Failed calls are silently ignored.
+
+---
 
 ## `meta`
 
@@ -107,4 +115,24 @@ meta.name     // "My Scraper"
 meta.version  // "1.0.0"
 ```
 
-Use `meta.name` as `source.name` to keep the source label consistent with the scraper name shown in the dashboard.
+Use `meta.name` as `source.name` in `ingest.add()` so the source label in the UI stays consistent with the dashboard name.
+
+---
+
+## `flaresolverr`
+
+A pre-configured FlareSolverr client for sites protected by Cloudflare. Use `ffetch` as a drop-in replacement for `fetch`, routing the request through FlareSolverr and returning a standard `Response`.
+
+```typescript
+import { ffetch } from "@minato/skit";
+
+export default defineScheduledScraper({
+  async run(ctx) {
+    const res = await ffetch(ctx, "https://protected-site.example/list");
+    const html = await res.text();
+    // parse and ingest...
+  },
+});
+```
+
+`ffetch` supports GET and POST only. It throws if FlareSolverr is unreachable or returns an error, so the failure surfaces as a normal scraper crash rather than silently producing empty results.
