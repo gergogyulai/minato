@@ -1,35 +1,35 @@
 {
-  "name": "@project-minato/db",
-  "type": "module",
-  "exports": {
-    ".": {
-      "default": "./src/index.ts"
-    },
-    "./*": {
-      "default": "./src/*.ts"
-    }
-  },
-  "scripts": {
-    "db:push": "drizzle-kit push",
-    "db:generate": "drizzle-kit generate",
-    "db:studio": "drizzle-kit studio",
-    "db:migrate": "bun run src/bin/migrate.ts"
-  },
-  "dependencies": {
-    "@project-minato/env": "workspace:*",
-    "dotenv": "catalog:",
-    "drizzle-orm": "catalog:",
-    "drizzle-seed": "^0.3.1",
-    "drizzle-zod": "^0.8.3",
-    "pg": "^8.17.1",
-    "postgres": "^3.4.8",
-    "release-parser": "1.5.3",
-    "zod": "catalog:"
-  },
-  "devDependencies": {
-    "@project-minato/typescript": "workspace:*",
-    "@types/pg": "^8.16.0",
-    "drizzle-kit": "^0.31.8",
-    "typescript": "catalog:"
-  }
+	"name": "@project-minato/db",
+	"type": "module",
+	"exports": {
+		".": {
+			"default": "./src/index.ts"
+		},
+		"./*": {
+			"default": "./src/*.ts"
+		}
+	},
+	"scripts": {
+		"db:push": "drizzle-kit push",
+		"db:generate": "drizzle-kit generate",
+		"db:studio": "drizzle-kit studio",
+		"db:migrate": "bun run src/bin/migrate.ts"
+	},
+	"dependencies": {
+		"@project-minato/env": "workspace:*",
+		"dotenv": "catalog:",
+		"drizzle-orm": "catalog:",
+		"drizzle-seed": "^0.3.1",
+		"drizzle-zod": "^0.8.3",
+		"pg": "^8.17.1",
+		"postgres": "^3.4.8",
+		"release-parser": "1.5.3",
+		"zod": "catalog:"
+	},
+	"devDependencies": {
+		"@project-minato/typescript": "workspace:*",
+		"@types/pg": "^8.16.0",
+		"drizzle-kit": "^0.31.8",
+		"typescript": "catalog:"
+	}
 }

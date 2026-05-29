@@ -1,27 +1,27 @@
 {
-  "name": "@project-minato/auth",
-  "type": "module",
-  "exports": {
-    ".": {
-      "default": "./src/index.ts"
-    },
-    "./*": {
-      "default": "./src/*.ts"
-    }
-  },
-  "scripts": {},
-  "dependencies": {
-    "@better-auth/passkey": "^1.4.18",
-    "@better-auth/drizzle-adapter": "catalog:",
-    "@better-auth/api-key": "catalog:",
-    "@project-minato/db": "workspace:*",
-    "@project-minato/env": "workspace:*",
-    "better-auth": "catalog:",
-    "dotenv": "catalog:",
-    "zod": "catalog:"
-  },
-  "devDependencies": {
-    "@project-minato/typescript": "workspace:*",
-    "typescript": "catalog:"
-  }
+	"name": "@project-minato/auth",
+	"type": "module",
+	"exports": {
+		".": {
+			"default": "./src/index.ts"
+		},
+		"./*": {
+			"default": "./src/*.ts"
+		}
+	},
+	"scripts": {},
+	"dependencies": {
+		"@better-auth/passkey": "^1.4.18",
+		"@better-auth/drizzle-adapter": "catalog:",
+		"@better-auth/api-key": "catalog:",
+		"@project-minato/db": "workspace:*",
+		"@project-minato/env": "workspace:*",
+		"better-auth": "catalog:",
+		"dotenv": "catalog:",
+		"zod": "catalog:"
+	},
+	"devDependencies": {
+		"@project-minato/typescript": "workspace:*",
+		"typescript": "catalog:"
+	}
 }

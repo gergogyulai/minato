@@ -1,47 +1,47 @@
 class RateLimiter {
-  private tokens: number;
-  private lastRefill: number;
-  private readonly maxTokens: number;
-  private readonly refillRate: number; // tokens per second
+	private tokens: number;
+	private lastRefill: number;
+	private readonly maxTokens: number;
+	private readonly refillRate: number; // tokens per second
 
-  constructor(maxTokens: number, refillRate: number) {
-    this.maxTokens = maxTokens;
-    this.tokens = maxTokens;
-    this.refillRate = refillRate;
-    this.lastRefill = Date.now();
-  }
+	constructor(maxTokens: number, refillRate: number) {
+		this.maxTokens = maxTokens;
+		this.tokens = maxTokens;
+		this.refillRate = refillRate;
+		this.lastRefill = Date.now();
+	}
 
-  private refill() {
-    const now = Date.now();
-    const timePassed = (now - this.lastRefill) / 1000; // seconds
-    const tokensToAdd = timePassed * this.refillRate;
-    
-    this.tokens = Math.min(this.maxTokens, this.tokens + tokensToAdd);
-    this.lastRefill = now;
-  }
+	private refill() {
+		const now = Date.now();
+		const timePassed = (now - this.lastRefill) / 1000; // seconds
+		const tokensToAdd = timePassed * this.refillRate;
 
-  async waitForToken(): Promise<void> {
-    this.refill();
+		this.tokens = Math.min(this.maxTokens, this.tokens + tokensToAdd);
+		this.lastRefill = now;
+	}
 
-    if (this.tokens >= 1) {
-      this.tokens -= 1;
-      return;
-    }
+	async waitForToken(): Promise<void> {
+		this.refill();
 
-    // Calculate wait time needed
-    const tokensNeeded = 1 - this.tokens;
-    const waitTime = (tokensNeeded / this.refillRate) * 1000; // milliseconds
-    
-    console.log(`[Rate Limiter] Waiting ${Math.ceil(waitTime)}ms for token...`);
-    await new Promise(resolve => setTimeout(resolve, waitTime));
-    
-    this.tokens = 0;
-  }
+		if (this.tokens >= 1) {
+			this.tokens -= 1;
+			return;
+		}
 
-  getAvailableTokens(): number {
-    this.refill();
-    return this.tokens;
-  }
+		// Calculate wait time needed
+		const tokensNeeded = 1 - this.tokens;
+		const waitTime = (tokensNeeded / this.refillRate) * 1000; // milliseconds
+
+		console.log(`[Rate Limiter] Waiting ${Math.ceil(waitTime)}ms for token...`);
+		await new Promise((resolve) => setTimeout(resolve, waitTime));
+
+		this.tokens = 0;
+	}
+
+	getAvailableTokens(): number {
+		this.refill();
+		return this.tokens;
+	}
 }
 
 // TMDB allows 50 requests per second, but we'll be conservative

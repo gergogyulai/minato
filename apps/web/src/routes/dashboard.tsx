@@ -1,37 +1,42 @@
-import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 
-import DashboardHeader from "@/components/dashboard-header";
+import { AdminMobileBar, AdminSidebar } from "@/components/admin/admin-sidebar";
 import { authClient } from "@/lib/auth-client";
-import { orpc } from "@/utils/orpc";
 
 export const Route = createFileRoute("/dashboard")({
-  component: RouteComponent,
-  beforeLoad: async () => {
-    const session = await authClient.getSession();
-    if (!session.data) {
-      redirect({
-        to: "/login",
-        throw: true,
-      });
-    }
-    return { session };
-  },
+	component: DashboardLayout,
+	beforeLoad: async () => {
+		const session = await authClient.getSession();
+
+		if (!session.data) {
+			throw redirect({ to: "/login" });
+		}
+
+		const role = (session.data.user as { role?: string }).role;
+		if (role !== "admin") {
+			// Authenticated but not an admin — bounce to the public app.
+			throw redirect({ to: "/" });
+		}
+
+		return { session };
+	},
 });
 
-function RouteComponent() {
-  const { session } = Route.useRouteContext();
-
-  const privateData = useQuery(orpc.privateData.queryOptions());
-
-  return (
-    <>
-      <DashboardHeader />
-      <div className="pt-14.25 container mx-auto px-4 py-8">
-        <h1>Dashboard</h1>
-        <p>Welcome {session.data?.user.name}</p>
-        <p>API: {privateData.data?.message}</p>
-      </div>
-    </>
-  );
+function DashboardLayout() {
+	return (
+		<div className="relative min-h-screen bg-background">
+			{/* Ambient backdrop — a subtle teal glow anchored top-left. */}
+			<div
+				aria-hidden
+				className="pointer-events-none fixed inset-0 -z-10 opacity-60 [background:radial-gradient(60rem_40rem_at_-10%_-10%,color-mix(in_oklch,var(--primary)_14%,transparent),transparent_70%)]"
+			/>
+			<AdminSidebar />
+			<AdminMobileBar />
+			<main className="md:pl-60">
+				<div className="mx-auto max-w-6xl px-5 py-8 md:px-10 md:py-12">
+					<Outlet />
+				</div>
+			</main>
+		</div>
+	);
 }

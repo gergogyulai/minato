@@ -1,23 +1,22 @@
 import { env } from "@project-minato/env/shared";
 import { drizzle } from "drizzle-orm/node-postgres";
-
-import * as schema from "./schema";
 import type {
-  BuildQueryResult,
-  ExtractTablesWithRelations,
+	BuildQueryResult,
+	ExtractTablesWithRelations,
 } from "drizzle-orm/relations";
+import * as schema from "./schema";
 
 type Schema = typeof schema;
 type TTables = ExtractTablesWithRelations<Schema>;
 
 export type TorrentWithRelations = BuildQueryResult<
-  TTables,
-  TTables["torrents"],
-  { with: { enrichment: true } }
+	TTables,
+	TTables["torrents"],
+	{ with: { enrichment: true } }
 >;
 
 export const db = drizzle(env.DATABASE_URL, { schema });
-export * from "./schema";
 export * from "drizzle-orm";
-export { runMigrations } from "./migrate";
 export type { MigrationResult } from "./migrate";
+export { runMigrations } from "./migrate";
+export * from "./schema";

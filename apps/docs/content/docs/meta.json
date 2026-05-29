@@ -1,4 +1,4 @@
 {
-  "title": "Minato Docs",
-  "pages": ["index", "deployment", "scrapers"]
+	"title": "Minato Docs",
+	"pages": ["index", "deployment", "scrapers"]
 }

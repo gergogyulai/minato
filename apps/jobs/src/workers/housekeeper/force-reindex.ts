@@ -1,52 +1,61 @@
-import { Job } from 'bullmq';
-import { db, torrents, enrichments } from '@project-minato/db';
-import { eq } from 'drizzle-orm';
-import { meiliClient, formatTorrentForMeilisearch } from '@project-minato/meilisearch';
-import { logger } from '@/utils/logger';
+import { db, enrichments, torrents } from "@project-minato/db";
+import {
+	formatTorrentForMeilisearch,
+	meiliClient,
+} from "@project-minato/meilisearch";
+import type { Job } from "bullmq";
+import { eq } from "drizzle-orm";
+import { logger } from "@/utils/logger";
 
-const log = logger.child({ task: 'force-reindex' });
+const log = logger.child({ task: "force-reindex" });
 
 const BATCH_SIZE = 1000;
 
 export async function performForceReindex(_job: Job) {
-  const index = meiliClient.index('torrents');
+	const index = meiliClient.index("torrents");
 
-  log.info('Starting full Meilisearch reindex...');
+	log.info("Starting full Meilisearch reindex...");
 
-  const deleteTask = await index.deleteAllDocuments();
-  await meiliClient.tasks.waitForTask(deleteTask.taskUid, { timeout: 60_000 });
-  log.info('Index cleared.');
+	const deleteTask = await index.deleteAllDocuments();
+	await meiliClient.tasks.waitForTask(deleteTask.taskUid, { timeout: 60_000 });
+	log.info("Index cleared.");
 
-  // 2. Stream all torrents from the DB in batches and re-index them.
-  let offset = 0;
-  let totalIndexed = 0;
+	// 2. Stream all torrents from the DB in batches and re-index them.
+	let offset = 0;
+	let totalIndexed = 0;
 
-  while (true) {
-    const rows = await db
-      .select()
-      .from(torrents)
-      .leftJoin(enrichments, eq(enrichments.torrentInfoHash, torrents.infoHash))
-      .limit(BATCH_SIZE)
-      .offset(offset);
+	while (true) {
+		const rows = await db
+			.select()
+			.from(torrents)
+			.leftJoin(enrichments, eq(enrichments.torrentInfoHash, torrents.infoHash))
+			.limit(BATCH_SIZE)
+			.offset(offset);
 
-    if (rows.length === 0) break;
+		if (rows.length === 0) break;
 
-    const documents = rows.map(({ torrents: torrent, enrichments: enrichment }) =>
-      formatTorrentForMeilisearch({ ...torrent, enrichment: enrichment ?? null }),
-    );
+		const documents = rows.map(
+			({ torrents: torrent, enrichments: enrichment }) =>
+				formatTorrentForMeilisearch({
+					...torrent,
+					enrichment: enrichment ?? null,
+				}),
+		);
 
-    const addTask = await index.addDocuments(documents, { primaryKey: 'infoHash' });
-    await meiliClient.tasks.waitForTask(addTask.taskUid, { timeout: 120_000 });
+		const addTask = await index.addDocuments(documents, {
+			primaryKey: "infoHash",
+		});
+		await meiliClient.tasks.waitForTask(addTask.taskUid, { timeout: 120_000 });
 
-    totalIndexed += documents.length;
-    offset += rows.length;
+		totalIndexed += documents.length;
+		offset += rows.length;
 
-    log.info({ totalIndexed }, 'Progress...');
+		log.info({ totalIndexed }, "Progress...");
 
-    // If we got fewer rows than the batch size this was the last page.
-    if (rows.length < BATCH_SIZE) break;
-  }
+		// If we got fewer rows than the batch size this was the last page.
+		if (rows.length < BATCH_SIZE) break;
+	}
 
-  log.info({ totalIndexed }, 'Reindex complete.');
-  return { totalIndexed };
+	log.info({ totalIndexed }, "Reindex complete.");
+	return { totalIndexed };
 }

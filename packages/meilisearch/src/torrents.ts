@@ -1,95 +1,95 @@
+import type { Enrichment, Torrent } from "@project-minato/db";
 import type { Index } from "meilisearch";
-import type { Torrent, Enrichment } from "@project-minato/db";
 import { meiliClient } from "./client";
 import { RANKING_PROFILES } from "./profiles";
 
-
 export interface MeiliTorrentDocument extends Omit<Torrent, "size"> {
-  size: string;
-  sourceNames: string[];
-  enrichment?: Enrichment;
+	size: string;
+	sourceNames: string[];
+	enrichment?: Enrichment;
 }
 
 export function formatTorrentForMeilisearch(
-  torrent: Torrent & { enrichment?: Enrichment | null }
+	torrent: Torrent & { enrichment?: Enrichment | null },
 ): MeiliTorrentDocument {
-  const { enrichment, ...rest } = torrent;
+	const { enrichment, ...rest } = torrent;
 
-  const doc: MeiliTorrentDocument = {
-    ...rest,
-    // Ensure BigInt is stringified for JSON/Search engine safety
-    size: torrent.size.toString(),
-    // Array of scraper names for easy filtering
-    sourceNames: torrent.sources?.map((s) => s.scraper) ?? [],
-  };
+	const doc: MeiliTorrentDocument = {
+		...rest,
+		// Ensure BigInt is stringified for JSON/Search engine safety
+		size: torrent.size.toString(),
+		// Array of scraper names for easy filtering
+		sourceNames: torrent.sources?.map((s) => s.scraper) ?? [],
+	};
 
-  if (enrichment) {
-    doc.enrichment = enrichment;
-  }
+	if (enrichment) {
+		doc.enrichment = enrichment;
+	}
 
-  return doc;
+	return doc;
 }
 
-export async function setupTorrentIndex(): Promise<Index<MeiliTorrentDocument>> {
-  const indexName = "torrents";
-  
-  try {
-    await meiliClient.createIndex(indexName, { primaryKey: "infoHash" });
-  } catch (e) {
-  }
+export async function setupTorrentIndex(): Promise<
+	Index<MeiliTorrentDocument>
+> {
+	const indexName = "torrents";
 
-  const index = meiliClient.index<MeiliTorrentDocument>(indexName);
+	try {
+		await meiliClient.createIndex(indexName, { primaryKey: "infoHash" });
+	} catch (e) {}
 
-  // 1. Searchable Attributes
-  await index.updateSearchableAttributes([
-    "infoHash",
-    "enrichment.imdbId",
-    "enrichment.tmdbId",
-    "enrichment.title",
-    "trackerTitle",
-    "releaseData.title",
-    "releaseData.group",
-    "enrichment.overview",
-    "enrichment.seriesDetails.episodeTitle", 
-    "enrichment.tagline",
-  ]);
+	const index = meiliClient.index<MeiliTorrentDocument>(indexName);
 
-  // 2. Filterable Attributes
-  await index.updateFilterableAttributes([
-    "type",
-    "releaseData.resolution",
-    "releaseData.group",
-    "sourceNames",
-    "seeders",
-    "leechers",
-    "size",
-    "publishedAt",
-    "createdAt",
-    "updatedAt",
-    "enrichment.year",
-    "enrichment.genres",
-    "enrichment.mediaType",
-    "enrichment.imdbId",
-    "enrichment.tmdbId",
-    "enrichment.seriesDetails.seasonNumber",
-    "enrichment.seriesDetails.episodeNumber",
-    "enrichment.seriesDetails.isSeasonPack",
-  ]);
+	// 1. Searchable Attributes
+	await index.updateSearchableAttributes([
+		"infoHash",
+		"enrichment.imdbId",
+		"enrichment.tmdbId",
+		"enrichment.title",
+		"trackerTitle",
+		"releaseData.title",
+		"releaseData.group",
+		"enrichment.overview",
+		"enrichment.seriesDetails.episodeTitle",
+		"enrichment.tagline",
+	]);
 
-  // 3. Sortable Attributes
-  await index.updateSortableAttributes([
-    "trackerTitle",
-    "releaseData.title",
-    "seeders",
-    "leechers",
-    "size",
-    "publishedAt",
-    "createdAt",
-    "updatedAt",
-  ]);
+	// 2. Filterable Attributes
+	await index.updateFilterableAttributes([
+		"type",
+		"releaseData.resolution",
+		"releaseData.group",
+		"sourceNames",
+		"seeders",
+		"leechers",
+		"size",
+		"publishedAt",
+		"createdAt",
+		"updatedAt",
+		"enrichment.year",
+		"enrichment.genres",
+		"enrichment.mediaType",
+		"enrichment.imdbId",
+		"enrichment.tmdbId",
+		"enrichment.seriesDetails.seasonNumber",
+		"enrichment.seriesDetails.episodeNumber",
+		"enrichment.seriesDetails.isSeasonPack",
+	]);
 
-  // 4. Ranking Rules
-  await index.updateRankingRules(RANKING_PROFILES.health);
+	// 3. Sortable Attributes
+	await index.updateSortableAttributes([
+		"trackerTitle",
+		"releaseData.title",
+		"seeders",
+		"leechers",
+		"size",
+		"publishedAt",
+		"createdAt",
+		"updatedAt",
+	]);
 
-  return index;
+	// 4. Ranking Rules
+	await index.updateRankingRules(RANKING_PROFILES.health);
+
+	return index;
 }

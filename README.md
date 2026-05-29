@@ -1,78 +1,76 @@
 > [!CAUTION]
-> This project is currently in **active development**. Core infrastructure is functional, but user-facing features (dashboard UI, Torznab API, Go scrapers) are still being implemented. The codebase is operational for development and testing purposes.
+> This project is currently in **active development**. Core infrastructure is functional, but user-facing features are still being refined and extended. The codebase is operational for development and production use.
 
 > [!NOTE]
 > **Open Source & Contributions**: This is a personal project, but it is fully open-source. Contributions, ideas, and feedback are always welcome! If you're interested in the architecture or want to help build a feature, feel free to dive into the code or open an issue.
 
-# Project Blueprint: "Project Minato"
+# Project Minato
 
-A high-performance torrent scraping and indexing suite with a Torznab-compatible API, dashboard, and Go-based public tracker scrapers (The Pirate Bay, 1337x, knaben.org) and DHT crawlers.
+A high-performance torrent scraping and indexing suite with a Torznab-compatible API, dashboard, and pluggable Bun-based scrapers.
 
 ## 1. System Architecture
 
-*   **Frontend**: Next.js 16 (App Router), Tailwind CSS, Lucide-React, shadcn components.
+*   **Frontend**: Vite + React 19, TanStack Router, TanStack Query, Tailwind CSS v4, shadcn/ui components.
 *   **API**: Hono/TypeScript running on Bun using @orpc for type-safe RPC endpoints. Handles torrent ingestion, Torznab XML feeds, user authentication (BetterAuth), and dashboard API.
-*   **Workers**: Three-phase BullMQ worker pipeline:
-    *   **Ingest Worker**: Release parsing (release-parser), initial metadata extraction, Meilisearch indexing
-    *   **Enrichment Worker**: TMDB metadata enrichment, media asset ingestion
-    *   **Reindex Worker**: Full database reindexing capabilities
-*   **Scrapers**: Currently TypeScript/Bun-based importers. Go-based DHT crawlers and site-specific scrapers planned.
+*   **Workers**: BullMQ worker pipeline:
+    *   **Ingest Worker**: Release parsing (release-parser), metadata extraction, Meilisearch indexing
+    *   **Enrichment Worker**: TMDB + AniList metadata enrichment, media asset ingestion
+    *   **Housekeeper Worker**: Maintenance tasks (reindex, cleanup, stale metadata refresh, stalled job recovery)
+*   **Scrapers**: Bun-based scrapers using a shared SDK (`@project-minato/skit`), managed by a supervisor process. Currently ships with EZTV and Knaben scrapers.
 *   **Databases**: 
-    *   **PostgreSQL**: Source of truth (Torrents, Enrichment data, User Accounts, API Keys, Blacklists)
-    *   **Meilisearch**: Full-text search engine with document indexing
-    *   **Redis**: Message queue backend for BullMQ
+    *   **PostgreSQL**: Source of truth (Torrents, Enrichments, User Accounts, API Keys, Blacklists, Scraper registry, Settings)
+    *   **Meilisearch**: Full-text search engine with custom ranking profiles
+    *   **Redis**: Message queue backend for BullMQ and pub/sub config updates
 *   **Documentation**: Fumadocs-based documentation site
 
 
 ```text
-[ EXTERNAL SOURCES ]          [ SCRAPERS / IMPORTERS ]    [ BACKEND API ]
-      (The Web)               (Data Acquisition)         (Ingestion Layer)
---------------------        ---------------------       -------------------
-Database Dumps        --->                              
-(SQLite/CSV/JSON)           TypeScript Importers  ---->
-                            (knaben.ts, etc.)           POST /api/v1/torrents/ingest
-RSS Feeds             --->                              (X-Minato-Scraper: scraper_id)
-Planned:                    Go-based Scrapers     ---->
-- 1337x Crawler              (Future)                   |
-- TPB Crawler                                           |
-- DHT Crawler                                           |
+[ EXTERNAL SOURCES ]          [ SCRAPERS ]               [ BACKEND API ]
+      (The Web)            (Data Acquisition)         (Ingestion Layer)
+--------------------        ------------------       -------------------
+EZTV API             --->   EZTV Scraper ------->
+                                                      POST /api/v1/rpc/torrents.ingest
+Knaben ElasticSearch --->   Knaben Scraper ----->     (X-Minato-Key header)
+
+Community scrapers   --->   Volume-mounted ----->     Scraper Supervisor
+                            (config/scrapers/)        manages lifecycle
+                                                     via SSE commands
                                                         v
-+---------------------------------------------------------------+
-|                    [ HONO API SERVER ]                        |
-|                     (@orpc type-safe RPC)                     |
-|                                                               |
-|  1. Validate X-Minato-Scraper header                          |
-|  2. Schema validation (Zod)                                   |
-|  3. Deduplication (by infoHash)                               |
-|  4. Blacklist filtering (torrents & trackers)                 |
-|  5. PostgreSQL UPSERT with conflict resolution                |
-|  6. Enqueue to BullMQ (ingest queue)                          |
-+---------------------------------------------------------------+
++--------------------------------------------------------------+
+|                    [ HONO API SERVER ]                       |
+|                     (@orpc type-safe RPC)                    |
+|                                                              |
+|  1. Validate API key / scraper identity                      |
+|  2. Schema validation (Zod)                                  |
+|  3. Deduplication (by infoHash)                              |
+|  4. Blacklist filtering (torrents & trackers)                |
+|  5. PostgreSQL UPSERT with conflict resolution               |
+|  6. Enqueue to BullMQ (ingest queue)                         |
++--------------------------------------------------------------+
                             |
                             v
-                  [ REDIS / BullMQ ]
-                   (Message Queue)
+                   [ REDIS / BullMQ ]
+                    (Message Queue)
                             |
         +-------------------+-------------------+
         |                   |                   |
         v                   v                   v
-+---------------+  +-------------------+  +---------------+
-| INGEST        |  | ENRICHMENT        |  | REINDEX       |
-| WORKER        |  | WORKER            |  | WORKER        |
-|               |  |                   |  |               |
-| • Parse       |  | • Query TMDB API  |  | • Full DB     |
-|   release     |  | • Match metadata  |  |   rescan      |
-|   titles      |  | • Ingest media    |  | • Rebuild     |
-| • Extract     |  |   assets (poster/ |  |   Meilisearch |
-|   metadata    |  |   backdrop)       |  |   index       |
-| • Update DB   |  | • Store in        |  |               |
-| • Buffer &    |  |   enrichments     |  |               |
-|   batch index |  |   table           |  |               |
-|   (50 docs or |  | • Update torrent  |  |               |
-|   3s timeout) |  |   enrichedAt      |  |               |
-|               |  | • Reindex to      |  |               |
-|               |  |   Meilisearch     |  |               |
-+---------------+  +-------------------+  +---------------+
++---------------+  +-------------------+  +-------------------+
+| INGEST        |  | ENRICHMENT        |  | HOUSEKEEPER       |
+| WORKER        |  | WORKER            |  | WORKER            |
+|               |  |                   |  |                   |
+| • Parse       |  | • TMDB provider   |  | • Sync/rebuild    |
+|   release     |  | • AniList provider|  |   Meilisearch     |
+|   titles      |  | • Ingest media    |  |   index           |
+| • Extract     |  |   assets (poster/ |  | • Cleanup orphans |
+|   metadata    |  |   backdrop)       |  |   & unused assets |
+| • Update DB   |  | • Store in        |  | • Refresh stale   |
+| • Buffer &    |  |   enrichments     |  |   metadata        |
+|   batch index |  | • Update torrent  |  | • Recover stalled |
+|   (500 docs   |  |   enrichedAt      |  |   jobs            |
+|   or 5s       |  | • Reindex to      |  | • Purge           |
+|   timeout)    |  |   Meilisearch     |  |   blacklisted     |
++---------------+  +-------------------+  +-------------------+
         |                   |                   |
         +-------------------+-------------------+
                             |
@@ -81,11 +79,13 @@ Planned:                    Go-based Scrapers     ---->
             |   [ MEILISEARCH INDEX ]       |
             |   Full-text searchable docs   |
             |   with enriched metadata      |
+            |   3 ranking profiles          |
             +-------------------------------+
                             |
                             v
-            [ NEXT.JS DASHBOARD & API CONSUMERS ]
+            [ DASHBOARD & API CONSUMERS ]
                • Web UI search & browse
+               • Admin dashboard (stats, scrapers, users, settings)
                • Torznab API (Sonarr/Radarr)
                • RSS Feeds
 
@@ -93,71 +93,70 @@ Planned:                    Go-based Scrapers     ---->
 
 ### Key Architectural Decisions
 
-**1. Three-Phase Worker Pipeline**
-- **Ingest Worker**: Processes new torrents immediately after database insertion. Extracts metadata using release-parser, updates torrent records, batches documents for Meilisearch indexing.
-- **Enrichment Worker**: Runs after ingestion. Queries TMDB API for movies/TV shows, downloads media assets (posters/backdrops), stores enrichment data in separate table with 1:1 relationship.
-- **Reindex Worker**: Handles full database reindexing on-demand, useful for schema changes or search configuration updates.
+**1. Worker Pipeline**
+- **Ingest Worker**: Processes new torrents immediately after database insertion. Extracts metadata using release-parser, updates torrent records, batches documents for Meilisearch indexing (500 docs or 5s timeout).
+- **Enrichment Worker**: Provider-based metadata enrichment. TMDB provider for movies/TV shows, AniList GraphQL provider for anime. Downloads and processes media assets (posters/backdrops) via sharp. Rate-limited external API calls with token bucket.
+- **Housekeeper Worker**: Handles maintenance jobs — Meilisearch index sync/rebuild, orphan cleanup, stale metadata refresh, stalled job recovery, and blacklisted content purging.
 
 **2. Data Model**
-- **torrents** table: Core torrent metadata (infoHash as primary key), tracks multiple sources per torrent, uses `isDirty` flag for incremental updates.
-- **enrichments** table: 1:1 relationship with torrents (cascade delete), stores TMDB/IMDb metadata, supports movies, TV shows, and planned support for anime, music, books.
+- **torrents** table: Core torrent metadata (infoHash as primary key), tracks multiple sources per torrent via jsonb array, uses `isDirty` flag for incremental updates.
+- **enrichments** table: 1:1 relationship with torrents (cascade delete), stores TMDB/IMDb/AniList/MAL metadata, supports movies, TV shows, anime, music, and books.
 - **blacklisted_torrents** / **blacklisted_trackers**: Filtering happens at ingestion time to prevent unwanted content.
+- **scrapers** / **scraper_status** / **scraper_commands**: Scraper registry with runtime state and command queue for lifecycle management.
+- **settings**: Key-value configuration store with Redis pub/sub for cross-process updates.
 
 **3. Batch Indexing Strategy**
-- Workers buffer documents (up to 50 or 3-second timeout) before bulk indexing to Meilisearch
-- Reduces API calls and improves throughput
-- Graceful error handling to prevent data loss
+- Workers buffer documents (500 docs or 5s timeout for ingest, 50 docs or 30s timeout for enrichment) before bulk indexing to Meilisearch.
+- On failure, items are returned to the buffer and retried.
 
 **4. Type Safety Throughout**
 - Zod schemas for runtime validation
 - Drizzle ORM for database type safety
-- @orpc for end-to-end type-safe RPC calls from frontend to backend
+- @orpc for end-to-end type-safe RPC calls from frontend to backend (via @orpc/tanstack-query)
 - Shared types across monorepo packages
 
 ### 1.a Stack
 
 **Frontend:**
-- **Framework**: Next.js 16 using the App Router.
-- **Styling**: Tailwind CSS v4 for a modern, responsive dashboard.
-- **Components**: shadcn/ui components with Radix UI primitives, Base UI.
-- **Icons**: Lucide-React.
-- **Data Fetching**: TanStack Query (@tanstack/react-query) for efficient client-side caching.
+- **Build Tool**: Vite 6 with React 19.
+- **Routing**: TanStack Router (file-based, type-safe, code-generated route tree).
+- **Styling**: Tailwind CSS v4, `class-variance-authority`, dark/light theme support.
+- **Components**: shadcn/ui, Radix UI primitives, Base UI, Lucide-React icons.
+- **Data Fetching**: TanStack Query with @orpc/tanstack-query for end-to-end type-safe RPC.
 - **Forms**: TanStack Form for type-safe form management.
+- **Charts**: Recharts for statistics and activity charts.
+- **PWA**: vite-plugin-pwa for offline support.
 
 **Backend (API & Management):**
 - **Runtime**: Bun (high-speed execution and native TypeScript support).
 - **Framework**: Hono (lightweight HTTP framework).
 - **RPC Layer**: @orpc (type-safe RPC with OpenAPI generation and Zod integration).
 - **API Documentation**: @scalar/hono-api-reference for interactive API docs.
-- **Authentication**: BetterAuth (modern authentication with SSO support and session management).
-- **Database Layer**: Drizzle ORM (type-safe SQL builder for PostgreSQL).
+- **Authentication**: BetterAuth with email/password, passkeys (WebAuthn), API key generation, and admin role-based access control.
+- **Database Layer**: Drizzle ORM (type-safe SQL builder for PostgreSQL) with checked-in migration files.
 - **Validation**: Zod schemas throughout the application.
 
 **Backend (Background Workers):**
 - **Queue System**: BullMQ (Redis-backed distributed job queue).
-- **Worker Pipeline**: Three-phase processing:
-    - **Ingest Worker**: Release parsing (release-parser), metadata extraction, batch indexing to Meilisearch.
-    - **Enrichment Worker**: TMDB API integration for metadata enrichment, media asset management.
-    - **Reindex Worker**: Full database reindexing capabilities.
-- **Key Features**:
-    - Batch processing (50 documents or 3-second timeout)
-    - Rate limiting for external APIs (TMDB)
-    - Graceful shutdown handling
-    - Connection health checks
+- **Worker Pipeline**:
+    - **Ingest Worker**: Release parsing (release-parser), metadata extraction, batch indexing to Meilisearch. Concurrency: 25.
+    - **Enrichment Worker**: TMDB + AniList provider-based enrichment, media asset management, Meilisearch reindex. Concurrency: 75, lock duration: 60s.
+    - **Housekeeper Worker**: Maintenance tasks (index sync, cleanup, refresh). Concurrency: 1.
+- **Supervisor**: Manages scraper lifecycle — discovers scrapers, spawns Bun processes, handles scheduling, provides SSE command stream.
 
-**Scrapers & Importers:**
-- **Current**: TypeScript/Bun-based database importers (e.g. for SQLite dump ingestion).
-- **Planned**: Go-based scrapers using `anacrolix/torrent` for:
-    - DHT crawling
-    - Site-specific scraping (1337x, TPB, etc.)
-    - RSS feed polling
-- **Communication**: HTTP POST to `/api/v1/torrents/ingest` with `X-Minato-Scraper` header.
+**Scrapers:**
+- **SDK**: `@project-minato/skit` — shared framework for building scrapers with built-in ingest client, FlareSolverr integration, status reporting, and fetch helpers.
+- **Built-in Scrapers**:
+    - **EZTV**: Scheduled every 6 hours, paginates EZTV API.
+    - **Knaben**: Scheduled daily at 3am, queries ElasticSearch across 228 categories with deduplication.
+- **Community Scrapers**: Volume-mounted at `/config/scrapers/` for third-party scraper packages.
+- **Communication**: Authenticated RPC calls to ingestion endpoint.
 
 **Search & Persistence:**
-- **Primary Database**: PostgreSQL (source of truth for torrents, enrichments, blacklists, users, API keys).
-- **Search Engine**: Meilisearch (full-text search with custom ranking rules, typo tolerance).
-- **Queue Backend**: Redis (BullMQ job persistence and coordination).
-- **Schema**: Drizzle ORM with type-safe migrations.
+- **Primary Database**: PostgreSQL (source of truth for all entities).
+- **Search Engine**: Meilisearch with three configurable ranking profiles (quality, health, freshness), custom searchable/filterable/facet attributes, and inline search directives (`type:movie`, `res:1080p`, `!source`, IMDB/TMDB IDs).
+- **Queue Backend**: Redis (BullMQ job persistence, config pub/sub).
+- **Schema**: Drizzle ORM with type-safe, checked-in SQL migrations.
 
 **Documentation:**
 - **Framework**: Fumadocs (Next.js-based documentation framework).
@@ -165,13 +164,12 @@ Planned:                    Go-based Scrapers     ---->
 
 **DevOps & Tooling:**
 - **Monorepo**: Turborepo (managing `apps/` and `packages/` workspaces).
-- **Package Manager**: Bun with workspace support.
-- **Code Quality**: Biome (linting and formatting).
+- **Package Manager**: Bun with workspace protocol (`workspace:*`).
+- **Code Quality**: Biome (linting and formatting, tabs, double quotes, sorted classes).
 - **Type Safety**: TypeScript 5.x with strict mode.
-- **Build Tools**: 
-    - tsdown for server compilation
-    - Next.js built-in bundling for frontend
-- **Development**: Docker Compose for local infrastructure (PostgreSQL, Redis, Meilisearch).
+- **Build Tools**: tsdown for server/worker compilation, Vite for frontend.
+- **Task Runner**: Justfile for common operations.
+- **Development**: Docker Compose for local infrastructure (PostgreSQL, Redis, Meilisearch, FlareSolverr).
 
 ---
 
@@ -180,64 +178,73 @@ Planned:                    Go-based Scrapers     ---->
 ```text
 /
 ├── apps/
-│   ├── web/                # Next.js 16 Frontend (port 3001)
+│   ├── web/                    # Vite + React 19 Frontend
 │   │   ├── src/
-│   │   │   ├── app/        # Next.js App Router pages
-│   │   │   ├── components/ # React components (shadcn/ui)
-│   │   │   ├── hooks/      # Custom React hooks
-│   │   │   └── lib/        # Client-side utilities
+│   │   │   ├── routes/         # TanStack Router (file-based)
+│   │   │   ├── components/     # React components (shadcn/ui)
+│   │   │   ├── hooks/          # Custom React hooks
+│   │   │   └── lib/            # Client-side utilities
 │   │   └── package.json
-│   ├── server/             # Hono API with @orpc (port 3000)
+│   ├── server/                 # Hono API with @orpc (port 3000)
 │   │   ├── src/
-│   │   │   ├── api/        # RPC routers and contracts
-│   │   │   │   ├── routers/    # torrentRouter, blacklistRouter
+│   │   │   ├── api/            # RPC routers and contracts
+│   │   │   │   ├── routers/    # torrentRouter, searchRouter, etc.
 │   │   │   │   ├── contracts/  # @orpc contract definitions
 │   │   │   │   └── context.ts  # Request context builder
-│   │   │   ├── feeds/      # Torznab & RSS feed handlers
-│   │   │   ├── schemas/    # Zod validation schemas
-│   │   │   └── index.ts    # Server entry point
+│   │   │   ├── feeds/          # Torznab & RSS feed handlers
+│   │   │   ├── lib/            # Search query parser, etc.
+│   │   │   └── index.ts        # Server entry point
 │   │   └── package.json
-│   ├── jobs/               # BullMQ Background Workers
+│   ├── jobs/                   # BullMQ Workers + Supervisor
 │   │   ├── src/
 │   │   │   ├── workers/
-│   │   │   │   ├── ingest-worker.ts      # Release parsing & indexing
-│   │   │   │   ├── enrichment-worker.ts  # TMDB metadata enrichment
-│   │   │   │   └── reindex-worker.ts     # Full DB reindexing
-│   │   │   ├── utils/
-│   │   │   │   ├── logger.ts   # Structured logging
-│   │   │   │   └── media.ts    # Asset management
-│   │   │   ├── rate-limiter.ts # TMDB API rate limiting
-│   │   │   └── index.ts        # Worker orchestration
+│   │   │   │   ├── ingest-worker.ts           # Release parsing & indexing
+│   │   │   │   ├── enrichment-worker.ts       # TMDB + AniList enrichment
+│   │   │   │   └── housekeeper-worker.ts      # Maintenance tasks
+│   │   │   ├── supervisor/
+│   │   │   │   ├── index.ts       # Scraper supervisor (lifecycle, scheduling)
+│   │   │   │   └── commands.ts    # SSE command stream handler
+│   │   │   ├── providers/         # Enrichment providers (TMDB, AniList)
+│   │   │   ├── utils/             # Logger, media asset management
+│   │   │   └── index.ts           # Worker orchestration
 │   │   └── package.json
-│   └── docs/               # Fumadocs Documentation Site (port 4000)
-│       ├── content/docs/   # MDX documentation files
+│   ├── scraper/                 # First-party scrapers
+│   │   ├── eztv/                # EZTV scraper (scheduled, every 6h)
+│   │   └── knaben/              # Knaben multi-category scraper (daily)
+│   └── docs/                    # Fumadocs Documentation Site (port 4000)
+│       ├── content/docs/        # MDX documentation files
 │       ├── src/
 │       └── package.json
 ├── packages/
-│   ├── db/                 # Drizzle ORM & PostgreSQL
+│   ├── db/                      # Drizzle ORM & PostgreSQL
 │   │   ├── src/
-│   │   │   ├── schema/     # Database schemas (torrents, enrichments, etc.)
-│   │   │   ├── migrations/ # SQL migrations
-│   │   │   └── index.ts
-│   │   ├── drizzle.config.ts
-│   │   └── seed.ts         # Database seeding
-│   ├── auth/               # BetterAuth configuration
-│   ├── queue/              # BullMQ setup & queue definitions
-│   ├── meilisearch/        # Meilisearch client & helpers
-│   ├── env/                # Environment variable validation
-│   ├── utils/              # Shared utilities
-│   └── config/             # Shared tsconfig & Biome config
+│   │   │   ├── schema/          # Database schemas
+│   │   │   ├── migrations/      # Checked-in SQL migration files
+│   │   │   ├── migrate.ts       # Migration runner
+│   │   │   └── seed.ts          # Database seeding
+│   │   └── drizzle.config.ts
+│   ├── auth/                    # BetterAuth configuration
+│   ├── queue/                   # BullMQ setup & queue definitions
+│   ├── meilisearch/             # Meilisearch client, batcher, profiles, sync
+│   ├── env/                     # t3-env validated environment variables
+│   ├── utils/                   # Shared utilities (categories, etc.)
+│   ├── api-clients/             # API clients (FlareSolverr, EZTV, Knaben)
+│   ├── config/                  # Runtime config system (DB-backed with Redis pub/sub)
+│   ├── skit/                    # Scraper SDK (define scrapers, ingest client, FlareSolverr)
+│   └── typescript/              # Shared base tsconfig
+├── config/                      # Runtime config storage (media/, scrapers/)
+├── docker/                      # Production configs (nginx.conf, supervisord.conf)
 ├── patches/
 │   └── release-parser@1.5.3.patch  # Custom patch for release-parser
-├── docker-compose.dev.yaml # Local development infrastructure
-├── Dockerfile              # (Planned) Production container
-├── turbo.json              # Turborepo pipeline configuration
-├── biome.json              # Biome linter/formatter config
-├── package.json            # Root workspace configuration
-└── README.md               # This file
+├── docker-compose.dev.yaml      # Local development infrastructure
+├── docker-compose.yaml          # Production stack
+├── Dockerfile                   # Multi-stage production image (nginx + supervisord + Bun)
+├── turbo.json                   # Turborepo pipeline configuration
+├── biome.json                   # Biome linter/formatter config
+├── Justfile                     # Task runner
+├── package.json                 # Root workspace configuration
+└── README.md                    # This file
 ```
-
-**Note**: Go-based scrapers (`services/` directory) are planned but not yet implemented. Current data ingestion uses TypeScript/Bun scripts.
 
 ---
 
@@ -246,17 +253,17 @@ Planned:                    Go-based Scrapers     ---->
 | Traffic Type | Auth Method | Permission |
 | :--- | :--- | :--- |
 | **User -> Web UI (Admin)** | BetterAuth (session-based) | Full Admin access |
-| **User -> Web UI** | BetterAuth (session-based) | Read-only access |
-| **Sonarr/Radarr -> API** | `?apikey=` (User Generated) | Read-only Torznab (planned) |
-| **Scrapers -> API** | `X-Minato-Scraper` + API Key | Write-only `/api/v1/torrents/ingest` |
+| **User -> Web UI** | BetterAuth (session-based) | Authenticated access |
+| **Sonarr/Radarr -> API** | `?apikey=` query param | Read-only Torznab |
+| **Scrapers -> API** | `X-Minato-Key` header | Write-only ingestion |
 | **Internal Services -> DB** | Internal Docker Network / localhost | Full access |
 | **Workers -> Queue** | Redis connection | Job processing |
+| **Scraper Supervisor -> Scrapers** | SSE command stream + key provisioning | Process management |
 
 **Current Status**: 
-- BetterAuth is configured for dashboard authentication
-- Scraper identification uses `X-Minato-Scraper` header
-- API key system for Torznab is planned but not yet implemented
-- All services communicate via localhost in development
+- BetterAuth with email/password, passkeys, and admin role-based access control
+- API key system with `mk_` prefix for scraper authentication and Torznab access
+- Scraper supervisor with automated key provisioning and health monitoring
 
 ---
 
@@ -264,73 +271,89 @@ Planned:                    Go-based Scrapers     ---->
 
 Refer to the [project roadmap](ROADMAP.md) for comprehensive implementation status.
 
-### Implemented ✅
+### Implemented ∞
 
 - **Core Infrastructure**:
-  - Three-phase worker pipeline (Ingest, Enrichment, Reindex)
-  - PostgreSQL database with Drizzle ORM
-  - Meilisearch full-text search integration
-  - Redis/BullMQ job queue system
-  - Type-safe RPC APIs with @orpc
+  - Worker pipeline (Ingest, Enrichment, Housekeeper)
+  - PostgreSQL database with Drizzle ORM and checked-in migrations
+  - Meilisearch full-text search with 3 ranking profiles
+  - Redis/BullMQ job queue system with config pub/sub
+  - Type-safe RPC APIs with @orpc + OpenAPI generation
 
 - **Torrent Management**:
-  - Bulk ingestion API at `/api/v1/torrents/ingest`
+  - Bulk ingestion API via type-safe RPC
   - Automatic deduplication by infoHash
   - Blacklist system (torrents and trackers)
   - Release parsing for metadata extraction (release-parser)
-  - Source tracking (multiple sources per torrent)
+  - Multi-source tracking (jsonb array with conflict merging)
 
 - **Metadata Enrichment**:
   - TMDB API integration for movies and TV shows
-  - Media asset management (posters, backdrops)
-  - Genre, runtime, ratings, and overview extraction
-  - Rate-limited external API calls
+  - AniList GraphQL integration for anime
+  - Media asset management with image processing (sharp)
+  - Rate-limited external API calls (token bucket)
 
 - **Search & Indexing**:
-  - Batch indexing to Meilisearch (50 docs or 3s timeout)
+  - Batch indexing to Meilisearch
   - Flattened enrichment data for search
+  - Inline search directives (`type:movie`, `res:1080p`, `!source`, IMDB/TMDB IDs)
   - Full database reindexing capability
-  - isDirty tracking for incremental updates
+  - `isDirty` tracking for incremental updates
+
+- **Scrapers**:
+  - Scraper SDK (`@project-minato/skit`) with ingest client and FlareSolverr support
+  - EZTV scraper (scheduled, every 6 hours)
+  - Knaben scraper (daily, 228 categories, deduplication)
+  - Supervisor process for lifecycle management (spawn, schedule, health check)
+  - SSE-based command stream (pause/stop/resume)
+  - Support for community scrapers via volume-mounted `/config/scrapers/`
+
+- **Dashboard (Web UI)**:
+  - Home page with instant search and inline filters
+  - Torrent detail view
+  - Admin dashboard with stats overview, ingest activity chart
+  - Scraper management (list, enable/disable, view status)
+  - User management (list, role changes, ban)
+  - API key management (create, revoke)
+  - Settings management (app configuration)
+  - Dark/light theme support, responsive design
+
+- **Authentication & API**:
+  - BetterAuth with email/password and passkey (WebAuthn) support
+  - API key system for scrapers and Torznab consumers
+  - Torznab XML feed endpoint
+  - RSS feed endpoint
+  - First-run setup wizard
+
+- **Deployment**:
+  - Multi-stage Docker image (nginx + supervisord + Bun)
+  - Single unified port (7271) via nginx reverse proxy
+  - Production docker-compose with PostgreSQL, Redis, Meilisearch
+  - Multi-arch builds (linux/amd64, linux/arm64)
+  - Auto-migration on boot
 
 - **Developer Experience**:
   - Turborepo monorepo with workspace dependencies
   - Biome for code formatting and linting
-  - Type-safe schemas with Zod + Drizzle
+  - Type-safe schemas with Zod + Drizzle + @orpc
   - Hot module reloading in development
-  - Health check endpoints with pretty printing
-  - Structured logging with colored output
+  - Health check endpoints
+  - Structured logging with Pino
   - Fumadocs documentation site
 
 ### Planned Features 🚧
 
-- **User Interface**:
-  - Dashboard for managing torrents from all sources
-  - Browse and search interface for end users
-  - Statistics and analytics views
-
-- **Authentication & API**:
-  - User-generated API keys for Torznab access
-  - Torznab-compatible API for Sonarr/Radarr integration
-  - SSO authentication options
-
 - **Scrapers & Data Acquisition**:
-  - DHT crawler (initially powered by bitmagnet, standalone version planned)
-  - Go-based site-specific scrapers (TPB, 1337x, EZTV, Knaben)
-  - Configurable base URLs for crawled sites (+proxy support)
-  - Extensible RSS feed crawling
+  - Additional first-party scrapers (1337x, TPB, DHT crawler)
+  - Configurable base URLs with proxy support
   - Bulk import tools for external databases (RARBG dumps, etc.)
 
 - **Advanced Features**:
-  - Self-hosted private tracker with view-only user access
   - Export functionality for portable SQLite databases
-  - FlareSolverr integration for Cloudflare-protected sites
   - Webhook and notification system
   - Prometheus metrics endpoints for Grafana integration
+  - SSO authentication options
 
-- **Deployment**:
-  - Single unified Docker image with nginx proxy
-  - Supervisord process management
-  - Production-ready configuration examples
 ---
 
 ## 5. Deployment
@@ -340,96 +363,45 @@ Refer to the [project roadmap](ROADMAP.md) for comprehensive implementation stat
 For local development, the project uses Docker Compose for infrastructure:
 
 ```bash
-# Start infrastructure (PostgreSQL, Redis, Meilisearch)
+# Start infrastructure (PostgreSQL, Redis, Meilisearch, FlareSolverr)
 bun run infra:up
 
 # Run all development servers
 bun dev
-
-# Or run individual apps
-bun dev:web      # Next.js frontend (port 3001)
-bun dev:server   # Hono API (port 3000)
-cd apps/jobs && bun dev  # Workers
 ```
 
 **docker-compose.dev.yaml** includes:
 - PostgreSQL (port 5432)
 - Redis (port 6379)
 - Meilisearch (port 7700)
+- FlareSolverr (port 8191)
 
-### Planned Production Deployment
+### Production Deployment
 
-Production deployment will use a single Docker image with all components:
+Production uses a single Docker image with all components managed by supervisord:
 
-```yaml
-version: '3.8'
+```bash
+# Build and start the full stack
+docker compose up -d
 
-services:
-  minato:
-    image: gergogyulai/minato:latest
-    environment:
-      - DATABASE_URL=postgresql://user:${DB_PASSWORD}@postgres:5432/minato
-      - MEILISEARCH_HOST=http://meilisearch:7700
-      - REDIS_URL=redis://redis:6379
-    ports:
-      - "7271:7271"  # Unified port (nginx proxy)
-    volumes:
-      - ./data:/app/data  # Media assets
-    networks:
-      - web-public
-      - minato-internal
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.minato.rule=Host(`${DOMAIN}`)"
-      - "traefik.http.services.minato.loadbalancer.server.port=7271"
-
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: minato
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-    volumes:
-      - pg_data:/var/lib/postgresql/data
-    networks:
-      - minato-internal
-
-  redis:
-    image: redis:alpine
-    command: redis-server --save 60 1 --loglevel warning
-    volumes:
-      - redis_data:/data
-    networks:
-      - minato-internal
-
-  meilisearch:
-    image: getmeili/meilisearch:v1.6
-    environment:
-      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY}
-      - MEILI_NO_ANALYTICS=true
-    volumes:
-      - meili_data:/meili_data
-    networks:
-      - minato-internal
-
-networks:
-  web-public:
-    external: true
-  minato-internal:
-
-volumes:
-  pg_data:
-  redis_data:
-  meili_data:
+# Or pull the pre-built image
+docker pull gergogyulai/minato:latest
 ```
 
-**Production image will include**:
-- Next.js frontend (static export or standalone server)
-- Hono API server
-- BullMQ workers
+**Production image includes**:
+- Vite static frontend assets served by nginx
+- Hono API server (Bun)
+- BullMQ workers (Bun)
+- Scraper supervisor (Bun)
 - Nginx reverse proxy (consolidating services on port 7271)
 - Supervisord for process management
-- Go-based scrapers (when implemented)
+- Auto-migration on first boot
+
+**Architecture**:
+- Nginx serves static frontend assets at `/` with SPA fallback
+- API requests (`/api/*`) proxied to Bun backend on port 3000
+- Media assets (`/assets/*`) proxied to backend with disk fallback
+- Persistent config at `/config` volume (media, community scrapers)
 
 ---
 
@@ -438,7 +410,7 @@ volumes:
 ### Prerequisites
 - **Bun** v1.3.0+ (package manager and runtime)
 - **Docker** and **Docker Compose** (for infrastructure)
-- **Node.js** 20+ (for compatibility)
+- **Just** (optional, for task runner commands)
 
 ### Getting Started
 
@@ -457,17 +429,15 @@ volumes:
    ```bash
    bun run infra:up
    ```
-   This starts PostgreSQL, Redis, and Meilisearch via Docker Compose.
+   This starts PostgreSQL, Redis, Meilisearch, and FlareSolverr via Docker Compose.
 
 4. **Set up environment variables**:
-   - Copy `.env.example` to `.env` (if provided)
-   - Configure database URLs, API keys, etc.
+   - Copy `.env.example` to `.env`
+   - Configure database URLs, TMDB API key, etc.
 
 5. **Run database migrations**:
    ```bash
-   bun db:push     # Push schema changes
-   bun db:generate # Generate migrations
-   bun db:migrate  # Run migrations
+   bun db:migrate
    ```
 
 6. **Start development servers**:
@@ -476,10 +446,11 @@ volumes:
    bun dev
 
    # Or individually:
-   bun dev:web      # Frontend at http://localhost:3001
+   bun dev:web      # Frontend (Vite dev server)
    bun dev:server   # API at http://localhost:3000
-   cd apps/jobs && bun dev  # Workers
-   cd apps/docs && bun dev  # Docs at http://localhost:4000
+   bun dev:jobs     # Workers
+   bun dev:docs     # Docs at http://localhost:4000
+   bun dev:scrapers # Scrapers
    ```
 
 ### Useful Commands
@@ -487,8 +458,9 @@ volumes:
 ```bash
 # Database
 bun db:studio         # Open Drizzle Studio
-bun db:push           # Push schema changes
-bun db:generate       # Generate migrations
+bun db:push           # Push schema changes directly
+bun db:generate       # Generate migration files
+bun db:migrate        # Run pending migrations
 
 # Code Quality
 bun check             # Run Biome linter/formatter
@@ -497,7 +469,8 @@ bun check-types       # Type check all packages
 # Build
 bun build             # Build all packages for production
 
-# Clean slate
+# Docker
+bun docker:build      # Build production Docker image
 bun nuke              # Remove all dependencies and reinstall
 ```
 
@@ -505,5 +478,6 @@ bun nuke              # Remove all dependencies and reinstall
 
 - **Shared packages**: Packages in `/packages` are shared across all apps
 - **Workspace protocol**: Use `workspace:*` for internal dependencies
-- **Type safety**: All schemas use Zod, database uses Drizzle for type safety
+- **Type safety**: End-to-end type safety from Zod schemas through @orpc contracts to TanStack Query hooks
 - **Hot reload**: All apps support hot module reloading in dev mode
+- **Migrations**: Checked into git and run automatically on boot — the source of truth for the database schema

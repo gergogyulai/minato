@@ -1,25 +1,25 @@
 {
-  "name": "@project-minato/env",
-  "version": "0.0.0",
-  "private": true,
-  "type": "module",
-  "exports": {
-    "./server": "./src/server.ts",
-    "./shared": "./src/shared.ts",
-    "./web": "./src/web.ts",
-    "./jobs": "./src/jobs.ts",
-    "./origin": "./src/origin.ts",
-    "./paths": "./src/paths.ts"
-  },
-  "dependencies": {
-    "@t3-oss/env-core": "^0.13.1",
-    "@t3-oss/env-nextjs": "^0.13.1",
-    "dotenv": "catalog:",
-    "zod": "catalog:"
-  },
-  "devDependencies": {
-    "@project-minato/typescript": "workspace:*",
-    "@types/bun": "catalog:",
-    "typescript": "catalog:"
-  }
+	"name": "@project-minato/env",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		"./server": "./src/server.ts",
+		"./shared": "./src/shared.ts",
+		"./web": "./src/web.ts",
+		"./jobs": "./src/jobs.ts",
+		"./origin": "./src/origin.ts",
+		"./paths": "./src/paths.ts"
+	},
+	"dependencies": {
+		"@t3-oss/env-core": "^0.13.1",
+		"@t3-oss/env-nextjs": "^0.13.1",
+		"dotenv": "catalog:",
+		"zod": "catalog:"
+	},
+	"devDependencies": {
+		"@project-minato/typescript": "workspace:*",
+		"@types/bun": "catalog:",
+		"typescript": "catalog:"
+	}
 }

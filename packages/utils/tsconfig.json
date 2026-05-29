@@ -1,9 +1,9 @@
 {
-  "extends": "@project-minato/typescript/tsconfig.base.json",
-  "compilerOptions": {
-    "paths": {
-      "@/*": ["./src/*"]
-    }
-  },
-  "include": ["src"]
+	"extends": "@project-minato/typescript/tsconfig.base.json",
+	"compilerOptions": {
+		"paths": {
+			"@/*": ["./src/*"]
+		}
+	},
+	"include": ["src"]
 }

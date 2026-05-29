@@ -1,4 +1,3 @@
-import { Job } from 'bullmq';
+import type { Job } from "bullmq";
 
-export async function purgeBlacklisted(job: Job) {
-}
+export async function purgeBlacklisted(job: Job) {}

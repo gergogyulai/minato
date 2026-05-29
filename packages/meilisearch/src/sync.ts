@@ -17,10 +17,10 @@ export const SEARCH_INDEX_VERSION = 1;
 const META_KEY = "search_index_version";
 
 export interface SearchSyncResult {
-  /** True when the persisted version trailed the current one (or there was no version yet). */
-  reindexRequired: boolean;
-  previousVersion: number | null;
-  currentVersion: number;
+	/** True when the persisted version trailed the current one (or there was no version yet). */
+	reindexRequired: boolean;
+	previousVersion: number | null;
+	currentVersion: number;
 }
 
 /**
@@ -34,24 +34,24 @@ export interface SearchSyncResult {
  * captured, so a crashed boot will re-trigger on the next attempt.
  */
 export async function syncMeilisearch(
-  db: NodePgDatabase<any>,
+	db: NodePgDatabase<any>,
 ): Promise<SearchSyncResult> {
-  await ensureMetaTable(db);
+	await ensureMetaTable(db);
 
-  await setupTorrentIndex();
+	await setupTorrentIndex();
 
-  const previousVersion = await readVersion(db);
-  const currentVersion = SEARCH_INDEX_VERSION;
-  const reindexRequired =
-    previousVersion === null || previousVersion < currentVersion;
+	const previousVersion = await readVersion(db);
+	const currentVersion = SEARCH_INDEX_VERSION;
+	const reindexRequired =
+		previousVersion === null || previousVersion < currentVersion;
 
-  await writeVersion(db, currentVersion);
+	await writeVersion(db, currentVersion);
 
-  return { reindexRequired, previousVersion, currentVersion };
+	return { reindexRequired, previousVersion, currentVersion };
 }
 
 async function ensureMetaTable(db: NodePgDatabase<any>): Promise<void> {
-  await db.execute(sql`
+	await db.execute(sql`
     CREATE TABLE IF NOT EXISTS __minato_meta (
       key text PRIMARY KEY,
       value text NOT NULL,
@@ -61,20 +61,20 @@ async function ensureMetaTable(db: NodePgDatabase<any>): Promise<void> {
 }
 
 async function readVersion(db: NodePgDatabase<any>): Promise<number | null> {
-  const result = await db.execute<{ value: string }>(sql`
+	const result = await db.execute<{ value: string }>(sql`
     SELECT value FROM __minato_meta WHERE key = ${META_KEY}
   `);
-  const value = result.rows[0]?.value;
-  if (value === undefined) return null;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
+	const value = result.rows[0]?.value;
+	if (value === undefined) return null;
+	const parsed = Number(value);
+	return Number.isFinite(parsed) ? parsed : null;
 }
 
 async function writeVersion(
-  db: NodePgDatabase<any>,
-  version: number,
+	db: NodePgDatabase<any>,
+	version: number,
 ): Promise<void> {
-  await db.execute(sql`
+	await db.execute(sql`
     INSERT INTO __minato_meta (key, value)
     VALUES (${META_KEY}, ${String(version)})
     ON CONFLICT (key) DO UPDATE

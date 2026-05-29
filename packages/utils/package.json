@@ -1,16 +1,16 @@
 {
-  "name": "@project-minato/utils",
-  "version": "0.0.0",
-  "private": true,
-  "type": "module",
-  "exports": {
-    "./*": "./src/*.ts"
-  },
-  "scripts": {
-    "typecheck": "tsc --noEmit"
-  },
-  "devDependencies": {
-    "@project-minato/typescript": "workspace:*",
-    "typescript": "catalog:"
-  }
+	"name": "@project-minato/utils",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		"./*": "./src/*.ts"
+	},
+	"scripts": {
+		"typecheck": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@project-minato/typescript": "workspace:*",
+		"typescript": "catalog:"
+	}
 }

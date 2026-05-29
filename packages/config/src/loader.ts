@@ -1,30 +1,37 @@
-import { settings, settingsMeta, eq, asc } from "@project-minato/db"
-import type { db } from "@project-minato/db"
-import { configSchema } from "./schema"
-import { deepMerge, setDeep } from "./utils"
-import { readEnvOverrides } from "./env-overrides"
-import type { AppConfig } from "./schema"
+import type { db } from "@project-minato/db";
+import { asc, eq, settings, settingsMeta } from "@project-minato/db";
+import { readEnvOverrides } from "./env-overrides";
+import type { AppConfig } from "./schema";
+import { configSchema } from "./schema";
+import { deepMerge, setDeep } from "./utils";
 
-type DB = typeof db
+type DB = typeof db;
 
 export interface LoadedConfig {
-  config: AppConfig
-  version: number
+	config: AppConfig;
+	version: number;
 }
 
 export async function loadConfig(db: DB): Promise<LoadedConfig> {
-  await db.insert(settingsMeta).values({ id: 1, version: 1 }).onConflictDoNothing()
+	await db
+		.insert(settingsMeta)
+		.values({ id: 1, version: 1 })
+		.onConflictDoNothing();
 
-  const rows = await db.select().from(settings).orderBy(asc(settings.key))
-  const metaRows = await db.select().from(settingsMeta).where(eq(settingsMeta.id, 1)).limit(1)
-  const version = metaRows[0]?.version ?? 1
+	const rows = await db.select().from(settings).orderBy(asc(settings.key));
+	const metaRows = await db
+		.select()
+		.from(settingsMeta)
+		.where(eq(settingsMeta.id, 1))
+		.limit(1);
+	const version = metaRows[0]?.version ?? 1;
 
-  let raw: Record<string, unknown> = {}
-  for (const row of rows) {
-    raw = setDeep(raw, row.key, row.value)
-  }
+	let raw: Record<string, unknown> = {};
+	for (const row of rows) {
+		raw = setDeep(raw, row.key, row.value);
+	}
 
-  const envOverrides = readEnvOverrides()
-  const config = configSchema.parse(deepMerge(raw, envOverrides))
-  return { config, version }
+	const envOverrides = readEnvOverrides();
+	const config = configSchema.parse(deepMerge(raw, envOverrides));
+	return { config, version };
 }

@@ -1,26 +1,26 @@
 {
-  "name": "@project-minato/meilisearch",
-  "type": "module",
-  "exports": {
-    ".": "./src/index.ts",
-    "./*": "./src/*.ts"
-  },
-  "scripts": {
-    "meilisearch:start": "docker compose up -d",
-    "meilisearch:watch": "docker compose up",
-    "meilisearch:stop": "docker compose stop",
-    "meilisearch:down": "docker compose down"
-  },
-  "dependencies": {
-    "@project-minato/env": "workspace:*",
-    "@project-minato/db": "workspace:*",
-    "@elastic/elasticsearch": "^9.2.1",
-    "dotenv": "catalog:",
-    "drizzle-orm": "catalog:",
-    "meilisearch": "^0.55.0"
-  },
-  "devDependencies": {
-    "@project-minato/typescript": "workspace:*",
-    "typescript": "catalog:"
-  }
+	"name": "@project-minato/meilisearch",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts",
+		"./*": "./src/*.ts"
+	},
+	"scripts": {
+		"meilisearch:start": "docker compose up -d",
+		"meilisearch:watch": "docker compose up",
+		"meilisearch:stop": "docker compose stop",
+		"meilisearch:down": "docker compose down"
+	},
+	"dependencies": {
+		"@project-minato/env": "workspace:*",
+		"@project-minato/db": "workspace:*",
+		"@elastic/elasticsearch": "^9.2.1",
+		"dotenv": "catalog:",
+		"drizzle-orm": "catalog:",
+		"meilisearch": "^0.55.0"
+	},
+	"devDependencies": {
+		"@project-minato/typescript": "workspace:*",
+		"typescript": "catalog:"
+	}
 }

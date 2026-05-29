@@ -1,22 +1,22 @@
 {
-  "name": "@project-minato/skit",
-  "version": "0.1.0",
-  "type": "module",
-  "description": "TypeScript SDK for writing Minato scrapers",
-  "main": "./src/index.ts",
-  "exports": {
-    ".": "./src/index.ts",
-    "./run": "./src/run.ts"
-  },
-  "scripts": {
-    "check-types": "tsc -b"
-  },
-  "dependencies": {
-    "@project-minato/api-clients": "workspace:*"
-  },
-  "devDependencies": {
-    "@project-minato/typescript": "workspace:*",
-    "@types/bun": "catalog:",
-    "typescript": "catalog:"
-  }
+	"name": "@project-minato/skit",
+	"version": "0.1.0",
+	"type": "module",
+	"description": "TypeScript SDK for writing Minato scrapers",
+	"main": "./src/index.ts",
+	"exports": {
+		".": "./src/index.ts",
+		"./run": "./src/run.ts"
+	},
+	"scripts": {
+		"check-types": "tsc -b"
+	},
+	"dependencies": {
+		"@project-minato/api-clients": "workspace:*"
+	},
+	"devDependencies": {
+		"@project-minato/typescript": "workspace:*",
+		"@types/bun": "catalog:",
+		"typescript": "catalog:"
+	}
 }

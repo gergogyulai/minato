@@ -1,4 +1,3 @@
-import { Job } from 'bullmq';
+import type { Job } from "bullmq";
 
-export async function recoverStalledJobs(job: Job) {
-}
+export async function recoverStalledJobs(job: Job) {}

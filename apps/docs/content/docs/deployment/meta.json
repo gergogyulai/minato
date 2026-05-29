@@ -1,4 +1,4 @@
 {
-  "title": "Deployment",
-  "pages": ["index", "configuration", "reverse-proxy"]
+	"title": "Deployment",
+	"pages": ["index", "configuration", "reverse-proxy"]
 }

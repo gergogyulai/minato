@@ -1,16 +1,13 @@
-
-
-import type { AppRouterClient } from "@project-minato/api/routers";
-import type { QueryClient } from "@tanstack/react-query";
-
 import { createORPCClient } from "@orpc/client";
 import { createTanstackQueryUtils } from "@orpc/tanstack-query";
+import type { AppRouterClient } from "@project-minato/api/routers";
+import type { QueryClient } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import {
-  HeadContent,
-  Outlet,
-  createRootRouteWithContext,
-  redirect,
+	createRootRouteWithContext,
+	HeadContent,
+	Outlet,
+	redirect,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { useState } from "react";
@@ -18,82 +15,82 @@ import { useState } from "react";
 import Header from "@/components/header";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
-import { link, orpc } from "@/utils/orpc";
+import { link, type orpc } from "@/utils/orpc";
 
 import "../index.css";
 
 export interface RouterAppContext {
-  orpc: typeof orpc;
-  queryClient: QueryClient;
+	orpc: typeof orpc;
+	queryClient: QueryClient;
 }
 
 export const Route = createRootRouteWithContext<RouterAppContext>()({
-  component: RootComponent,
-  beforeLoad: async ({ location, context }) => {
-    if (location.pathname.startsWith("/setup")) {
-      return;
-    }
+	component: RootComponent,
+	beforeLoad: async ({ location, context }) => {
+		if (location.pathname.startsWith("/setup")) {
+			return;
+		}
 
-    try {
-      const setupStatus = await context.queryClient.ensureQueryData(
-        context.orpc.setup.getStatus.queryOptions()
-      );
-      
-      if (!setupStatus.setupCompleted) {
-        // Redirect to setup if not completed
-        redirect({
-          to: "/setup",
-          throw: true,
-        });
-      }
-    } catch (error) {
-      // If there's an error checking setup status, allow access
-      // This prevents blocking the app if the API is down
-      console.error("Failed to check setup status:", error);
-    }
-  },
-  head: () => ({
-    meta: [
-      {
-        title: "minato-test-stack",
-      },
-      {
-        name: "description",
-        content: "minato-test-stack is a web application",
-      },
-    ],
-    links: [
-      {
-        rel: "icon",
-        href: "/favicon.ico",
-      },
-    ],
-  }),
+		try {
+			const setupStatus = await context.queryClient.ensureQueryData(
+				context.orpc.setup.getStatus.queryOptions(),
+			);
+
+			if (!setupStatus.setupCompleted) {
+				// Redirect to setup if not completed
+				redirect({
+					to: "/setup",
+					throw: true,
+				});
+			}
+		} catch (error) {
+			// If there's an error checking setup status, allow access
+			// This prevents blocking the app if the API is down
+			console.error("Failed to check setup status:", error);
+		}
+	},
+	head: () => ({
+		meta: [
+			{
+				title: "Minato",
+			},
+			{
+				name: "description",
+				content: "Minato — torrent indexing & scraping control panel",
+			},
+		],
+		links: [
+			{
+				rel: "icon",
+				href: "/favicon.ico",
+			},
+		],
+	}),
 });
 
 function RootComponent() {
-  const [client] = useState<AppRouterClient>(() => createORPCClient(link));
-  const [orpcUtils] = useState(() => createTanstackQueryUtils(client));
+	const [client] = useState<AppRouterClient>(() => createORPCClient(link));
+	const [orpcUtils] = useState(() => createTanstackQueryUtils(client));
 
-  return (
-    <>
-      <HeadContent />
-      <ThemeProvider
-        attribute="class"
-        defaultTheme="dark"
-        disableTransitionOnChange
-        storageKey="vite-ui-theme"
-      >
-        <div className="min-h-screen">
-          {/* <Header /> */}
-          <main>
-            <Outlet />
-          </main>
-        </div>
-        <Toaster richColors />
-      </ThemeProvider>
-      <TanStackRouterDevtools position="bottom-left" />
-      <ReactQueryDevtools position="bottom" buttonPosition="bottom-right" />
-    </>
-  );
+	return (
+		<>
+			<HeadContent />
+			<ThemeProvider
+				attribute="class"
+				defaultTheme="dark"
+				disableTransitionOnChange
+				storageKey="vite-ui-theme"
+			>
+				<div className="min-h-screen">
+					{/* <Header /> */}
+					<main>
+						<Outlet />
+					</main>
+				</div>
+				<Toaster richColors />
+			</ThemeProvider>
+			<TanStackRouterDevtools position="bottom-left" />
+			<ReactQueryDevtools position="bottom" buttonPosition="bottom-right" />
+		</>
+	);
 }
