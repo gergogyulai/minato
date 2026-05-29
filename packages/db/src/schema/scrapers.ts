@@ -29,7 +29,6 @@ export type ScraperManifestSnapshot = {
   title?: string;
   version: string;
   author?: string;
-  runtime?: "bun" | "node";
   entry: string;
   capabilities: string[];
   defaultConfig?: Record<string, unknown>;

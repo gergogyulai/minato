@@ -21,10 +21,13 @@ my-scraper/
 {
   "name": "my-scraper",
   "version": "1.0.0",
+  "title": "My Scraper",
+  "description": "One-line description of what your scraper indexes",
+  "author": "yourhandle",
+  "repository": "https://github.com/you/my-scraper",
+  "module": "index.ts",
   "type": "module",
   "minato": {
-    "name": "My Scraper",
-    "entry": "index.ts",
     "capabilities": ["ingest", "status", "commands"]
   }
 }
@@ -156,22 +159,30 @@ Add a `dependencies` key for any npm packages you need. Minato installs them on 
 }
 ```
 
-Set `"runtime": "node"` in `minato` if you need Node-specific APIs. The default is `"bun"`, which gives access to Bun APIs (`Bun.sleep`, `Bun.file`, etc.) and faster startup.
+Scrapers run under Bun, which gives access to Bun APIs (`Bun.sleep`, `Bun.file`, etc.) alongside the full Node.js-compatible standard library.
 
 ---
 
 ## `package.json` reference
 
-`id` defaults to the top-level `name`. `version` comes from the top-level `version`.
+The scraper's ID and version come from the top-level `name` and `version` fields.
+
+**Top-level fields:**
 
 | Field | Required | Description |
 |---|---|---|
-| `minato.name` | ✅ | Display name shown in the dashboard |
-| `minato.entry` | ✅ | Entrypoint path, relative to the package root |
+| `name` | ✅ | Unique ID — kebab-case, used as the scraper's internal identifier |
+| `title` | ✅ | Display name shown in the dashboard and registry |
+| `description` | ✅ | Short description shown in the registry listing |
+| `author` | ✅ | Your handle or name |
+| `repository` | ✅ | Source URL — where users file issues and find your code |
+| `module` | ✅ | Entrypoint path, relative to the package root |
+
+**`minato` block fields:**
+
+| Field | Required | Description |
+|---|---|---|
 | `minato.capabilities` | ✅ | See below |
-| `minato.id` | | Overrides the internal ID derived from `name` |
-| `minato.author` | | Shown in the registry listing |
-| `minato.runtime` | | `"bun"` (default) or `"node"` |
 | `minato.defaultConfig` | | User-editable config values |
 
 **Capabilities** (declare only what your scraper uses):

@@ -20,12 +20,6 @@
           "required": ["capabilities"],
           "additionalProperties": false,
           "properties": {
-            "runtime": {
-              "type": "string",
-              "enum": ["bun", "node"],
-              "default": "bun",
-              "description": "Runtime used to execute the scraper. 'bun' gives access to Bun APIs; 'node' runs TypeScript via tsx. Defaults to 'bun'."
-            },
             "capabilities": {
               "type": "array",
               "description": "Capabilities this scraper exposes. Declare only what you actually use.",

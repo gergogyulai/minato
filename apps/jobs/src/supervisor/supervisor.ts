@@ -229,7 +229,7 @@ async function onboard(
   manifest: ScraperManifest,
   source: ScraperSource,
 ): Promise<void> {
-  await installDependencies(dir, type, manifest);
+  await installDependencies(dir, type);
 
   // For community scrapers picked up by the watcher with a placeholder
   // source, preserve any existing DB row's source rather than overwriting

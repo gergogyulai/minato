@@ -73,7 +73,6 @@ export function readManifest(dir: string): ScraperManifest {
     title: pkg.title as string,
     version: (pkg.version as string | undefined) ?? "0.0.0",
     author,
-    runtime: (minato.runtime as "bun" | "node" | undefined) ?? "bun",
     entry: pkg.module as string,
     capabilities: minato.capabilities as string[],
     defaultConfig: minato.defaultConfig as Record<string, unknown> | undefined,

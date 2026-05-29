@@ -25,47 +25,30 @@ export type ScraperManifest = {
   title: string;
   version: string;
   author?: string;
-  runtime: "bun" | "node";
   entry: string;
   capabilities: string[];
   defaultConfig?: Record<string, unknown>;
 };
 
 // First-party scrapers are baked into the Docker image with deps already
-// installed; community scrapers ship as source and need `bun install` (or
-// `npm install` for the node runtime).
+// installed; community scrapers ship as source and need `bun install`.
 export async function installDependencies(
   scraperDir: string,
   type: "first_party" | "community",
-  manifest: ScraperManifest,
 ): Promise<void> {
   if (type === "first_party") return;
 
   const pkgJson = join(scraperDir, "package.json");
   if (!existsSync(pkgJson)) return;
 
-  const installer = manifest.runtime === "node" ? "npm" : "bun";
-  const proc = Bun.spawn([installer, "install"], {
+  const proc = Bun.spawn(["bun", "install"], {
     cwd: scraperDir,
     stdout: "inherit",
     stderr: "inherit",
   });
   const code = await proc.exited;
   if (code !== 0) {
-    throw new Error(
-      `${installer} install in ${scraperDir} failed with exit code ${code}`,
-    );
-  }
-}
-
-function buildCommand(manifest: ScraperManifest): string[] {
-  switch (manifest.runtime) {
-    case "node":
-      // tsx/esm lets both the runner and the imported scraper source use TS.
-      return ["node", "--import", "tsx/esm", SKIT_RUNNER];
-    case "bun":
-    default:
-      return ["bun", "run", SKIT_RUNNER];
+    throw new Error(`bun install in ${scraperDir} failed with exit code ${code}`);
   }
 }
 
@@ -77,7 +60,7 @@ export function spawnScraper(opts: {
 }): ChildHandle {
   // The runtime reads identity exclusively from these env vars — it never
   // reads package.json directly. Keep this list as the single source of truth.
-  const proc = Bun.spawn(buildCommand(opts.manifest), {
+  const proc = Bun.spawn(["bun", "run", SKIT_RUNNER], {
     cwd: opts.dir,
     stdout: "inherit",
     stderr: "inherit",
