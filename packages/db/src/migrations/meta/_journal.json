@@ -8,6 +8,20 @@
       "when": 1773053255192,
       "tag": "0000_previous_shockwave",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1779909804850,
+      "tag": "0001_sad_obadiah_stane",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779986968988,
+      "tag": "0002_lame_scream",
+      "breakpoints": true
     }
   ]
 }

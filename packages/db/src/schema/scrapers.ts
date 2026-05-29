@@ -6,24 +6,83 @@ import {
   jsonb,
   uuid,
   index,
+  boolean,
 } from "drizzle-orm/pg-core";
-import { relations, type InferSelectModel, type InferInsertModel } from "drizzle-orm";
+import {
+  relations,
+  type InferSelectModel,
+  type InferInsertModel,
+} from "drizzle-orm";
+
+/**
+ * Source of a scraper installation. Discriminated union stored as jsonb so
+ * the registry / git / first-party shapes can evolve without schema changes.
+ */
+export type ScraperSource =
+  | { kind: "first_party" }
+  | { kind: "git"; url: string; ref?: string }
+  | { kind: "registry"; slug: string; url: string };
+
+export type ScraperManifestSnapshot = {
+  id: string;
+  name: string;
+  title?: string;
+  version: string;
+  author?: string;
+  runtime?: "bun" | "node";
+  entry: string;
+  capabilities: string[];
+  defaultConfig?: Record<string, unknown>;
+};
+
+export type ScraperState =
+  | "installing"
+  | "ready"
+  | "starting"
+  | "running"
+  | "paused"
+  | "scheduled"
+  | "stopped"
+  | "error"
+  | "uninstalling";
 
 export const scrapers = pgTable("scrapers", {
+  // Identity — manifest.id
   id: text("id").primaryKey(),
-  type: text("type").$type<"first_party" | "community">().notNull(),
-  apiKey: text("api_key").notNull().unique(),
-  capabilities: jsonb("capabilities").$type<string[]>().notNull().default([]),
+  name: text("name").notNull(),
+
+  // Auth — better-auth apikey.id; raw key is not stored here
+  apiKeyId: text("api_key_id").notNull().unique(),
+
+  // Installation source
+  source: jsonb("source").$type<ScraperSource>().notNull(),
+  installedVersion: text("installed_version").notNull(),
+  manifest: jsonb("manifest").$type<ScraperManifestSnapshot>().notNull(),
+
+  // Lifecycle authority — written by scraper.register; null between install
+  // and first registration only.
+  lifecycle: text("lifecycle").$type<"scheduled" | "daemon">(),
+
+  // Scheduling — both are 5-field UTC cron expressions.
+  // Effective = schedule ?? recommendedSchedule ?? null (manual only).
+  recommendedSchedule: text("recommended_schedule"),
+  schedule: text("schedule"),
+
+  // User config — defaults from manifest, overrides via admin
   config: jsonb("config")
     .$type<Record<string, unknown>>()
     .notNull()
     .default({}),
-  status: text("status")
-    .$type<"registered" | "running" | "paused" | "error" | "stopped">()
-    .notNull()
-    .default("registered"),
+
+  // Runtime control
+  enabled: boolean("enabled").notNull().default(true),
+  state: text("state").$type<ScraperState>().notNull().default("installing"),
   pid: integer("pid"),
+  lastError: text("last_error"),
+
+  // Audit
   installedAt: timestamp("installed_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
   lastSeenAt: timestamp("last_seen_at"),
 });
 
@@ -33,7 +92,8 @@ export const scraperStatus = pgTable("scraper_status", {
     .notNull()
     .references(() => scrapers.id, { onDelete: "cascade" }),
   phase: text("phase").$type<"idle" | "running" | "paused" | "error">(),
-  progress: jsonb("progress").$type<{ current: number; total?: number }>(),
+  progressCurrent: integer("progress_current"),
+  progressTotal: integer("progress_total"),
   message: text("message"),
   reportedAt: timestamp("reported_at").defaultNow().notNull(),
 });
@@ -45,19 +105,21 @@ export const scraperCommands = pgTable(
     scraperId: text("scraper_id")
       .notNull()
       .references(() => scrapers.id, { onDelete: "cascade" }),
-    command: text("command")
-      .$type<"pause" | "stop" | "resume">()
-      .notNull(),
-    payload: jsonb("payload").$type<Record<string, unknown>>(),
+    command: text("command").$type<"pause" | "stop" | "resume">().notNull(),
     status: text("status")
-      .$type<"pending" | "acked" | "done" | "failed">()
+      .$type<"pending" | "delivered" | "acked">()
       .notNull()
       .default("pending"),
+    issuedBy: text("issued_by"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
+    deliveredAt: timestamp("delivered_at"),
     ackedAt: timestamp("acked_at"),
   },
   (table) => [
-    index("scraper_commands_scraper_id_idx").on(table.scraperId),
+    index("scraper_commands_scraper_id_created_at_idx").on(
+      table.scraperId,
+      table.createdAt,
+    ),
     index("scraper_commands_status_idx").on(table.status),
   ],
 );
