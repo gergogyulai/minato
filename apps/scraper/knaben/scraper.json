@@ -1,8 +1,0 @@
-{
-  "id": "knaben",
-  "name": "Knaben",
-  "version": "1.0.0",
-  "entry": "index.ts",
-  "capabilities": ["ingest", "status", "commands"],
-  "lifecycle": "scheduled"
-}

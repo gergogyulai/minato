@@ -1,4 +1,4 @@
-import { defineScraper } from "@project-minato/skit";
+import { defineScheduledScraper } from "@project-minato/skit";
 import type { TorrentInput } from "@project-minato/skit";
 
 type EztvConfig = {
@@ -69,7 +69,8 @@ function toTorrentInput(t: EztvTorrent): TorrentInput {
   };
 }
 
-export default defineScraper<EztvConfig>({
+export default defineScheduledScraper<EztvConfig>({
+  recommendedSchedule: "0 */6 * * *",
   config: {
     baseUrl: [
       "https://eztvx.to",

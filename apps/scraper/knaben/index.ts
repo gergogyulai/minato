@@ -1,4 +1,4 @@
-import { defineScraper } from "@project-minato/skit";
+import { defineScheduledScraper } from "@project-minato/skit";
 import type { TorrentInput } from "@project-minato/skit";
 
 const ELASTIC_WINDOW = 10_000;
@@ -335,7 +335,8 @@ function toTorrentInput(hit: KnabenHit): TorrentInput {
   };
 }
 
-export default defineScraper<KnabenConfig>({
+export default defineScheduledScraper<KnabenConfig>({
+  recommendedSchedule: "0 3 * * *",
   config: {
     apiUrl: ["https://api.knaben.org/v1"],
     pageSize: 300,

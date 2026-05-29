@@ -1,8 +1,19 @@
 {
   "name": "eztv",
+  "version": "1.0.0",
+  "title": "EZTV",
+  "description": "EZTV TV show torrent scraper for Minato",
+  "author": "project-minato",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gergogyulai/project-minato"
+  },
   "module": "index.ts",
   "type": "module",
   "private": true,
+  "minato": {
+    "capabilities": ["ingest", "status", "commands"]
+  },
   "devDependencies": {
     "@project-minato/config": "workspace:*",
     "@project-minato/skit": "workspace:*",
