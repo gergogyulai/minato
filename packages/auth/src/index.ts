@@ -40,6 +40,10 @@ export const auth = betterAuth({
     apiKey({
       defaultPrefix: "mk_",
       enableMetadata: true,
+      // Machine-to-machine keys (scraper, torznab) call us continuously —
+      // the 10-req/day plugin default would brick them within seconds.
+      // Apply throttling at the Hono layer if/when needed instead.
+      rateLimit: { enabled: false },
     }),
     admin(),
     passkey(),
