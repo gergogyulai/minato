@@ -1,4 +1,4 @@
-import type { EnrichmentMetadata } from "@/lib/providers/types/metadata";
+import type { EnrichmentMetadata, MediaType } from "@/lib/providers/types/metadata";
 import type { MetadataProvider } from "@/lib/providers/types/provider";
 
 /**
@@ -93,7 +93,7 @@ export class ProviderRegistry {
 	/**
 	 * Get providers that support a specific content type
 	 */
-	getProvidersForType(type: "movie" | "tv" | "anime"): ProviderConfig[] {
+	getProvidersForType(type: MediaType): ProviderConfig[] {
 		return this.getProviders().filter((config) =>
 			config.provider.supportedTypes.includes(type),
 		);
@@ -114,7 +114,7 @@ export class ProviderRegistry {
 	async findWithFallback(
 		title: string,
 		year: number | null,
-		type: "movie" | "tv" | "anime",
+		type: MediaType,
 	): Promise<ProviderSearchResult | null> {
 		const providers = this.getProvidersForType(type);
 

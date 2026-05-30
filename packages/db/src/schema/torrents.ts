@@ -98,6 +98,19 @@ export const enrichments = pgTable(
 		tvdbId: integer("tvdb_id"),
 		anilistId: integer("anilist_id"),
 		malId: integer("mal_id"),
+		mbId: varchar("mb_id", { length: 40 }),
+		discogsId: integer("discogs_id"),
+		spotifyId: varchar("spotify_id", { length: 30 }),
+		musicDetails: jsonb("music_details").$type<{
+			artist?: string | null;
+			albumArtist?: string | null;
+			trackCount?: number | null;
+			tracklist?: Array<{
+				position?: string | null;
+				title: string;
+				duration?: string | null;
+			}> | null;
+		}>(),
 		provider: text("provider"),
 		contentRating: varchar("content_rating", { length: 10 }),
 		seriesDetails: jsonb("series_details").$type<{
@@ -117,6 +130,9 @@ export const enrichments = pgTable(
 		index("tvdb_id_idx").on(table.tvdbId),
 		index("anilist_id_idx").on(table.anilistId),
 		index("mal_id_idx").on(table.malId),
+		index("mb_id_idx").on(table.mbId),
+		index("discogs_id_idx").on(table.discogsId),
+		index("spotify_id_idx").on(table.spotifyId),
 		index("info_hash_idx").on(table.torrentInfoHash),
 	],
 );

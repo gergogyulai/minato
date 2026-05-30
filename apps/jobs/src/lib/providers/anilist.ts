@@ -3,7 +3,7 @@ import {
 	calculateTitleSimilarity,
 	TITLE_SIMILARITY_THRESHOLD,
 } from "@/lib/common";
-import type { EnrichmentMetadata } from "@/lib/providers/types/metadata";
+import type { EnrichmentMetadata, MediaType } from "@/lib/providers/types/metadata";
 import type { MetadataProvider } from "@/lib/providers/types/provider";
 
 const ANILIST_API_URL = "https://graphql.anilist.co";
@@ -64,7 +64,7 @@ export class AniListProvider implements MetadataProvider {
 	async find(
 		title: string,
 		year?: number,
-		_type: "movie" | "tv" | "anime" = "anime",
+		_type: MediaType = "anime",
 	): Promise<EnrichmentMetadata | null> {
 		const SEARCH_QUERY = gql`
       query ($search: String, $year: Int) {

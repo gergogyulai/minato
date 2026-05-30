@@ -3,7 +3,7 @@ import {
 	calculateTitleSimilarity,
 	TITLE_SIMILARITY_THRESHOLD,
 } from "@/lib/common";
-import type { EnrichmentMetadata } from "@/lib/providers/types/metadata";
+import type { EnrichmentMetadata, MediaType } from "@/lib/providers/types/metadata";
 import type { MetadataProvider } from "@/lib/providers/types/provider";
 
 const TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/";
@@ -25,7 +25,7 @@ export class TMDBProvider implements MetadataProvider {
 	async find(
 		title: string,
 		year?: number,
-		type: "movie" | "tv" = "movie",
+		type: MediaType = "movie",
 	): Promise<EnrichmentMetadata | null> {
 		const isMovie = type === "movie";
 		let searchItem: { id: number; compareTitle: string } | null = null;

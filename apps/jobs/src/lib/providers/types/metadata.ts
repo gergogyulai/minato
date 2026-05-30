@@ -1,48 +1,105 @@
-/**
- * Single unified metadata type that directly maps to enrichment schema
- * Providers return this type, eliminating intermediate transformations
- */
-export interface EnrichmentMetadata {
-	// Content identification
-	mediaType: "movie" | "tv" | "anime";
+export type MediaType = "movie" | "tv" | "anime" | "music";
 
-	// Provider IDs (at least one required)
-	tmdbId?: number | null;
-	imdbId?: string | null;
-	tvdbId?: number | null;
-	anilistId?: number | null;
-	malId?: number | null;
-
-	// Basic info
+export interface MovieMetadata {
+	mediaType: "movie";
 	title: string;
 	overview: string;
 	tagline?: string | null;
-	releaseDate: string; // ISO date string
+	releaseDate: string;
 	releaseYear: number;
-	status?: string; // "Released", "Ongoing", etc.
-
-	// Media details
+	status?: string;
 	runtime?: number | null;
 	genres: string[];
 	contentRating?: string | null;
-
-	// Assets (raw paths from provider, will be processed separately)
 	posterPath?: string | null;
 	backdropPath?: string | null;
+	tmdbId?: number | null;
+	imdbId?: string | null;
+}
 
-	// TV/Anime specific
+export interface TVMetadata {
+	mediaType: "tv";
+	title: string;
+	overview: string;
+	tagline?: string | null;
+	releaseDate: string;
+	releaseYear: number;
+	status?: string;
+	runtime?: number | null;
+	genres: string[];
+	contentRating?: string | null;
+	posterPath?: string | null;
+	backdropPath?: string | null;
+	tmdbId?: number | null;
+	imdbId?: string | null;
+	tvdbId?: number | null;
 	totalSeasons?: number | null;
 	totalEpisodes?: number | null;
-	seasonNumber?: number | null;
-	episodeNumber?: number | null;
 	episodeTitle?: string | null;
 }
 
-export function getAssetId(metadata: EnrichmentMetadata): string {
-	if (metadata.tmdbId) return `tmdb-${metadata.tmdbId}`;
-	if (metadata.anilistId) return `anilist-${metadata.anilistId}`;
-	if (metadata.malId) return `mal-${metadata.malId}`;
-	if (metadata.imdbId) return `imdb-${metadata.imdbId}`;
+export interface AnimeMetadata {
+	mediaType: "anime";
+	title: string;
+	overview: string;
+	tagline?: string | null;
+	releaseDate: string;
+	releaseYear: number;
+	status?: string;
+	runtime?: number | null;
+	genres: string[];
+	contentRating?: string | null;
+	posterPath?: string | null;
+	backdropPath?: string | null;
+	anilistId?: number | null;
+	malId?: number | null;
+	totalEpisodes?: number | null;
+}
 
+export interface MusicTrack {
+	position?: string | null;
+	title: string;
+	duration?: string | null;
+}
+
+export interface MusicMetadata {
+	mediaType: "music";
+	title: string;
+	overview?: string | null;
+	releaseDate: string;
+	releaseYear: number;
+	genres: string[];
+	status?: string;
+	contentRating?: string | null;
+	albumCoverPath?: string | null;
+	mbId?: string | null;
+	discogsId?: number | null;
+	spotifyId?: string | null;
+	artist?: string | null;
+	trackCount?: number | null;
+	tracklist?: MusicTrack[] | null;
+}
+
+export type EnrichmentMetadata =
+	| MovieMetadata
+	| TVMetadata
+	| AnimeMetadata
+	| MusicMetadata;
+
+export function getAssetId(metadata: EnrichmentMetadata): string {
+	switch (metadata.mediaType) {
+		case "movie":
+		case "tv":
+			if (metadata.tmdbId) return `tmdb-${metadata.tmdbId}`;
+			if (metadata.imdbId) return `imdb-${metadata.imdbId}`;
+			break;
+		case "anime":
+			if (metadata.anilistId) return `anilist-${metadata.anilistId}`;
+			if (metadata.malId) return `mal-${metadata.malId}`;
+			break;
+		case "music":
+			if (metadata.mbId) return `mb-${metadata.mbId}`;
+			break;
+	}
 	return metadata.title.replace(/[^a-z0-9]/gi, "_").toLowerCase();
 }

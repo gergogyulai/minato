@@ -15,7 +15,7 @@ import { type Job, Worker } from "bullmq";
 import { AniListProvider } from "@/lib/providers/anilist";
 import { ProviderRegistry } from "@/lib/providers/registry";
 import { TMDBProvider } from "@/lib/providers/tmdb";
-import { getAssetId } from "@/lib/providers/types/metadata";
+import { getAssetId, type MediaType } from "@/lib/providers/types/metadata";
 import { tmdbRateLimiter } from "@/rate-limiter";
 import { markAsEnriched } from "@/utils/enrich";
 import { logger } from "@/utils/logger";
@@ -86,9 +86,8 @@ export function startEnrichmentWorker() {
 					: undefined;
 
 				const torrentType = torrent.releaseData?.type?.toLowerCase() as
-					| "movie"
-					| "tv"
-					| "anime";
+					| MediaType
+					| undefined;
 				const cleanTitle = torrent.releaseData?.title;
 				const year = Number(torrent.releaseData?.year);
 
@@ -170,28 +169,35 @@ export function startEnrichmentWorker() {
 
 				const assetId = getAssetId(metadata);
 
+				const backdropPath =
+					"backdropPath" in metadata ? metadata.backdropPath : null;
+				const artworkPath =
+					metadata.mediaType === "music"
+						? metadata.albumCoverPath
+						: metadata.posterPath;
+
 				await Promise.allSettled(
 					[
-						metadata.posterPath &&
+						artworkPath &&
 							ingestAsset({
 								id: assetId,
 								url:
 									providerRegistry.getAssetUrl(
 										providerInfo.name,
-										metadata.posterPath,
+										artworkPath,
 										"poster",
-									) || metadata.posterPath,
+									) || artworkPath,
 								type: "poster",
 							}),
-						metadata.backdropPath &&
+						backdropPath &&
 							ingestAsset({
 								id: assetId,
 								url:
 									providerRegistry.getAssetUrl(
 										providerInfo.name,
-										metadata.backdropPath,
+										backdropPath,
 										"backdrop",
-									) || metadata.backdropPath,
+									) || backdropPath,
 								type: "backdrop",
 							}),
 					].filter(Boolean),
@@ -200,33 +206,77 @@ export function startEnrichmentWorker() {
 				const localPoster = getLocalAssetPaths(assetId, "poster");
 				const localBackdrop = getLocalAssetPaths(assetId, "backdrop");
 
+				const isVideoType =
+					metadata.mediaType === "movie" || metadata.mediaType === "tv";
+				const isTVorAnime =
+					metadata.mediaType === "tv" || metadata.mediaType === "anime";
+
 				const enrichmentData: NewEnrichment = {
 					torrentInfoHash: infoHash,
 					mediaType: metadata.mediaType,
-					tmdbId: metadata.tmdbId ?? null,
-					imdbId: metadata.imdbId ?? null,
-					tvdbId: metadata.tvdbId ?? null,
-					anilistId: metadata.anilistId ?? null,
-					malId: metadata.malId ?? null,
+					// Provider IDs — narrowed to the types that actually carry them
+					tmdbId: isVideoType ? (metadata.tmdbId ?? null) : null,
+					imdbId: isVideoType ? (metadata.imdbId ?? null) : null,
+					tvdbId: metadata.mediaType === "tv" ? (metadata.tvdbId ?? null) : null,
+					anilistId:
+						metadata.mediaType === "anime"
+							? (metadata.anilistId ?? null)
+							: null,
+					malId:
+						metadata.mediaType === "anime" ? (metadata.malId ?? null) : null,
+					mbId:
+						metadata.mediaType === "music" ? (metadata.mbId ?? null) : null,
+					discogsId:
+						metadata.mediaType === "music"
+							? (metadata.discogsId ?? null)
+							: null,
+					spotifyId:
+						metadata.mediaType === "music"
+							? (metadata.spotifyId ?? null)
+							: null,
 					title: metadata.title,
-					overview: metadata.overview,
-					tagline: metadata.tagline ?? null,
+					overview: metadata.overview ?? null,
+					tagline:
+						"tagline" in metadata ? (metadata.tagline ?? null) : null,
 					releaseDate: new Date(metadata.releaseDate),
 					year: metadata.releaseYear,
-					runtime: metadata.runtime ?? 0,
-					status: metadata.status ?? "Released",
+					runtime:
+						"runtime" in metadata ? (metadata.runtime ?? 0) : null,
+					status:
+						"status" in metadata
+							? (metadata.status ?? "Released")
+							: null,
 					genres: metadata.genres,
+					contentRating:
+						"contentRating" in metadata
+							? (metadata.contentRating ?? null)
+							: null,
 					provider: providerInfo.name,
-					posterUrl: metadata.posterPath ? localPoster.relative : null,
-					backdropUrl: metadata.backdropPath ? localBackdrop.relative : null,
+					posterUrl: artworkPath ? localPoster.relative : null,
+					backdropUrl: backdropPath ? localBackdrop.relative : null,
 					seriesDetails: {
-						totalEpisodes: metadata.totalEpisodes ?? null,
-						totalSeasons: metadata.totalSeasons ?? null,
+						totalEpisodes: isTVorAnime
+							? (metadata.totalEpisodes ?? null)
+							: null,
+						totalSeasons:
+							metadata.mediaType === "tv"
+								? (metadata.totalSeasons ?? null)
+								: null,
 						episodeNumber: torrent.releaseData?.episode ?? null,
 						seasonNumber: torrent.releaseData?.season ?? null,
-						episodeTitle: metadata.episodeTitle ?? null,
+						episodeTitle:
+							metadata.mediaType === "tv"
+								? (metadata.episodeTitle ?? null)
+								: null,
 					},
-					contentRating: metadata.contentRating ?? null,
+					musicDetails:
+						metadata.mediaType === "music"
+							? {
+									artist: metadata.artist ?? null,
+									trackCount: metadata.trackCount ?? null,
+									tracklist: metadata.tracklist ?? null,
+								}
+							: null,
 				};
 
 				// Upsert on refresh, plain insert otherwise (guarded by the existingEnrichment check).
