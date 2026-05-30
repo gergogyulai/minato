@@ -5,7 +5,8 @@ import { onError } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
 import { ZodToJsonSchemaConverter } from "@orpc/zod/zod4";
 import { auth } from "@project-minato/auth";
-import { db, sql } from "@project-minato/db";
+import { closePubSub } from "@project-minato/config";
+import { closeDb, db, sql } from "@project-minato/db";
 import { inferOriginFromRequest } from "@project-minato/env/origin";
 import { env } from "@project-minato/env/server";
 import { meiliClient } from "@project-minato/meilisearch";
@@ -184,5 +185,19 @@ app.use("/api/v1*", async (c, next) => {
 });
 
 await startup();
+
+const server = Bun.serve({
+	fetch: app.fetch,
+});
+
+async function shutdown(signal: string) {
+	console.log(`[server] ${signal} received — shutting down...`);
+	server.stop(true);
+	await Promise.allSettled([closeDb(), redis.quit(), closePubSub()]);
+	process.exit(0);
+}
+
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("SIGTERM", () => shutdown("SIGTERM"));
 
 export default app;

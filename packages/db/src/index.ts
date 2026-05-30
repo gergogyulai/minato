@@ -16,6 +16,10 @@ export type TorrentWithRelations = BuildQueryResult<
 >;
 
 export const db = drizzle(env.DATABASE_URL, { schema });
+export async function closeDb(): Promise<void> {
+	await db.$client.end();
+}
+
 export * from "drizzle-orm";
 export type { MigrationResult } from "./migrate";
 export { runMigrations } from "./migrate";

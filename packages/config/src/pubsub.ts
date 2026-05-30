@@ -17,6 +17,10 @@ const sub = new Redis(env.REDIS_URL, {
 	lazyConnect: true,
 });
 
+export async function closePubSub(): Promise<void> {
+	await Promise.all([pub.quit(), sub.quit()]);
+}
+
 export async function publishReload(version: number): Promise<void> {
 	await pub.publish(CHANNEL, JSON.stringify({ version }));
 }

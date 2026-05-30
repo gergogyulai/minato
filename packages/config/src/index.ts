@@ -1,7 +1,7 @@
 export { readEnvOverrides } from "./env-overrides";
 export type { LoadedConfig } from "./loader";
 export { loadConfig } from "./loader";
-export { publishReload, setupConfigSubscriber } from "./pubsub";
+export { closePubSub, publishReload, setupConfigSubscriber } from "./pubsub";
 export type {
 	AppConfig,
 	SetupConfig,

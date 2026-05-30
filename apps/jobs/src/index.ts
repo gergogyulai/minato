@@ -1,5 +1,9 @@
-import { initConfig, setupConfigSubscriber } from "@project-minato/config";
-import { db, runMigrations } from "@project-minato/db";
+import {
+	closePubSub,
+	initConfig,
+	setupConfigSubscriber,
+} from "@project-minato/config";
+import { closeDb, db, runMigrations } from "@project-minato/db";
 import { connection } from "@project-minato/queue";
 import { startSupervisor, stopAllScrapers } from "@/supervisor";
 import { checkInfrastructure } from "@/utils/infra";
@@ -44,6 +48,8 @@ async function bootstrap(attempt = 1): Promise<void> {
 					enrichmentWorker.close(),
 					housekeeperWorker.close(),
 					connection.quit(),
+					closeDb(),
+					closePubSub(),
 				]);
 
 				logger.info("Cleanup complete");
