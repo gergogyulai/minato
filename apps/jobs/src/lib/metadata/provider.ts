@@ -1,4 +1,4 @@
-import type { EnrichmentMetadata, MediaType } from "@/lib/providers/types/metadata";
+import type { EnrichmentMetadata, MediaType } from "@/lib/metadata/types";
 
 export interface MetadataProvider {
 	readonly name: string;

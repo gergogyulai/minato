@@ -1,34 +1,25 @@
-import type { EnrichmentMetadata, MediaType } from "@/lib/providers/types/metadata";
-import type { MetadataProvider } from "@/lib/providers/types/provider";
+import type { EnrichmentMetadata, MediaType } from "@/lib/metadata/types";
+import type { MetadataProvider } from "@/lib/metadata/provider";
+import { logger } from "@/utils/logger";
 
-/**
- * Configuration for a provider in the registry
- */
+const log = logger.child({ module: "ProviderRegistry" });
+
 export interface ProviderConfig {
 	provider: MetadataProvider;
-	priority: number; // Lower number = higher priority
+	priority: number;
 	enabled: boolean;
 }
 
-/**
- * Configuration for registering a provider
- */
 export interface RegisterProviderConfig {
 	provider: MetadataProvider;
-	priority?: number; // Default: 100
-	enabled?: boolean; // Default: true
+	priority?: number;
+	enabled?: boolean;
 }
 
-/**
- * Configuration for the ProviderRegistry constructor
- */
 export interface ProviderRegistryConfig {
 	providers?: RegisterProviderConfig[];
 }
 
-/**
- * Result from a provider search with metadata
- */
 export interface ProviderSearchResult {
 	metadata: EnrichmentMetadata;
 	provider: {
@@ -37,10 +28,6 @@ export interface ProviderSearchResult {
 	};
 }
 
-/**
- * Provider Registry manages multiple metadata providers
- * and handles fallback logic when one provider fails
- */
 export class ProviderRegistry {
 	private providers: Map<string, ProviderConfig> = new Map();
 
@@ -52,9 +39,6 @@ export class ProviderRegistry {
 		}
 	}
 
-	/**
-	 * Register a new provider
-	 */
 	register(config: RegisterProviderConfig): void {
 		const { provider, priority = 100, enabled = true } = config;
 		this.providers.set(provider.name, {
@@ -64,16 +48,10 @@ export class ProviderRegistry {
 		});
 	}
 
-	/**
-	 * Unregister a provider by name
-	 */
 	unregister(providerName: string): boolean {
 		return this.providers.delete(providerName);
 	}
 
-	/**
-	 * Enable or disable a provider
-	 */
 	setEnabled(providerName: string, enabled: boolean): void {
 		const config = this.providers.get(providerName);
 		if (config) {
@@ -81,36 +59,23 @@ export class ProviderRegistry {
 		}
 	}
 
-	/**
-	 * Get all registered providers, sorted by priority
-	 */
 	getProviders(): ProviderConfig[] {
 		return Array.from(this.providers.values())
 			.filter((config) => config.enabled)
 			.sort((a, b) => a.priority - b.priority);
 	}
 
-	/**
-	 * Get providers that support a specific content type
-	 */
 	getProvidersForType(type: MediaType): ProviderConfig[] {
 		return this.getProviders().filter((config) =>
 			config.provider.supportedTypes.includes(type),
 		);
 	}
 
-	/**
-	 * Get a specific provider by name
-	 */
 	getProvider(providerName: string): MetadataProvider | null {
 		const config = this.providers.get(providerName);
 		return config?.enabled ? config.provider : null;
 	}
 
-	/**
-	 * Try to find metadata using multiple providers with fallback
-	 * Returns the first successful enrichment-ready result
-	 */
 	async findWithFallback(
 		title: string,
 		year: number | null,
@@ -119,25 +84,22 @@ export class ProviderRegistry {
 		const providers = this.getProvidersForType(type);
 
 		if (providers.length === 0) {
-			console.log(
-				`[ProviderRegistry] No providers available for type "${type}"`,
-			);
+			log.info({ type }, "No providers available for type");
 			return null;
 		}
 
 		for (const config of providers) {
 			const { provider, priority } = config;
 			try {
-				console.log(
-					`[ProviderRegistry] Trying provider "${provider.name}" for "${title}" (${type})`,
+				log.info(
+					{ provider: provider.name, title, type },
+					"Trying provider",
 				);
 
 				const metadata = await provider.find(title, year ?? undefined, type);
 
 				if (metadata) {
-					console.log(
-						`[ProviderRegistry] Successfully found metadata using "${provider.name}"`,
-					);
+					log.info({ provider: provider.name }, "Metadata found");
 					return {
 						metadata,
 						provider: {
@@ -147,26 +109,14 @@ export class ProviderRegistry {
 					};
 				}
 			} catch (error) {
-				console.error(
-					`[ProviderRegistry] Provider "${provider.name}" failed:`,
-					error,
-				);
-				// Continue to next provider
+				log.error({ err: error, provider: provider.name }, "Provider failed");
 			}
 		}
 
-		console.log(
-			`[ProviderRegistry] All providers exhausted for "${title}" (${type})`,
-		);
-		console.log(
-			`[ProviderRegistry] All providers exhausted for "${title}" (${type})`,
-		);
+		log.info({ title, type }, "All providers exhausted");
 		return null;
 	}
 
-	/**
-	 * Get asset URL from a specific provider
-	 */
 	getAssetUrl(
 		providerName: string,
 		path: string,

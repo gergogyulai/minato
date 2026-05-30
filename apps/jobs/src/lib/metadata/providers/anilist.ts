@@ -3,8 +3,8 @@ import {
 	calculateTitleSimilarity,
 	TITLE_SIMILARITY_THRESHOLD,
 } from "@/lib/common";
-import type { EnrichmentMetadata, MediaType } from "@/lib/providers/types/metadata";
-import type { MetadataProvider } from "@/lib/providers/types/provider";
+import type { EnrichmentMetadata, MediaType } from "@/lib/metadata/types";
+import type { MetadataProvider } from "@/lib/metadata/provider";
 
 const ANILIST_API_URL = "https://graphql.anilist.co";
 
@@ -91,7 +91,6 @@ export class AniListProvider implements MetadataProvider {
 			return null;
 		}
 
-		// Check similarity
 		const titlesToCompare = [
 			searchItem.title.english,
 			searchItem.title.romaji,
@@ -142,14 +141,13 @@ export class AniListProvider implements MetadataProvider {
 		const media = detailData.Media;
 		const releaseDate = `${media.startDate.year}-${String(media.startDate.month || 1).padStart(2, "0")}-${String(media.startDate.day || 1).padStart(2, "0")}`;
 
-		// Return enrichment-ready data
 		return {
 			mediaType: "anime",
 			anilistId: media.id,
 			malId: media.idMal ?? null,
 			title: media.title.english || media.title.romaji,
 			overview: media.description?.replace(/<[^>]*>?/gm, "") ?? "",
-			tagline: null, // AniList doesn't provide taglines
+			tagline: null,
 			releaseDate,
 			releaseYear: media.startDate.year,
 			runtime: media.duration ?? null,

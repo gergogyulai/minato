@@ -2,7 +2,6 @@ import {
 	db,
 	enrichments,
 	eq,
-	type NewEnrichment,
 	torrents,
 } from "@project-minato/db";
 import { env } from "@project-minato/env/jobs";
@@ -12,10 +11,12 @@ import {
 } from "@project-minato/meilisearch";
 import { connection, ENRICH_JOBS, QUEUES } from "@project-minato/queue";
 import { type Job, Worker } from "bullmq";
-import { AniListProvider } from "@/lib/providers/anilist";
-import { ProviderRegistry } from "@/lib/providers/registry";
-import { TMDBProvider } from "@/lib/providers/tmdb";
-import { getAssetId, type MediaType } from "@/lib/providers/types/metadata";
+import { AniListProvider } from "@/lib/metadata/providers/anilist";
+import { ProviderRegistry } from "@/lib/metadata/registry";
+import { TMDBProvider } from "@/lib/metadata/providers/tmdb";
+import type { MediaType } from "@/lib/metadata/types";
+import { getAssetId } from "@/lib/metadata/utils";
+import { mapMetadata, type MapperContext } from "@/lib/metadata/mappers/index";
 import { tmdbRateLimiter } from "@/rate-limiter";
 import { markAsEnriched } from "@/utils/enrich";
 import { logger } from "@/utils/logger";
@@ -206,78 +207,15 @@ export function startEnrichmentWorker() {
 				const localPoster = getLocalAssetPaths(assetId, "poster");
 				const localBackdrop = getLocalAssetPaths(assetId, "backdrop");
 
-				const isVideoType =
-					metadata.mediaType === "movie" || metadata.mediaType === "tv";
-				const isTVorAnime =
-					metadata.mediaType === "tv" || metadata.mediaType === "anime";
-
-				const enrichmentData: NewEnrichment = {
-					torrentInfoHash: infoHash,
-					mediaType: metadata.mediaType,
-					// Provider IDs — narrowed to the types that actually carry them
-					tmdbId: isVideoType ? (metadata.tmdbId ?? null) : null,
-					imdbId: isVideoType ? (metadata.imdbId ?? null) : null,
-					tvdbId: metadata.mediaType === "tv" ? (metadata.tvdbId ?? null) : null,
-					anilistId:
-						metadata.mediaType === "anime"
-							? (metadata.anilistId ?? null)
-							: null,
-					malId:
-						metadata.mediaType === "anime" ? (metadata.malId ?? null) : null,
-					mbId:
-						metadata.mediaType === "music" ? (metadata.mbId ?? null) : null,
-					discogsId:
-						metadata.mediaType === "music"
-							? (metadata.discogsId ?? null)
-							: null,
-					spotifyId:
-						metadata.mediaType === "music"
-							? (metadata.spotifyId ?? null)
-							: null,
-					title: metadata.title,
-					overview: metadata.overview ?? null,
-					tagline:
-						"tagline" in metadata ? (metadata.tagline ?? null) : null,
-					releaseDate: new Date(metadata.releaseDate),
-					year: metadata.releaseYear,
-					runtime:
-						"runtime" in metadata ? (metadata.runtime ?? 0) : null,
-					status:
-						"status" in metadata
-							? (metadata.status ?? "Released")
-							: null,
-					genres: metadata.genres,
-					contentRating:
-						"contentRating" in metadata
-							? (metadata.contentRating ?? null)
-							: null,
-					provider: providerInfo.name,
+				const ctx: MapperContext = {
+					infoHash,
+					providerName: providerInfo.name,
 					posterUrl: artworkPath ? localPoster.relative : null,
 					backdropUrl: backdropPath ? localBackdrop.relative : null,
-					seriesDetails: {
-						totalEpisodes: isTVorAnime
-							? (metadata.totalEpisodes ?? null)
-							: null,
-						totalSeasons:
-							metadata.mediaType === "tv"
-								? (metadata.totalSeasons ?? null)
-								: null,
-						episodeNumber: torrent.releaseData?.episode ?? null,
-						seasonNumber: torrent.releaseData?.season ?? null,
-						episodeTitle:
-							metadata.mediaType === "tv"
-								? (metadata.episodeTitle ?? null)
-								: null,
-					},
-					musicDetails:
-						metadata.mediaType === "music"
-							? {
-									artist: metadata.artist ?? null,
-									trackCount: metadata.trackCount ?? null,
-									tracklist: metadata.tracklist ?? null,
-								}
-							: null,
+					episodeNumber: torrent.releaseData?.episode ?? null,
+					seasonNumber: torrent.releaseData?.season ?? null,
 				};
+				const enrichmentData = mapMetadata(metadata, ctx);
 
 				// Upsert on refresh, plain insert otherwise (guarded by the existingEnrichment check).
 				// markAsEnriched runs outside the transaction to avoid connection pool deadlocks.

@@ -3,8 +3,11 @@ import {
 	calculateTitleSimilarity,
 	TITLE_SIMILARITY_THRESHOLD,
 } from "@/lib/common";
-import type { EnrichmentMetadata, MediaType } from "@/lib/providers/types/metadata";
-import type { MetadataProvider } from "@/lib/providers/types/provider";
+import type { EnrichmentMetadata, MediaType } from "@/lib/metadata/types";
+import type { MetadataProvider } from "@/lib/metadata/provider";
+import { logger } from "@/utils/logger";
+
+const log = logger.child({ module: "TMDBProvider" });
 
 const TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/";
 
@@ -60,13 +63,13 @@ export class TMDBProvider implements MetadataProvider {
 			searchItem.compareTitle,
 		);
 		if (titleSimilarity < TITLE_SIMILARITY_THRESHOLD) {
-			console.log(
-				`[TMDBProvider] Title similarity (${titleSimilarity}) for "${title}" is below threshold for TMDB result "${searchItem.compareTitle}"`,
+			log.debug(
+				{ titleSimilarity, title, result: searchItem.compareTitle },
+				"Title similarity below threshold",
 			);
 			return null;
 		}
 
-		// Fetch details and return enrichment-ready data
 		if (isMovie) {
 			const details = await this.client.movies.details(searchItem.id);
 			const externalIds = await this.client.movies.externalIds(searchItem.id);
@@ -88,6 +91,7 @@ export class TMDBProvider implements MetadataProvider {
 				backdropPath: details.backdrop_path ?? null,
 			};
 		}
+
 		const details = await this.client.tvShows.details(searchItem.id);
 		const externalIds = await this.client.tvShows.externalIds(searchItem.id);
 		const firstAirDate = new Date(details.first_air_date);
