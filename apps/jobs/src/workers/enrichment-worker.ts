@@ -1,9 +1,4 @@
-import {
-	db,
-	enrichments,
-	eq,
-	torrents,
-} from "@project-minato/db";
+import { db, enrichments, eq, torrents } from "@project-minato/db";
 import { env } from "@project-minato/env/jobs";
 import {
 	formatTorrentForMeilisearch,
@@ -11,12 +6,12 @@ import {
 } from "@project-minato/meilisearch";
 import { connection, ENRICH_JOBS, QUEUES } from "@project-minato/queue";
 import { type Job, Worker } from "bullmq";
+import { type MapperContext, mapMetadata } from "@/lib/metadata/mappers/index";
 import { AniListProvider } from "@/lib/metadata/providers/anilist";
-import { ProviderRegistry } from "@/lib/metadata/registry";
 import { TMDBProvider } from "@/lib/metadata/providers/tmdb";
+import { ProviderRegistry } from "@/lib/metadata/registry";
 import type { MediaType } from "@/lib/metadata/types";
 import { getAssetId } from "@/lib/metadata/utils";
-import { mapMetadata, type MapperContext } from "@/lib/metadata/mappers/index";
 import { tmdbRateLimiter } from "@/rate-limiter";
 import { markAsEnriched } from "@/utils/enrich";
 import { logger } from "@/utils/logger";

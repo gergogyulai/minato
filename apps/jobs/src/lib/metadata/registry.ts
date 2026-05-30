@@ -1,5 +1,5 @@
-import type { EnrichmentMetadata, MediaType } from "@/lib/metadata/types";
 import type { MetadataProvider } from "@/lib/metadata/provider";
+import type { EnrichmentMetadata, MediaType } from "@/lib/metadata/types";
 import { logger } from "@/utils/logger";
 
 const log = logger.child({ module: "ProviderRegistry" });
@@ -91,10 +91,7 @@ export class ProviderRegistry {
 		for (const config of providers) {
 			const { provider, priority } = config;
 			try {
-				log.info(
-					{ provider: provider.name, title, type },
-					"Trying provider",
-				);
+				log.info({ provider: provider.name, title, type }, "Trying provider");
 
 				const metadata = await provider.find(title, year ?? undefined, type);
 

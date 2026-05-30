@@ -3,8 +3,8 @@ import {
 	calculateTitleSimilarity,
 	TITLE_SIMILARITY_THRESHOLD,
 } from "@/lib/common";
-import type { EnrichmentMetadata, MediaType } from "@/lib/metadata/types";
 import type { MetadataProvider } from "@/lib/metadata/provider";
+import type { EnrichmentMetadata, MediaType } from "@/lib/metadata/types";
 
 const ANILIST_API_URL = "https://graphql.anilist.co";
 

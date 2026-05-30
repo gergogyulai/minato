@@ -1,6 +1,6 @@
 import type { NewEnrichment } from "@project-minato/db";
-import type { TVMetadata } from "@/lib/metadata/types";
 import type { MapperContext } from "@/lib/metadata/mappers/context";
+import type { TVMetadata } from "@/lib/metadata/types";
 
 export function mapTVMetadata(
 	metadata: TVMetadata,

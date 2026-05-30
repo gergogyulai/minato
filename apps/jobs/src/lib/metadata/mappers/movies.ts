@@ -1,6 +1,6 @@
 import type { NewEnrichment } from "@project-minato/db";
-import type { MovieMetadata } from "@/lib/metadata/types";
 import type { MapperContext } from "@/lib/metadata/mappers/context";
+import type { MovieMetadata } from "@/lib/metadata/types";
 
 export function mapMovieMetadata(
 	metadata: MovieMetadata,

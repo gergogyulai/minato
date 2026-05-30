@@ -1,6 +1,6 @@
 import type { NewEnrichment } from "@project-minato/db";
-import type { AnimeMetadata } from "@/lib/metadata/types";
 import type { MapperContext } from "@/lib/metadata/mappers/context";
+import type { AnimeMetadata } from "@/lib/metadata/types";
 
 export function mapAnimeMetadata(
 	metadata: AnimeMetadata,
