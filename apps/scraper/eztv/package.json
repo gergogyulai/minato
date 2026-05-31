@@ -18,9 +18,11 @@
 			"commands"
 		]
 	},
+	"dependencies": {
+		"@project-minato/skit": "workspace:*"
+	},
 	"devDependencies": {
 		"@project-minato/config": "workspace:*",
-		"@project-minato/skit": "workspace:*",
 		"@types/bun": "latest"
 	},
 	"peerDependencies": {
