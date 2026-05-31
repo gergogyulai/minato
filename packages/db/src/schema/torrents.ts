@@ -37,7 +37,7 @@ type Sources = {
 export const torrents = pgTable(
 	"torrents",
 	{
-		infoHash: text("info_hash").primaryKey(),
+		infoHash: text("info_hash").primaryKey().notNull(),
 		trackerTitle: text("tracker_title").notNull(),
 		size: bigint("size", { mode: "number" }).notNull(),
 		seeders: integer("seeders").default(0),

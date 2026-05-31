@@ -1,7 +1,7 @@
 import path from "node:path";
 import { OpenAPIHandler } from "@orpc/openapi/fetch";
 import { OpenAPIReferencePlugin } from "@orpc/openapi/plugins";
-import { onError } from "@orpc/server";
+import { ORPCError, onError } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
 import { ZodToJsonSchemaConverter } from "@orpc/zod/zod4";
 import { auth } from "@project-minato/auth";
@@ -20,6 +20,7 @@ import { appRouter } from "@/api/routers/index";
 import { feeds } from "@/feeds";
 import { handleCommandsSse, handleEnsureKey } from "@/scraper/sse";
 import { startup } from "./startup";
+import { mediaRoot } from "@project-minato/env/paths";
 
 const app = new Hono();
 
@@ -51,7 +52,7 @@ app.use(
 app.get(
 	"/assets/*",
 	serveStatic({
-		root: path.resolve(process.env.MEDIA_ROOT ?? "../../data/media"),
+		root: mediaRoot,
 		// This strips "/assets" so /assets/tm/poster.webp looks for <root>/tm/poster.webp
 		rewriteRequestPath: (path) => path.replace(/^\/assets/, ""),
 	}),
@@ -145,7 +146,14 @@ export const apiHandler = new OpenAPIHandler(appRouter, {
 	],
 	interceptors: [
 		onError((error) => {
-			console.error(error);
+			if (error instanceof ORPCError && error.data?.issues) {
+				console.error(
+					`[orpc] ${error.code} — validation issues:\n`,
+					JSON.stringify(error.data.issues, null, 2),
+				);
+			} else {
+				console.error(error);
+			}
 		}),
 	],
 });
@@ -153,7 +161,14 @@ export const apiHandler = new OpenAPIHandler(appRouter, {
 export const rpcHandler = new RPCHandler(appRouter, {
 	interceptors: [
 		onError((error) => {
-			console.error(error);
+			if (error instanceof ORPCError && error.data?.issues) {
+				console.error(
+					`[orpc] ${error.code} — validation issues:\n`,
+					JSON.stringify(error.data.issues, null, 2),
+				);
+			} else {
+				console.error(error);
+			}
 		}),
 	],
 });
@@ -199,5 +214,3 @@ async function shutdown(signal: string) {
 
 process.on("SIGINT", () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));
-
-export default app;

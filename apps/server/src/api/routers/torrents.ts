@@ -26,6 +26,11 @@ export const torrentRouter = {
 		.handler(async ({ input, context }) => {
 			const { scraperId } = context;
 
+			console.log(
+				`[ingest] ${input.length} items from scraper ${scraperId}, first:`,
+				JSON.stringify(input[0], null, 2),
+			);
+
 			const validatedData = input;
 
 			if (validatedData.length === 0) {
