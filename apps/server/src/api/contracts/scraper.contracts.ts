@@ -259,3 +259,13 @@ export const scraperIssueCommandContract = adminProcedure
 		}),
 	)
 	.output(z.object({ commandId: z.string() }));
+
+export const scraperRunNowContract = adminProcedure
+	.route({
+		method: "POST",
+		path: "/scraper/:id/run",
+		summary: "Trigger an immediate scraper run outside the normal schedule",
+		tags: ["scraper"],
+	})
+	.input(z.object({ id: z.string() }))
+	.output(z.object({ queued: z.boolean() }));

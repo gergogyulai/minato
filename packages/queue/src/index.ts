@@ -11,6 +11,7 @@ export const QUEUES = {
 	INGEST: "torrent_ingest",
 	ENRICH: "torrent_enrich",
 	HOUSEKEEPER: "housekeeper_queue",
+	SCRAPER_CONTROL: "scraper_control",
 } as const;
 
 export const ENRICH_JOBS = {
@@ -28,8 +29,20 @@ export const HOUSEKEEPER_JOBS = {
 	FORCE_REINDEX: "force_reindex",
 } as const;
 
+export const SCRAPER_CONTROL_JOBS = {
+	RUN: "run",
+	KILL: "kill",
+	RELOAD: "reload",
+} as const;
+
+export type ScraperControlJobData = { scraperId: string };
+
 export const ingestQueue = new Queue(QUEUES.INGEST, { connection });
 export const enrichQueue = new Queue(QUEUES.ENRICH, { connection });
 export const housekeeperQueue = new Queue(QUEUES.HOUSEKEEPER, { connection });
+export const scraperControlQueue = new Queue<ScraperControlJobData>(
+	QUEUES.SCRAPER_CONTROL,
+	{ connection },
+);
 
 export { connection, QueueEvents, Worker };

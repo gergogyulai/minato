@@ -14,6 +14,10 @@ import {
 } from "@project-minato/db";
 import { communityScrapersDir } from "@project-minato/env/paths";
 import {
+	SCRAPER_CONTROL_JOBS,
+	scraperControlQueue,
+} from "@project-minato/queue";
+import {
 	scraperGetContract,
 	scraperInstallFromRegistryContract,
 	scraperInstallFromUrlContract,
@@ -21,6 +25,7 @@ import {
 	scraperListContract,
 	scraperRegisterContract,
 	scraperRemoveContract,
+	scraperRunNowContract,
 	scraperSetEnabledContract,
 	scraperStatusContract,
 	scraperUpdateConfigContract,
@@ -293,15 +298,11 @@ export const scraperRouter = {
 			.where(eq(scrapers.id, input.id));
 
 		if (!input.enabled) {
-			// A disabled scraper should stop running; supervisor will pick this up
-			// via the command, child exits, and the FSM keeps it stopped because
-			// `enabled=false` blocks rescheduling.
-			const [inserted] = await db
-				.insert(scraperCommands)
-				.values({ scraperId: input.id, command: "stop" })
-				.returning({ id: scraperCommands.id });
-			if (inserted)
-				publishCommand(input.id, { id: inserted.id, command: "stop" });
+			// Tell the supervisor to kill the process directly. The supervisor's
+			// onChildExit will see enabled=false and keep the state as stopped.
+			await scraperControlQueue.add(SCRAPER_CONTROL_JOBS.KILL, {
+				scraperId: input.id,
+			});
 		}
 
 		return { ok: true as const };
@@ -350,15 +351,11 @@ export const scraperRouter = {
 
 		await runGit(["pull", "--ff-only"], dir);
 
-		// Stop the running child; supervisor will re-spawn it with the new code
-		// on its next scheduling decision (immediate for daemons, next tick for
-		// scheduled).
-		const [inserted] = await db
-			.insert(scraperCommands)
-			.values({ scraperId: input.id, command: "stop" })
-			.returning({ id: scraperCommands.id });
-		if (inserted)
-			publishCommand(input.id, { id: inserted.id, command: "stop" });
+		// Tell the supervisor to reload: kill the running process and immediately
+		// respawn it so the new code is picked up right away.
+		await scraperControlQueue.add(SCRAPER_CONTROL_JOBS.RELOAD, {
+			scraperId: input.id,
+		});
 
 		return { ok: true as const };
 	}),
@@ -386,16 +383,15 @@ export const scraperRouter = {
 			.set({ state: "uninstalling", updatedAt: new Date() })
 			.where(eq(scrapers.id, input.id));
 
-		// Tell the child to wind down. The supervisor's watcher will react to the
-		// directory removal below and clean up its in-memory state.
-		const [inserted] = await db
-			.insert(scraperCommands)
-			.values({ scraperId: input.id, command: "stop" })
-			.returning({ id: scraperCommands.id });
-		if (inserted)
-			publishCommand(input.id, { id: inserted.id, command: "stop" });
+		// Tell the supervisor to kill the process. The supervisor's filesystem
+		// watcher will react to the directory removal below and clean up its
+		// in-memory state.
+		await scraperControlQueue.add(SCRAPER_CONTROL_JOBS.KILL, {
+			scraperId: input.id,
+		});
 
-		// Brief grace window so the child can flush its ingest buffer
+		// Brief grace window for the supervisor to kill the process before we
+		// delete the directory from under it.
 		await new Promise((r) => setTimeout(r, 1_000));
 
 		const dir = join(communityScrapersDir, input.id);
@@ -451,4 +447,42 @@ export const scraperRouter = {
 			return { commandId: inserted.id };
 		},
 	),
+
+	runNow: scraperRunNowContract.handler(async ({ input }) => {
+		const [row] = await db
+			.select({ enabled: scrapers.enabled, state: scrapers.state })
+			.from(scrapers)
+			.where(eq(scrapers.id, input.id))
+			.limit(1);
+
+		if (!row) {
+			throw new ORPCError("NOT_FOUND", {
+				message: `Unknown scraper: ${input.id}`,
+			});
+		}
+		if (!row.enabled) {
+			throw new ORPCError("BAD_REQUEST", {
+				message: "Cannot run a disabled scraper",
+			});
+		}
+
+		const nonRunnable = new Set([
+			"running",
+			"starting",
+			"paused",
+			"installing",
+			"uninstalling",
+		]);
+		if (nonRunnable.has(row.state)) {
+			throw new ORPCError("BAD_REQUEST", {
+				message: `Scraper is currently ${row.state} and cannot be triggered`,
+			});
+		}
+
+		await scraperControlQueue.add(SCRAPER_CONTROL_JOBS.RUN, {
+			scraperId: input.id,
+		});
+
+		return { queued: true };
+	}),
 };

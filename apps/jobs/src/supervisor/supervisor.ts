@@ -25,6 +25,7 @@ const logger = rootLogger.child({ component: "supervisor" });
 
 import type { FSWatcher } from "node:fs";
 import { discoverAll, readManifest, watchCommunityDir } from "./discovery";
+import { startControlWorker } from "./control-worker";
 import {
 	type ChildHandle,
 	installDependencies,
@@ -41,7 +42,7 @@ const ACK_POLL_INTERVAL_MS = 5_000;
 // Registry & state
 // ---------------------------------------------------------------------------
 
-type ManagedScraper = {
+export type ManagedScraper = {
 	id: string;
 	name: string;
 	type: "first_party" | "community";
@@ -54,13 +55,14 @@ type ManagedScraper = {
 	state: ScraperState;
 };
 
-const managed = new Map<string, ManagedScraper>();
+export const managed = new Map<string, ManagedScraper>();
 const timers = new Map<
 	string,
 	{ timeout: ReturnType<typeof setTimeout>; fireAt: Date }
 >();
 let watcher: FSWatcher | null = null;
 let ackTimer: ReturnType<typeof setInterval> | null = null;
+let controlWorker: ReturnType<typeof startControlWorker> | null = null;
 let stopping = false;
 
 // Single state writer — every transition flows through here so the DB and
@@ -112,7 +114,7 @@ function scheduleAt(id: string, date: Date, fn: () => void): void {
 	timers.set(id, { timeout, fireAt: date });
 }
 
-function cancelTimer(id: string): void {
+export function cancelTimer(id: string): void {
 	const t = timers.get(id);
 	if (!t) return;
 	clearTimeout(t.timeout);
@@ -140,6 +142,8 @@ function backoffMs(attempt: number): number {
 // better-auth API key with `metadata.scraperId` and upserts the scrapers
 // row. Called once per scraper at startup — better-auth doesn't expose
 // stored raw keys, so on each supervisor restart the key is re-issued.
+const ENSURE_KEY_RETRIES = 8;
+
 async function ensureScraperKey(
 	manifest: ScraperManifest,
 	source: ScraperSource,
@@ -151,23 +155,43 @@ async function ensureScraperKey(
 		);
 	}
 
-	const res = await fetch(`${API_URL}/api/v1/internal/scraper/ensure-key`, {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-			"X-Supervisor-Secret": secret,
-		},
-		body: JSON.stringify({ scraperId: manifest.id, manifest, source }),
-	});
+	for (let attempt = 0; attempt <= ENSURE_KEY_RETRIES; attempt++) {
+		let res: Response;
+		try {
+			res = await fetch(`${API_URL}/api/v1/internal/scraper/ensure-key`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					"X-Supervisor-Secret": secret,
+				},
+				body: JSON.stringify({ scraperId: manifest.id, manifest, source }),
+			});
+		} catch {
+			// fetch threw — server not reachable yet, retry with backoff
+			if (attempt === ENSURE_KEY_RETRIES) {
+				throw new Error(
+					`[supervisor] ensure-key for ${manifest.id}: server unreachable after ${ENSURE_KEY_RETRIES + 1} attempts`,
+				);
+			}
+			const delay = Math.min(BACKOFF_BASE_MS * 2 ** attempt, BACKOFF_MAX_MS);
+			logger.warn(
+				`ensure-key ${manifest.id}: server not ready, retrying in ${delay}ms (attempt ${attempt + 1}/${ENSURE_KEY_RETRIES})`,
+			);
+			await new Promise((r) => setTimeout(r, delay));
+			continue;
+		}
 
-	if (!res.ok) {
-		throw new Error(
-			`[supervisor] ensure-key for ${manifest.id} failed: ${res.status} ${await res.text()}`,
-		);
+		if (!res.ok) {
+			throw new Error(
+				`[supervisor] ensure-key for ${manifest.id} failed: ${res.status} ${await res.text()}`,
+			);
+		}
+
+		const body = (await res.json()) as { apiKey: string };
+		return body.apiKey;
 	}
 
-	const body = (await res.json()) as { apiKey: string };
-	return body.apiKey;
+	throw new Error("unreachable");
 }
 
 // ---------------------------------------------------------------------------
@@ -206,6 +230,9 @@ export async function start(
 			logger.warn(`[supervisor] ack poll failed: ${(err as Error).message}`),
 		);
 	}, ACK_POLL_INTERVAL_MS);
+
+	controlWorker = startControlWorker();
+	logger.info("Control worker started");
 }
 
 export async function stopAll(): Promise<void> {
@@ -214,6 +241,10 @@ export async function stopAll(): Promise<void> {
 	if (ackTimer) {
 		clearInterval(ackTimer);
 		ackTimer = null;
+	}
+	if (controlWorker) {
+		await controlWorker.close();
+		controlWorker = null;
 	}
 	cancelAllTimers();
 	await Promise.all([...managed.values()].map(killManaged));
@@ -309,7 +340,7 @@ async function handleHotRemove(dir: string): Promise<void> {
 // Process control
 // ---------------------------------------------------------------------------
 
-async function spawnManaged(record: ManagedScraper): Promise<void> {
+export async function spawnManaged(record: ManagedScraper): Promise<void> {
 	if (record.proc) return;
 	if (stopping) return;
 
@@ -341,7 +372,7 @@ async function spawnManaged(record: ManagedScraper): Promise<void> {
 	void handle.exited.then((code) => void onChildExit(record, code));
 }
 
-async function killManaged(record: ManagedScraper): Promise<void> {
+export async function killManaged(record: ManagedScraper): Promise<void> {
 	cancelTimer(record.id);
 	if (!record.proc) return;
 	await record.proc.killGracefully();
@@ -368,6 +399,29 @@ async function onChildExit(
 
 	// Intentional teardown — keep state as-is, no rescheduling.
 	if (record.state === "uninstalling" || record.state === "stopped") {
+		return;
+	}
+
+	// Scraper exited because of a stop command issued via the dashboard. Ack
+	// the command and leave the scraper stopped rather than restarting it.
+	const [stopCmd] = await db
+		.select({ id: scraperCommands.id })
+		.from(scraperCommands)
+		.where(
+			and(
+				eq(scraperCommands.scraperId, record.id),
+				eq(scraperCommands.command, "stop"),
+				inArray(scraperCommands.status, ["pending", "delivered"]),
+			),
+		)
+		.limit(1);
+
+	if (stopCmd) {
+		await db
+			.update(scraperCommands)
+			.set({ status: "acked", ackedAt: new Date() })
+			.where(eq(scraperCommands.id, stopCmd.id));
+		await setState(record.id, "stopped", { reason: "stop command", pid: null });
 		return;
 	}
 

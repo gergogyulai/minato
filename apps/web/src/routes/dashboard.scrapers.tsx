@@ -46,7 +46,7 @@ type Scraper = Awaited<
 >["scrapers"][number];
 
 function ScrapersPage() {
-	const scrapers = useQuery(orpc.scraper.list.queryOptions());
+	const scrapers = useQuery({ ...orpc.scraper.list.queryOptions(), refetchInterval: 2_000 });
 	const [installOpen, setInstallOpen] = useState(false);
 
 	return (
@@ -265,6 +265,32 @@ function ScraperCard({
 						<Square className="size-3.5" /> Stop
 					</Button>
 				)}
+				{(sc.state === "ready" ||
+					sc.state === "scheduled" ||
+					sc.state === "stopped" ||
+					sc.state === "error") &&
+					sc.enabled && (
+						<Button
+							size="sm"
+							variant="outline"
+							disabled={busy !== null}
+							onClick={() =>
+								run(
+									"run",
+									() => client.scraper.runNow({ id: sc.id }),
+									"Scraper triggered",
+								)
+							}
+							className="gap-1.5"
+						>
+							{busy === "run" ? (
+								<Loader2 className="size-3.5 animate-spin" />
+							) : (
+								<Play className="size-3.5" />
+							)}
+							Run Now
+						</Button>
+					)}
 
 				<Button
 					size="sm"
