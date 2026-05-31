@@ -63,7 +63,7 @@ export async function applyGlobalSearchProfile(
 
 	const task = await index.updateRankingRules(rules);
 
-	await meiliClient.tasks.waitForTask(task.taskUid);
+	await meiliClient.tasks.waitForTask(task.taskUid, { timeout: 30_000 });
 
 	console.log(`Index is now ${profileName} oriented.`);
 }

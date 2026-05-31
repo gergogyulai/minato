@@ -108,12 +108,12 @@ export const statsRouter = {
 		.route({
 			method: "GET",
 			path: "/stats/ingest-activity",
-			summary: "Torrents ingested per day over a recent window",
+			summary: "Torrents ingested per hour over a recent window",
 			tags: ["stats"],
 		})
 		.input(
 			z
-				.object({ days: z.number().int().min(1).max(90).default(30) })
+				.object({ hours: z.number().int().min(1).max(72).default(24) })
 				.optional(),
 		)
 		.output(
@@ -122,22 +122,20 @@ export const statsRouter = {
 			}),
 		)
 		.handler(async ({ input }) => {
-			const days = input?.days ?? 30;
+			const hours = input?.hours ?? 24;
 
-			// Bucket by calendar day and left-join so days with zero ingest still
-			// appear as gaps in the series rather than being dropped.
 			const result = await db.execute<{ date: string; count: number }>(sql`
-        SELECT to_char(d.day, 'YYYY-MM-DD') AS date,
+        SELECT to_char(d.hour, 'YYYY-MM-DD HH24:00') AS date,
                count(t.info_hash)::int AS count
         FROM generate_series(
-          current_date - make_interval(days => ${days - 1}),
-          current_date,
-          interval '1 day'
-        ) AS d(day)
+          date_trunc('hour', now()) - make_interval(hours => ${hours - 1}),
+          date_trunc('hour', now()),
+          interval '1 hour'
+        ) AS d(hour)
         LEFT JOIN torrents t
-          ON date_trunc('day', t.created_at) = d.day
-        GROUP BY d.day
-        ORDER BY d.day
+          ON date_trunc('hour', t.created_at) = d.hour
+        GROUP BY d.hour
+        ORDER BY d.hour
       `);
 
 			const rows = (result as unknown as { rows?: unknown[] }).rows ?? result;

@@ -63,7 +63,7 @@ function Panel({
 function OverviewPage() {
 	const stats = useQuery({ ...orpc.stats.overview.queryOptions(), refetchInterval: 2_000 });
 	const activity = useQuery({
-		...orpc.stats.ingestActivity.queryOptions({ input: { days: 30 } }),
+		...orpc.stats.ingestActivity.queryOptions({ input: { hours: 24 } }),
 		refetchInterval: 30_000,
 	});
 	const queues = useQuery({ ...orpc.queues.status.queryOptions(), refetchInterval: 2_000 });
@@ -118,7 +118,7 @@ function OverviewPage() {
 			<div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
 				<Panel
 					title="Ingest activity"
-					description="Torrents added per day, last 30 days"
+					description="Torrents added per hour, last 24 hours"
 					className="lg:col-span-2"
 				>
 					<div className="h-56 w-full">
@@ -149,7 +149,7 @@ function OverviewPage() {
 									/>
 									<XAxis
 										dataKey="date"
-										tickFormatter={(v: string) => v.slice(5)}
+										tickFormatter={(v: string) => v.slice(11, 16)}
 										tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
 										tickLine={false}
 										axisLine={false}

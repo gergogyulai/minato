@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
+import { asc } from "drizzle-orm";
 import { ORPCError } from "@orpc/server";
 import { auth } from "@project-minato/auth";
 import { getConfig } from "@project-minato/config";
@@ -168,6 +169,7 @@ export const scraperRouter = {
 	list: scraperListContract.handler(async () => {
 		const rows = await db.query.scrapers.findMany({
 			with: { statusReport: true },
+			orderBy: asc(scrapers.name),
 		});
 
 		return {
