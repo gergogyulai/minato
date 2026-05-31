@@ -22,7 +22,6 @@
 		"@project-minato/skit": "workspace:*"
 	},
 	"devDependencies": {
-		"@project-minato/config": "workspace:*",
 		"@types/bun": "latest"
 	},
 	"peerDependencies": {
