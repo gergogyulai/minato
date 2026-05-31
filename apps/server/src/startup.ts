@@ -5,7 +5,7 @@ import {
 	setupConfigSubscriber,
 	writeConfigKey,
 } from "@project-minato/config";
-import { db, runMigrations } from "@project-minato/db";
+import { apikey, db, runMigrations, sql } from "@project-minato/db";
 import {
 	applyGlobalSearchProfile,
 	syncMeilisearch,
@@ -18,6 +18,19 @@ export async function startup(): Promise<void> {
 	} catch (err) {
 		console.error("[startup] migrations failed — aborting:", err);
 		process.exit(1);
+	}
+
+	// Clean up scraper API keys that are no longer referenced by any scraper
+	// row — these accumulate when deletion fails across restarts. Runs at each
+	// startup; safe when there is nothing to clean.
+	try {
+		await db
+			.delete(apikey)
+			.where(
+				sql`${apikey.metadata}::jsonb->>'type' = 'scraper' AND ${apikey.id} NOT IN (SELECT api_key_id FROM scrapers)`,
+			);
+	} catch (err) {
+		console.warn("[startup] orphan API key cleanup failed:", err);
 	}
 
 	await initConfig(db);

@@ -25,10 +25,29 @@ export const apiKeysRouter = {
 			headers: context.honoContext.req.raw.headers,
 		});
 
-		return { apiKeys: result.apiKeys };
+		const apiKeys = result.apiKeys.filter((k) => {
+			const meta = k.metadata as { type?: string } | null;
+			return meta?.type !== "scraper";
+		});
+
+		return { apiKeys };
 	}),
 
 	delete: apiKeyDeleteContract.handler(async ({ input, context }) => {
+		const list = await auth.api.listApiKeys({
+			headers: context.honoContext.req.raw.headers,
+		});
+
+		const key = list.apiKeys.find((k) => k.id === input.keyId);
+		if (!key) throw new ORPCError("NOT_FOUND", { message: "API key not found" });
+
+		const meta = key.metadata as { type?: string } | null;
+		if (meta?.type === "scraper") {
+			throw new ORPCError("FORBIDDEN", {
+				message: "Scraper keys cannot be managed through the UI",
+			});
+		}
+
 		try {
 			await auth.api.deleteApiKey({
 				body: { keyId: input.keyId },

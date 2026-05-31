@@ -2,6 +2,7 @@ import { auth } from "@project-minato/auth";
 import { getConfig } from "@project-minato/config";
 import {
 	and,
+	apikey,
 	asc,
 	db,
 	eq,
@@ -177,10 +178,6 @@ export async function handleEnsureKey(c: Context): Promise<Response> {
 		return c.text("No admin user found — complete setup first", 503);
 	}
 
-	// Existing record → revoke the old key (best-effort) and issue a new one.
-	// The supervisor calls ensure-key once per startup; better-auth doesn't
-	// expose stored raw keys, so re-issuing is the only path back to a usable
-	// key when supervisor state is lost.
 	const [existing] = await db
 		.select({ apiKeyId: scrapers.apiKeyId })
 		.from(scrapers)
@@ -188,14 +185,9 @@ export async function handleEnsureKey(c: Context): Promise<Response> {
 		.limit(1);
 
 	if (existing) {
-		try {
-			await auth.api.deleteApiKey({
-				body: { keyId: existing.apiKeyId },
-				headers: new Headers(),
-			});
-		} catch {
-			// Key may already be gone — that's fine, proceed with re-issue.
-		}
+		// Delete the old key directly from the auth table — bypasses the HTTP
+		// auth layer which requires a user session and would fail silently here.
+		await db.delete(apikey).where(eq(apikey.id, existing.apiKeyId));
 
 		const created = await auth.api.createApiKey({
 			body: {
