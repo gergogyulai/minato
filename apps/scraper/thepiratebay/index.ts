@@ -1,6 +1,22 @@
+import { appendFileSync, mkdirSync } from "node:fs";
+import { join } from "node:path";
 import type { TorrentInput } from "@project-minato/skit";
 import { defineScheduledScraper } from "@project-minato/skit";
-import * as cheerio from "cheerio";
+
+const LOG_DIR = "/tmp/tpb-scraper";
+
+function makeLogger() {
+	mkdirSync(LOG_DIR, { recursive: true });
+	const file = join(LOG_DIR, `${new Date().toISOString().replace(/[:.]/g, "-")}.log`);
+	return {
+		log(msg: string) {
+			const line = `${new Date().toISOString()} ${msg}\n`;
+			process.stdout.write(line);
+			appendFileSync(file, line);
+		},
+		path: file,
+	};
+}
 
 const ALL_CATEGORIES = [
 	{ id: 100, name: "Audio" },
@@ -59,192 +75,278 @@ const ALL_CATEGORIES = [
 	{ id: 699, name: "Other (Other)" },
 ];
 
-type PirateBayConfig = {
-	baseUrl: string[];
-	scrapeTop100: boolean;
-	scrapeTop100_48h: boolean;
-	scrapeRecent: boolean;
-	maxRecentPages: number;
+const CATEGORY_MAP = new Map(ALL_CATEGORIES.map((c) => [c.id, c.name]));
+
+type ApibayTorrent = {
+	id: number | string;
+	info_hash: string;
+	name: string;
+	category: number | string;
+	seeders: number | string;
+	leechers: number | string;
+	size: number | string;
+	num_files: number | string;
+	username: string;
+	added: number | string;
+	status: string;
+	imdb: string | null;
 };
 
-function extractInfoHash(magnetUrl: string): string | null {
-	const match = magnetUrl.match(/urn:btih:([a-fA-F0-9]{40})/i);
-	return match?.[1]?.toLowerCase() ?? null;
+type ApibayFile = {
+	name: string[];
+	size: number[];
+};
+
+type PirateBayConfig = {
+	apiBaseUrl: string;
+	scrapeTop100: boolean;
+	scrapeTop100_48h: boolean;
+	scrapeCategories: boolean;
+	maxCategoryPages: number;
+	scrapeRecent: boolean;
+	maxRecentPages: number;
+	fetchFileDetails: boolean;
+};
+
+const TPB_TRACKERS = [
+	"udp%3A%2F%2Ftracker.openbittorrent.com%3A80",
+	"udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce",
+].join("&tr=");
+
+function buildMagnet(infoHash: string, name: string): string {
+	return `magnet:?xt=urn:btih:${infoHash}&dn=${encodeURIComponent(name)}&tr=${TPB_TRACKERS}`;
 }
 
-function parsePublishedAt(
-	dateText: string,
-	timeTitle: string,
-): string | undefined {
-	// dateText: "2026-05-29", timeTitle: "12:14:35 GMT+0200 (Central European Summer Time)"
-	const timePart = timeTitle.split(" (")[0]; // strip timezone label in parens
-	try {
-		return new Date(`${dateText} ${timePart}`).toISOString();
-	} catch {
-		return undefined;
-	}
+function categoryName(id: number | string): string | undefined {
+	return CATEGORY_MAP.get(Number(id));
 }
 
-function parseRows(html: string, baseUrl: string): TorrentInput[] {
-	const $ = cheerio.load(html);
-	const results: TorrentInput[] = [];
-	const base = baseUrl.replace(/\/$/, "");
-
-	$("ol#torrents li.list-entry").each((_i, el) => {
-		const magnetHref = $(el).find("a[href^='magnet:']").attr("href");
-		if (!magnetHref) return;
-
-		const infoHash = extractInfoHash(magnetHref);
-		if (!infoHash) return;
-
-		const title = $(el).find(".item-name.item-title a").text().trim();
-		if (!title) return;
-
-		const sizeBytes = $(el).find("input[name='size']").attr("value");
-		const size = sizeBytes ? Number(sizeBytes) : 0;
-
-		const seedersText = $(el).find(".item-seed").text().trim();
-		const leechersText = $(el).find(".item-leech").text().trim();
-		const seeders = seedersText ? Number.parseInt(seedersText, 10) : undefined;
-		const leechers = leechersText
-			? Number.parseInt(leechersText, 10)
-			: undefined;
-
-		const categoryLinks = $(el).find(".item-type a");
-		const category = categoryLinks.last().text().trim() || undefined;
-
-		const uploadedLabel = $(el).find(".item-uploaded label");
-		const dateText = uploadedLabel.text().trim();
-		const timeTitle = uploadedLabel.attr("title") ?? "";
-		const publishedAt = dateText
-			? parsePublishedAt(dateText, timeTitle)
-			: undefined;
-
-		const detailHref = $(el).find(".item-name.item-title a").attr("href");
-		const originUrl = detailHref ? `${base}${detailHref}` : undefined;
-
-		results.push({
-			infoHash,
-			title,
-			size,
-			seeders,
-			leechers,
-			magnet: magnetHref,
-			category,
-			publishedAt,
-			source: {
-				name: "The Pirate Bay",
-				url: base,
-				originUrl,
-			},
-		});
-	});
-
-	return results;
-}
-
-async function fetchPage(
-	baseUrls: string[],
-	query: string,
+async function fetchJson<T>(
+	url: string,
 	signal: AbortSignal,
-): Promise<string> {
-	const path = `/search.php?q=${encodeURIComponent(query)}`;
-	let lastError: unknown;
-	for (const base of baseUrls) {
-		if (signal.aborted) throw new DOMException("Aborted", "AbortError");
-		const url = base.replace(/\/$/, "") + path;
-		try {
-			const res = await fetch(url, { signal });
-			if (res.ok) return res.text();
-			lastError = new Error(`HTTP ${res.status} from ${url}`);
-		} catch (err) {
-			lastError = err;
-		}
+	log: (msg: string) => void,
+): Promise<T> {
+	log(`FETCH ${url}`);
+	const res = await fetch(url, { signal });
+	if (!res.ok) {
+		log(`ERROR HTTP ${res.status} from ${url}`);
+		throw new Error(`HTTP ${res.status} from ${url}`);
 	}
-	throw lastError ?? new Error("All base URLs failed");
+	const data = (await res.json()) as T;
+	const count = Array.isArray(data) ? data.length : "?";
+	log(`OK    ${url} → ${count} items`);
+	return data;
+}
+
+async function fetchFileList(
+	id: number | string,
+	apiBaseUrl: string,
+	signal: AbortSignal,
+	log: (msg: string) => void,
+): Promise<Array<{ filename: string; size: number }>> {
+	try {
+		const url = `${apiBaseUrl}/f.php?id=${id}`;
+		const data = await fetchJson<ApibayFile[]>(url, signal, log);
+		const files: Array<{ filename: string; size: number }> = [];
+		for (const f of data) {
+			const filename = f.name?.[0];
+			const size = f.size?.[0];
+			if (filename != null && size != null) files.push({ filename, size });
+		}
+		return files;
+	} catch {
+		return [];
+	}
+}
+
+function transformTorrent(t: ApibayTorrent, apiBaseUrl: string): TorrentInput {
+	const infoHash = t.info_hash.toLowerCase();
+	return {
+		infoHash,
+		title: t.name,
+		size: Number(t.size),
+		seeders: Number(t.seeders),
+		leechers: Number(t.leechers),
+		magnet: buildMagnet(infoHash, t.name),
+		category: categoryName(t.category),
+		publishedAt: new Date(Number(t.added) * 1000).toISOString(),
+		source: {
+			name: "The Pirate Bay",
+			url: apiBaseUrl,
+			originUrl: `https://www.thepiratebay.org/torrent/${t.id}`,
+		},
+	};
 }
 
 export default defineScheduledScraper<PirateBayConfig>({
 	recommendedSchedule: "0 3 * * *",
 	config: {
-		baseUrl: ["https://thepiratebay.org"],
+		apiBaseUrl: "https://apibay.org",
 		scrapeTop100: true,
-		scrapeTop100_48h: false,
+		scrapeTop100_48h: true,
+		scrapeCategories: true,
+		maxCategoryPages: 200,
 		scrapeRecent: true,
-		maxRecentPages: 10,
+		maxRecentPages: 160,
+		fetchFileDetails: false,
 	},
 	async run({ config, ingest, status, signal }) {
+		const { apiBaseUrl } = config;
+		const { log, path: logPath } = makeLogger();
 		const seenHashes = new Set<string>();
 
 		const total =
 			(config.scrapeTop100 ? ALL_CATEGORIES.length : 0) +
 			(config.scrapeTop100_48h ? ALL_CATEGORIES.length : 0) +
+			(config.scrapeCategories ? ALL_CATEGORIES.length : 0) +
 			(config.scrapeRecent ? config.maxRecentPages : 0);
 
 		let done = 0;
+		let totalNew = 0;
+		let totalDuplicate = 0;
+		let totalErrors = 0;
 
-		function addRows(rows: TorrentInput[]) {
-			for (const row of rows) {
-				if (!seenHashes.has(row.infoHash)) {
-					seenHashes.add(row.infoHash);
-					ingest.add(row);
+		async function addTorrents(torrents: ApibayTorrent[], phase: string): Promise<number> {
+			let newCount = 0;
+			let dupCount = 0;
+			let sentinelCount = 0;
+			for (const t of torrents) {
+				if (signal.aborted) break;
+				const infoHash = t.info_hash.toLowerCase();
+				if (/^0+$/.test(infoHash)) {
+					sentinelCount++;
+					log(`NO_RESULTS [${phase}] sentinel response skipped`);
+					continue;
 				}
+				if (seenHashes.has(infoHash)) {
+					dupCount++;
+					continue;
+				}
+				seenHashes.add(infoHash);
+				const torrent = transformTorrent(t, apiBaseUrl);
+				if (config.fetchFileDetails) {
+					torrent.files = await fetchFileList(t.id, apiBaseUrl, signal, log);
+				}
+				ingest.add(torrent);
+				newCount++;
 			}
+			totalNew += newCount;
+			totalDuplicate += dupCount;
+			const real = torrents.length - sentinelCount;
+			log(`BATCH [${phase}] fetched=${torrents.length} real=${real} new=${newCount} dup=${dupCount} running_total=${totalNew}`);
+			return real;
 		}
 
+		log(`START config=${JSON.stringify(config)}`);
+		log(`LOG   writing to ${logPath}`);
+
 		if (config.scrapeTop100) {
+			log(`PHASE top100 categories=${ALL_CATEGORIES.length}`);
 			for (const cat of ALL_CATEGORIES) {
-				if (signal.aborted) break;
+				if (signal.aborted) { log("ABORT signal received in top100"); break; }
 				done++;
 				status.update({
 					phase: "running",
 					message: `top100: ${cat.name}`,
 					progress: { current: done, total },
 				});
-				const html = await fetchPage(
-					config.baseUrl,
-					`top100:${cat.id}`,
-					signal,
-				);
-				addRows(parseRows(html, config.baseUrl[0] ?? ""));
+				const url = `${apiBaseUrl}/precompiled/data_top100_${cat.id}.json`;
+				try {
+					const torrents = await fetchJson<ApibayTorrent[]>(url, signal, log);
+					await addTorrents(torrents, `top100:${cat.id}`);
+				} catch (err) {
+					totalErrors++;
+					log(`ERROR top100 cat=${cat.id} err=${err}`);
+				}
 			}
+			log(`PHASE_DONE top100`);
 		}
 
 		if (config.scrapeTop100_48h) {
+			log(`PHASE top100_48h categories=${ALL_CATEGORIES.length}`);
 			for (const cat of ALL_CATEGORIES) {
-				if (signal.aborted) break;
+				if (signal.aborted) { log("ABORT signal received in top100_48h"); break; }
 				done++;
 				status.update({
 					phase: "running",
 					message: `top100 48h: ${cat.name}`,
 					progress: { current: done, total },
 				});
-				const html = await fetchPage(
-					config.baseUrl,
-					`top100:48h_${cat.id}`,
-					signal,
-				);
-				addRows(parseRows(html, config.baseUrl[0] ?? ""));
+				const url = `${apiBaseUrl}/precompiled/data_top100_48h_${cat.id}.json`;
+				try {
+					const torrents = await fetchJson<ApibayTorrent[]>(url, signal, log);
+					await addTorrents(torrents, `top100_48h:${cat.id}`);
+				} catch (err) {
+					totalErrors++;
+					log(`ERROR top100_48h cat=${cat.id} err=${err}`);
+				}
 			}
+			log(`PHASE_DONE top100_48h`);
+		}
+
+		if (config.scrapeCategories) {
+			log(`PHASE categories categories=${ALL_CATEGORIES.length} maxPages=${config.maxCategoryPages}`);
+			for (const cat of ALL_CATEGORIES) {
+				if (signal.aborted) break;
+				done++;
+				let catNew = 0;
+				for (let page = 0; page < config.maxCategoryPages; page++) {
+					if (signal.aborted) break;
+					status.update({
+						phase: "running",
+						message: `categories: ${cat.name} p${page + 1}`,
+						progress: { current: done, total },
+					});
+					const url = `${apiBaseUrl}/q.php?q=${encodeURIComponent(`category:${cat.id}:${page}`)}`;
+					try {
+						const torrents = await fetchJson<ApibayTorrent[]>(url, signal, log);
+						const real = await addTorrents(torrents, `cat:${cat.id}:${page}`);
+						catNew += real;
+						if (real === 0) {
+							log(`CAT_DONE cat=${cat.id} (${cat.name}) pages=${page} new=${catNew}`);
+							break;
+						}
+					} catch (err) {
+						totalErrors++;
+						log(`ERROR cat=${cat.id} page=${page} err=${err}`);
+						break;
+					}
+				}
+				log(`CAT_SUMMARY cat=${cat.id} (${cat.name}) new=${catNew}`);
+			}
+			log(`PHASE_DONE categories`);
 		}
 
 		if (config.scrapeRecent) {
+			log(`PHASE recent max_pages=${config.maxRecentPages}`);
 			for (let page = 0; page < config.maxRecentPages; page++) {
-				if (signal.aborted) break;
+				if (signal.aborted) { log(`ABORT signal received in recent at page=${page}`); break; }
 				done++;
 				status.update({
 					phase: "running",
 					message: `recent: page ${page + 1}`,
 					progress: { current: done, total },
 				});
-				const query = page === 0 ? "top100:recent" : `top100:recent:${page}`;
-				const html = await fetchPage(config.baseUrl, query, signal);
-				const rows = parseRows(html, config.baseUrl[0] ?? "");
-				addRows(rows);
-				if (rows.length < 30) break; // last page
+				const url =
+					page === 0
+						? `${apiBaseUrl}/precompiled/data_top100_recent.json`
+						: `${apiBaseUrl}/precompiled/data_top100_recent_${page}.json`;
+				try {
+					const torrents = await fetchJson<ApibayTorrent[]>(url, signal, log);
+					const real = await addTorrents(torrents, `recent:${page}`);
+					if (real === 0) {
+						log(`EARLY_STOP recent page=${page} no real items`);
+						break;
+					}
+				} catch (err) {
+					totalErrors++;
+					log(`ERROR recent page=${page} err=${err}`);
+				}
 			}
+			log(`PHASE_DONE recent`);
 		}
 
+		log(`DONE new=${totalNew} dup=${totalDuplicate} errors=${totalErrors} unique_total=${seenHashes.size}`);
 		status.update({ phase: "idle", message: "Scrape complete" });
 	},
 });

@@ -19,11 +19,10 @@
 		]
 	},
 	"dependencies": {
-		"cheerio": "^1.2.0"
+		"@project-minato/skit": "workspace:*"
 	},
 	"devDependencies": {
 		"@project-minato/config": "workspace:*",
-		"@project-minato/skit": "workspace:*",
 		"@types/bun": "latest"
 	},
 	"peerDependencies": {
