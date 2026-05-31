@@ -5,8 +5,8 @@ export interface MovieMetadata {
 	title: string;
 	overview: string;
 	tagline?: string | null;
-	releaseDate: string;
-	releaseYear: number;
+	releaseDate: string | null;
+	releaseYear: number | null;
 	status?: string;
 	runtime?: number | null;
 	genres: string[];
@@ -22,8 +22,8 @@ export interface TVMetadata {
 	title: string;
 	overview: string;
 	tagline?: string | null;
-	releaseDate: string;
-	releaseYear: number;
+	releaseDate: string | null;
+	releaseYear: number | null;
 	status?: string;
 	runtime?: number | null;
 	genres: string[];
@@ -43,8 +43,8 @@ export interface AnimeMetadata {
 	title: string;
 	overview: string;
 	tagline?: string | null;
-	releaseDate: string;
-	releaseYear: number;
+	releaseDate: string | null;
+	releaseYear: number | null;
 	status?: string;
 	runtime?: number | null;
 	genres: string[];
@@ -66,8 +66,8 @@ export interface MusicMetadata {
 	mediaType: "music";
 	title: string;
 	overview?: string | null;
-	releaseDate: string;
-	releaseYear: number;
+	releaseDate: string | null;
+	releaseYear: number | null;
 	genres: string[];
 	status?: string;
 	contentRating?: string | null;

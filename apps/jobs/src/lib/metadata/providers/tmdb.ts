@@ -73,7 +73,10 @@ export class TMDBProvider implements MetadataProvider {
 		if (isMovie) {
 			const details = await this.client.movies.details(searchItem.id);
 			const externalIds = await this.client.movies.externalIds(searchItem.id);
-			const releaseDate = new Date(details.release_date);
+			const releaseDate = details.release_date || null;
+			const releaseYear = releaseDate
+				? new Date(releaseDate).getFullYear()
+				: null;
 
 			return {
 				mediaType: "movie",
@@ -82,8 +85,8 @@ export class TMDBProvider implements MetadataProvider {
 				title: details.title,
 				overview: details.overview,
 				tagline: details.tagline ?? null,
-				releaseDate: details.release_date,
-				releaseYear: releaseDate.getFullYear(),
+				releaseDate,
+				releaseYear,
 				runtime: details.runtime ?? null,
 				status: "Released",
 				genres: details.genres.map((g) => g.name),
@@ -94,7 +97,11 @@ export class TMDBProvider implements MetadataProvider {
 
 		const details = await this.client.tvShows.details(searchItem.id);
 		const externalIds = await this.client.tvShows.externalIds(searchItem.id);
-		const firstAirDate = new Date(details.first_air_date);
+		const firstAirDate = details.first_air_date || null;
+
+		const firstAirYear = firstAirDate
+			? new Date(firstAirDate).getFullYear()
+			: null;
 
 		const medianRuntime = details.episode_run_time.length
 			? details.episode_run_time.sort()[
@@ -110,8 +117,8 @@ export class TMDBProvider implements MetadataProvider {
 			title: details.name,
 			overview: details.overview,
 			tagline: details.tagline ?? null,
-			releaseDate: details.first_air_date,
-			releaseYear: firstAirDate.getFullYear(),
+			releaseDate: firstAirDate,
+			releaseYear: firstAirYear,
 			runtime: medianRuntime ?? null,
 			status: details.status,
 			genres: details.genres.map((g) => g.name),

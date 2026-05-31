@@ -31,7 +31,7 @@ interface AniListDetailResponse {
 		};
 		description: string | null;
 		startDate: {
-			year: number;
+			year: number | null;
 			month: number | null;
 			day: number | null;
 		};
@@ -139,7 +139,10 @@ export class AniListProvider implements MetadataProvider {
 		);
 
 		const media = detailData.Media;
-		const releaseDate = `${media.startDate.year}-${String(media.startDate.month || 1).padStart(2, "0")}-${String(media.startDate.day || 1).padStart(2, "0")}`;
+		const releaseYear = media.startDate.year ?? null;
+		const releaseDate = releaseYear
+			? `${releaseYear}-${String(media.startDate.month || 1).padStart(2, "0")}-${String(media.startDate.day || 1).padStart(2, "0")}`
+			: null;
 
 		return {
 			mediaType: "anime",
@@ -149,7 +152,7 @@ export class AniListProvider implements MetadataProvider {
 			overview: media.description?.replace(/<[^>]*>?/gm, "") ?? "",
 			tagline: null,
 			releaseDate,
-			releaseYear: media.startDate.year,
+			releaseYear,
 			runtime: media.duration ?? null,
 			status: media.status,
 			genres: media.genres,
