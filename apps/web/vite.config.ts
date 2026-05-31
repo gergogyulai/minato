@@ -29,5 +29,8 @@ export default defineConfig({
 	},
 	server: {
 		port: 3001,
+		proxy: {
+			"/assets": "http://localhost:3000",
+		},
 	},
 });

@@ -61,12 +61,13 @@ function Panel({
 }
 
 function OverviewPage() {
-	const stats = useQuery(orpc.stats.overview.queryOptions());
-	const activity = useQuery(
-		orpc.stats.ingestActivity.queryOptions({ input: { days: 30 } }),
-	);
-	const queues = useQuery(orpc.queues.status.queryOptions());
-	const scrapers = useQuery(orpc.scraper.list.queryOptions());
+	const stats = useQuery({ ...orpc.stats.overview.queryOptions(), refetchInterval: 2_000 });
+	const activity = useQuery({
+		...orpc.stats.ingestActivity.queryOptions({ input: { days: 30 } }),
+		refetchInterval: 30_000,
+	});
+	const queues = useQuery({ ...orpc.queues.status.queryOptions(), refetchInterval: 2_000 });
+	const scrapers = useQuery({ ...orpc.scraper.list.queryOptions(), refetchInterval: 2_000 });
 
 	const s = stats.data;
 	const enrichedPct =

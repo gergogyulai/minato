@@ -53,8 +53,7 @@ const EXPIRY_OPTIONS = [
 ];
 
 function keyType(k: ApiKey): string {
-	const meta = k.metadata as { type?: string; scraperId?: string } | null;
-	if (meta?.scraperId) return "scraper";
+	const meta = k.metadata as { type?: string } | null;
 	return meta?.type ?? "custom";
 }
 
@@ -207,7 +206,7 @@ function CreateDialog({
 	onCreated: (key: string) => void;
 }) {
 	const [name, setName] = useState("");
-	const [type, setType] = useState<"torznab" | "custom">("torznab");
+	const [type, setType] = useState<"torznab" | "custom" | "sidecar">("torznab");
 	const [expiry, setExpiry] = useState("never");
 	const [saving, setSaving] = useState(false);
 
@@ -255,7 +254,7 @@ function CreateDialog({
 							<Label>Type</Label>
 							<Select
 								value={type}
-								onValueChange={(v) => setType(v as "torznab" | "custom")}
+								onValueChange={(v) => setType(v as typeof type)}
 							>
 								<SelectTrigger>
 									<SelectValue />
@@ -263,6 +262,7 @@ function CreateDialog({
 								<SelectContent>
 									<SelectItem value="torznab">Torznab</SelectItem>
 									<SelectItem value="custom">Custom</SelectItem>
+									<SelectItem value="sidecar">Sidecar scraper</SelectItem>
 								</SelectContent>
 							</Select>
 						</div>

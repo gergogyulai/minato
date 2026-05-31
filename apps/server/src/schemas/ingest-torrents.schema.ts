@@ -1,40 +1,11 @@
 import { z } from "zod";
 
-const FileInfoSchema = z
-	.union([
-		z.object({
-			name: z.string(),
-			length: z.number().int(),
-		}),
-
-		z.object({
-			name: z.string(),
-			files: z.array(
-				z.object({
-					path: z.array(z.string()),
-					length: z.number().int(),
-				}),
-			),
-		}),
-	])
-	.transform((data) => {
-		// If it's a multi-file torrent
-		if ("files" in data) {
-			return data.files.map((f) => ({
-				// Join the path array (e.g., ["folder", "file.txt"] -> "folder/file.txt")
-				filename: f.path.join("/"),
-				size: f.length,
-			}));
-		}
-
-		// If it's a single file torrent
-		return [
-			{
-				filename: data.name,
-				size: data.length,
-			},
-		];
-	});
+const FileInfoSchema = z.array(
+	z.object({
+		filename: z.string(),
+		size: z.number().int().nonnegative(),
+	}),
+);
 
 // Accept both number (the SDK's ergonomic shape — JS numbers are safe up to
 // 2^53, well past any torrent's bytes) and string (for callers that need
@@ -72,12 +43,10 @@ export const IngestTorrentsSchema = z.object({
 	files: FileInfoSchema.optional(),
 	source: z.object({
 		name: z.string(),
-		origin: z.string().optional(),
-		// `originUrl` and `url` are display fields surfaced in the dashboard —
-		// we don't dial them, so strict URL validation buys nothing and rejects
-		// legitimate scraper output (e.g. relative tracker paths).
-		originUrl: z.string().optional(),
-		url: z.string().optional(),
+		// These are display fields only — scrapers may send null or omit them.
+		origin: z.string().nullish(),
+		originUrl: z.string().nullish(),
+		url: z.string().nullish(),
 	}),
 });
 
