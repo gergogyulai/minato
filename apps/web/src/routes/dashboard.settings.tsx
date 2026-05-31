@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -82,6 +82,29 @@ function SettingsPage() {
 	const [form, setForm] = useState<FormState | null>(null);
 	const [initial, setInitial] = useState<FormState | null>(null);
 	const [saving, setSaving] = useState(false);
+	const [checkResult, setCheckResult] = useState<{
+		success: boolean;
+		message: string;
+	} | null>(null);
+
+	const checkMutation = useMutation({
+		mutationFn: async (testUrl: string) => {
+			return await client.admin.checkFlareSolverr({ url: testUrl });
+		},
+		onSuccess: (data) => {
+			setCheckResult(data);
+			if (data.success) {
+				toast.success("FlareSolverr connected");
+			} else {
+				toast.warning(data.message);
+			}
+		},
+		onError: (error) => {
+			const message = error.message || "Failed to check FlareSolverr";
+			setCheckResult({ success: false, message });
+			toast.error(message);
+		},
+	});
 
 	useEffect(() => {
 		if (!config.data) return;
@@ -244,19 +267,51 @@ function SettingsPage() {
 						title="Scraping"
 						description="Shared settings handed to scrapers at runtime."
 					>
-						<Field
-							label="FlareSolverr URL"
-							hint="Proxy used to bypass Cloudflare on protected sites."
-							htmlFor="flaresolverr"
-						>
-							<Input
-								id="flaresolverr"
-								value={form.flareSolverrUrl}
-								onChange={(e) => set("flareSolverrUrl", e.target.value)}
-								placeholder="http://localhost:8191"
-								className="font-mono text-sm"
-							/>
-						</Field>
+						<div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
+							<div className="space-y-0.5">
+								<Label htmlFor="flaresolverr" className="text-foreground text-sm">
+									FlareSolverr URL
+								</Label>
+								<p className="text-muted-foreground text-xs">
+									Proxy used to bypass Cloudflare on protected sites.
+								</p>
+							</div>
+							<div className="flex min-w-0 flex-col gap-2 sm:w-80">
+								<div className="flex gap-2">
+									<Input
+										id="flaresolverr"
+										value={form.flareSolverrUrl}
+										onChange={(e) => set("flareSolverrUrl", e.target.value)}
+										placeholder="http://localhost:8191"
+										disabled={checkMutation.isPending}
+										className="flex-1 font-mono text-sm"
+									/>
+									<Button
+										variant="outline"
+										onClick={() => checkMutation.mutate(form.flareSolverrUrl)}
+										disabled={checkMutation.isPending}
+										className="h-10 shrink-0"
+									>
+										{checkMutation.isPending ? (
+											<Loader2 className="size-4 animate-spin" />
+										) : (
+											"Test"
+										)}
+									</Button>
+								</div>
+								{checkResult && (
+									<div
+										className={`rounded-md border px-3 py-2.5 text-xs ${
+											checkResult.success
+												? "border-emerald-500/20 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400"
+												: "border-amber-500/20 bg-amber-500/5 text-amber-600 dark:text-amber-400"
+										}`}
+									>
+										{checkResult.message}
+									</div>
+								)}
+							</div>
+						</div>
 						<Field
 							label="Enabled scrapers"
 							hint="Comma-separated scraper IDs enabled by default."

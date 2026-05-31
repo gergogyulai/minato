@@ -1,37 +1,46 @@
 import { ORPCError } from "@orpc/server";
+import { FlareSolverr } from "@project-minato/api-clients";
 import {
-	configSchema,
 	getConfig,
 	getVersion,
+	validateConfigKey,
 	writeConfigKey,
 } from "@project-minato/config";
 import { db } from "@project-minato/db";
 import { z } from "zod";
 import { adminProcedure } from "@/api";
 
-const DOT_PATH_RE = /^[a-z][a-zA-Z0-9]*(\.[a-z][a-zA-Z0-9]*)+$/;
-
-function getSubSchema(dotPath: string): z.ZodTypeAny | null {
-	const parts = dotPath.split(".");
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	let node: any = configSchema;
-	for (const part of parts) {
-		if (
-			typeof node !== "object" ||
-			node === null ||
-			typeof node.shape !== "object" ||
-			node.shape === null
-		) {
-			return null;
-		}
-		// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-		node = (node.shape as Record<string, unknown>)[part];
-		if (!node) return null;
-	}
-	return node as z.ZodTypeAny;
-}
-
 export const adminRouter = {
+	checkFlareSolverr: adminProcedure
+		.input(z.object({ url: z.string().url("Invalid URL") }))
+		.output(
+			z.object({
+				success: z.boolean(),
+				message: z.string(),
+				version: z.string().optional(),
+			}),
+		)
+		.handler(async ({ input }) => {
+			try {
+				const client = new FlareSolverr(input.url);
+				const response = await client.listSessions();
+				return {
+					success: true,
+					message: "FlareSolverr is working correctly",
+					// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+					version: (response as any).version as string | undefined,
+				};
+			} catch (error) {
+				return {
+					success: false,
+					message:
+						error instanceof Error
+							? error.message
+							: "Failed to connect to FlareSolverr",
+				};
+			}
+		}),
+
 	config: {
 		update: adminProcedure
 			.input(
@@ -43,27 +52,12 @@ export const adminRouter = {
 			.handler(async ({ input }) => {
 				const { key, value } = input;
 
-				if (!DOT_PATH_RE.test(key)) {
-					throw new ORPCError("BAD_REQUEST", {
-						message: `"${key}" is not a valid dot-path (e.g. "workers.ingest.concurrency").`,
-					});
+				const result = validateConfigKey(key, value);
+				if (!result.ok) {
+					throw new ORPCError("BAD_REQUEST", { message: result.error });
 				}
 
-				const subSchema = getSubSchema(key);
-				if (!subSchema) {
-					throw new ORPCError("BAD_REQUEST", {
-						message: `Unknown config key: "${key}".`,
-					});
-				}
-
-				const parsed = subSchema.safeParse(value);
-				if (!parsed.success) {
-					throw new ORPCError("BAD_REQUEST", {
-						message: `Invalid value for key "${key}": ${parsed.error.message}`,
-					});
-				}
-
-				await writeConfigKey(db, key, parsed.data);
+				await writeConfigKey(db, key, result.value);
 				return { success: true, key, version: getVersion() };
 			}),
 
