@@ -7,6 +7,14 @@ type DB = typeof db;
 let cfg: AppConfig | undefined;
 let ver: number | undefined;
 
+type ConfigChangeListener = (config: AppConfig) => void;
+const changeListeners = new Set<ConfigChangeListener>();
+
+export function onConfigChange(listener: ConfigChangeListener): () => void {
+	changeListeners.add(listener);
+	return () => changeListeners.delete(listener);
+}
+
 export async function initConfig(db: DB): Promise<void> {
 	const { config, version } = await loadConfig(db);
 	cfg = Object.freeze(config);
@@ -36,6 +44,13 @@ export async function reloadConfig(db: DB): Promise<void> {
 		cfg = Object.freeze(config);
 		ver = version;
 		console.log(`[config] reloaded — version ${version}`);
+		for (const listener of changeListeners) {
+			try {
+				listener(cfg);
+			} catch (err) {
+				console.error("[config] change listener threw:", err);
+			}
+		}
 	} catch (err) {
 		console.error("[config] reload failed — keeping existing config", err);
 	}

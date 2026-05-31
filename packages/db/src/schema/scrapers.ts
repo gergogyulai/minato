@@ -66,6 +66,7 @@ export const scrapers = pgTable("scrapers", {
 	// Effective = schedule ?? recommendedSchedule ?? null (manual only).
 	recommendedSchedule: text("recommended_schedule"),
 	schedule: text("schedule"),
+	nextRunAt: timestamp("next_run_at"),
 
 	// User config — defaults from manifest, overrides via admin
 	config: jsonb("config")

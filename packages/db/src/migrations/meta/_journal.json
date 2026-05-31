@@ -1,41 +1,48 @@
 {
-	"version": "7",
-	"dialect": "postgresql",
-	"entries": [
-		{
-			"idx": 0,
-			"version": "7",
-			"when": 1773053255192,
-			"tag": "0000_previous_shockwave",
-			"breakpoints": true
-		},
-		{
-			"idx": 1,
-			"version": "7",
-			"when": 1779909804850,
-			"tag": "0001_sad_obadiah_stane",
-			"breakpoints": true
-		},
-		{
-			"idx": 2,
-			"version": "7",
-			"when": 1779986968988,
-			"tag": "0002_lame_scream",
-			"breakpoints": true
-		},
-		{
-			"idx": 3,
-			"version": "7",
-			"when": 1780090389060,
-			"tag": "0003_abnormal_supernaut",
-			"breakpoints": true
-		},
-		{
-			"idx": 4,
-			"version": "7",
-			"when": 1780091498140,
-			"tag": "0004_left_franklin_richards",
-			"breakpoints": true
-		}
-	]
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1773053255192,
+      "tag": "0000_previous_shockwave",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1779909804850,
+      "tag": "0001_sad_obadiah_stane",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779986968988,
+      "tag": "0002_lame_scream",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1780090389060,
+      "tag": "0003_abnormal_supernaut",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1780091498140,
+      "tag": "0004_left_franklin_richards",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1780247928904,
+      "tag": "0005_stiff_mordo",
+      "breakpoints": true
+    }
+  ]
 }

@@ -9,7 +9,9 @@ export type {
 	SetupStep,
 } from "./schema";
 export { configSchema, setupProgressSchema, setupStepSchema } from "./schema";
-export { getConfig, getVersion, initConfig, reloadConfig } from "./store";
+export { getConfig, getVersion, initConfig, onConfigChange, reloadConfig } from "./store";
 export { deepMerge, setDeep } from "./utils";
+export type { ConfigKeyValidation } from "./validate";
+export { validateConfigKey } from "./validate";
 export type { WriteOptions } from "./write";
 export { writeConfigKey } from "./write";

@@ -4,7 +4,7 @@
 // state writer, the timer-owning scheduler, the command-ack poller, and
 // the orchestration that ties it all together.
 
-import { getConfig } from "@project-minato/config";
+import { getConfig, onConfigChange } from "@project-minato/config";
 import {
 	and,
 	db,
@@ -64,6 +64,7 @@ let watcher: FSWatcher | null = null;
 let ackTimer: ReturnType<typeof setInterval> | null = null;
 let controlWorker: ReturnType<typeof startControlWorker> | null = null;
 let stopping = false;
+let onboardingPromise: Promise<void> | null = null;
 
 // Single state writer — every transition flows through here so the DB and
 // the in-memory record never diverge. No other function in this module
@@ -198,6 +199,22 @@ async function ensureScraperKey(
 // Public API
 // ---------------------------------------------------------------------------
 
+async function runOnboarding(
+	internalDir: string,
+	communityDir: string,
+): Promise<void> {
+	logger.info("Starting scraper onboarding");
+	for (const d of discoverAll(internalDir, communityDir)) {
+		try {
+			await onboard(d.dir, d.type, d.manifest, d.source);
+		} catch (err) {
+			logger.error(
+				`Failed to onboard ${d.manifest.id}: ${(err as Error).message}`,
+			);
+		}
+	}
+}
+
 export async function start(
 	internalDir: string,
 	communityDir: string,
@@ -209,15 +226,14 @@ export async function start(
 		.set({ state: "stopped", pid: null, updatedAt: new Date() })
 		.where(eq(scrapers.state, "running"));
 
-	for (const d of discoverAll(internalDir, communityDir)) {
-		try {
-			await onboard(d.dir, d.type, d.manifest, d.source);
-		} catch (err) {
-			logger.error(
-				`Failed to onboard ${d.manifest.id}: ${(err as Error).message}`,
-			);
+	// Register a one-shot config listener so the supervisor self-starts once
+	// setup completes — without requiring the bootstrap to know about this.
+	const unsubscribe = onConfigChange((cfg) => {
+		if (!onboardingPromise && cfg.setup.setupCompleted) {
+			unsubscribe();
+			onboardingPromise = runOnboarding(internalDir, communityDir);
 		}
-	}
+	});
 
 	watcher = watchCommunityDir(communityDir, {
 		onAdded: (dir) => void handleHotAdd(dir),
@@ -233,6 +249,14 @@ export async function start(
 
 	controlWorker = startControlWorker();
 	logger.info("Control worker started");
+
+	if (getConfig().setup.setupCompleted) {
+		unsubscribe();
+		onboardingPromise = runOnboarding(internalDir, communityDir);
+		await onboardingPromise;
+	} else {
+		logger.info("Setup not yet complete — supervisor waiting for setupCompleted");
+	}
 }
 
 export async function stopAll(): Promise<void> {
@@ -293,13 +317,54 @@ async function onboard(
 	await setState(manifest.id, "ready", { reason: "onboarded" });
 
 	const [dbRow] = await db
-		.select({ enabled: scrapers.enabled })
+		.select({
+			enabled: scrapers.enabled,
+			lifecycle: scrapers.lifecycle,
+			schedule: scrapers.schedule,
+			recommendedSchedule: scrapers.recommendedSchedule,
+			nextRunAt: scrapers.nextRunAt,
+		})
 		.from(scrapers)
 		.where(eq(scrapers.id, manifest.id))
 		.limit(1);
 
 	if (!dbRow?.enabled) {
 		await setState(manifest.id, "stopped", { reason: "disabled" });
+		return;
+	}
+
+	// Restore a persisted schedule timer instead of spawning immediately.
+	if (dbRow.lifecycle === "scheduled" && dbRow.nextRunAt) {
+		const now = new Date();
+		const cron = dbRow.schedule ?? dbRow.recommendedSchedule ?? null;
+		let fireAt: Date;
+
+		if (dbRow.nextRunAt > now) {
+			fireAt = dbRow.nextRunAt;
+		} else if (cron) {
+			// Missed the scheduled window — advance to next occurrence from now.
+			try {
+				fireAt = CronExpressionParser.parse(cron, { tz: "UTC" }).next().toDate();
+			} catch {
+				await setState(manifest.id, "error", {
+					reason: "invalid cron on restore",
+					lastError: "cron parse error",
+				});
+				return;
+			}
+		} else {
+			// No cron, missed run — spawn immediately.
+			await spawnManaged(record);
+			return;
+		}
+
+		await setState(manifest.id, "scheduled", {
+			reason: `next run @ ${fireAt.toISOString()} (restored)`,
+		});
+		scheduleAt(manifest.id, fireAt, () => {
+			const current = managed.get(manifest.id);
+			if (current && !stopping) void spawnManaged(current);
+		});
 		return;
 	}
 
@@ -343,6 +408,11 @@ async function handleHotRemove(dir: string): Promise<void> {
 export async function spawnManaged(record: ManagedScraper): Promise<void> {
 	if (record.proc) return;
 	if (stopping) return;
+
+	await db
+		.update(scrapers)
+		.set({ nextRunAt: null, updatedAt: new Date() })
+		.where(eq(scrapers.id, record.id));
 
 	await setState(record.id, "starting", { reason: "spawn requested" });
 
@@ -421,6 +491,25 @@ async function onChildExit(
 			.update(scraperCommands)
 			.set({ status: "acked", ackedAt: new Date() })
 			.where(eq(scraperCommands.id, stopCmd.id));
+
+		// Persist nextRunAt so a scheduled scraper resumes its schedule on restart.
+		if (dbRow?.lifecycle === "scheduled") {
+			const cron = dbRow.schedule ?? dbRow.recommendedSchedule ?? null;
+			if (cron) {
+				try {
+					const next = CronExpressionParser.parse(cron, { tz: "UTC" })
+						.next()
+						.toDate();
+					await db
+						.update(scrapers)
+						.set({ nextRunAt: next, updatedAt: new Date() })
+						.where(eq(scrapers.id, record.id));
+				} catch {
+					// invalid cron — leave nextRunAt as-is
+				}
+			}
+		}
+
 		await setState(record.id, "stopped", { reason: "stop command", pid: null });
 		return;
 	}
@@ -440,6 +529,10 @@ async function onChildExit(
 				const next = CronExpressionParser.parse(cron, { tz: "UTC" })
 					.next()
 					.toDate();
+				await db
+					.update(scrapers)
+					.set({ nextRunAt: next, updatedAt: new Date() })
+					.where(eq(scrapers.id, record.id));
 				await setState(record.id, "scheduled", {
 					reason: `next run @ ${next.toISOString()}`,
 					pid: null,
