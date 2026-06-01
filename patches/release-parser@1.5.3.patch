@@ -1,3 +1,6 @@
+diff --git a/Users/gergo/Developer/project-minato/node_modules/release-parser/.bun-tag-513593bc7811804 b/.bun-tag-513593bc7811804
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
 diff --git a/ReleaseParser.js b/ReleaseParser.js
 index b087ab0ed1592595fc7611b0447a3970a1ec1df7..a0e56f1e258d3cfed3e30eb2ec36c3b9d4138269 100644
 --- a/ReleaseParser.js
@@ -188,7 +191,7 @@ index b087ab0ed1592595fc7611b0447a3970a1ec1df7..a0e56f1e258d3cfed3e30eb2ec36c3b9
  		{
  			// Change source DVD/Bluray to format DVDR if no res and format given
 diff --git a/ReleasePatterns.js b/ReleasePatterns.js
-index 6301b495c980a5d92fd7b4f4ab708e05698fe98b..c1fb56a6a4e67d32da42249f34d1e2eb893f67b0 100644
+index 6301b495c980a5d92fd7b4f4ab708e05698fe98b..01f0042f65c8ad9321ed419e4a3f28a1c017f7c9 100644
 --- a/ReleasePatterns.js
 +++ b/ReleasePatterns.js
 @@ -43,7 +43,7 @@ const patterns =
@@ -208,6 +211,15 @@ index 6301b495c980a5d92fd7b4f4ab708e05698fe98b..c1fb56a6a4e67d32da42249f34d1e2eb
  		'Abridged': [ 'ABRIDGED', 'gekuerzte?(?:.(?:fassung|lesung))' ], // Audiobook
  		'Addon': 'ADDON', // software
  		'Anime': 'ANiME',
+@@ -496,7 +497,7 @@ const patterns =
+ 		'DLC': '(?:incl.)?DLCS?(?!.?(?:Unlocker|Pack))?', // games
+ 		'DOX': 'D[O0]X',
+ 		'Docu': 'DO[CK]U?',
+-		'Dolby Vision': [ 'DV', 'DoVi' ],
++		'Dolby Vision': [ 'DV', 'DoVi', 'Dolby.?Vision' ],
+ 		'Dubbed': [ '(?<!(?:line|mic|micro|tv).)Dubbed', 'E.?Dubbed', '(?!over|thunder)[a-z]+dub' ],
+ 		'Extended': 'EXTENDED(?:.CUT|.Edition)?(?!.MIX)',
+ 		'Final': 'FINAL[._-]?(%language%|%flags%)?',
 @@ -751,14 +752,14 @@ const patterns =
  
  
