@@ -25,7 +25,7 @@ export const apiKeyCreateContract = adminProcedure
 	.input(
 		z.object({
 			name: z.string().min(1).max(64),
-			type: z.enum(["torznab", "custom", "sidecar"]),
+			type: z.enum(["torznab", "rss", "custom", "sidecar"]),
 			expiresIn: z.number().int().positive().optional(),
 		}),
 	)

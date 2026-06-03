@@ -1,0 +1,35 @@
+---
+title: Feeds
+description: Connect Minato to RSS readers, Sonarr, Radarr, and other Torznab-compatible clients.
+---
+
+Minato exposes two machine-readable feeds at `/api/v1/feeds`:
+
+| Feed | Path | Use case |
+|---|---|---|
+| **RSS** | `/api/v1/feeds/rss` | RSS readers, automation, custom integrations |
+| **Torznab** | `/api/v1/feeds/torznab` | Sonarr, Radarr, Prowlarr, and other *arr apps |
+
+Both feeds require an API key passed as the `apikey` query parameter.
+
+## API keys
+
+Create API keys in the admin dashboard under **Settings → API Keys**. Each key has a type that controls which feeds it can access.
+
+| Key type | RSS feed | Torznab feed | Notes |
+|---|---|---|---|
+| `rss` | ✓ | — | Scoped to the RSS feed only |
+| `torznab` | — | ✓ | Scoped to the Torznab feed only |
+| `custom` | ✓ | ✓ | Unrestricted — works on both feeds |
+| `sidecar` | — | — | Reserved for sidecar scrapers, not for feed access |
+
+Using a key on an endpoint it is not scoped for returns a `403` response in the feed's native format.
+
+### Creating a key
+
+1. Go to **Admin → API Keys** and click **New key**.
+2. Give the key a name (e.g. "Sonarr", "My RSS reader").
+3. Select the appropriate **Type** and an optional expiry.
+4. Copy the key — it is shown only once.
+
+Pass it to any feed request as `?apikey=<your-key>`.

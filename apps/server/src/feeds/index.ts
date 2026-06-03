@@ -1,6 +1,7 @@
 import { auth } from "@project-minato/auth";
 import { Hono } from "hono";
 import { create } from "xmlbuilder2";
+import { handleRss } from "./rss";
 
 export const feeds = new Hono();
 
@@ -24,6 +25,13 @@ feeds.get("/torznab", async (c) => {
 	const result = await auth.api.verifyApiKey({ body: { key: apiKeyValue } });
 	if (!result.valid) {
 		return c.body(torznabError("Invalid or expired API key"), 401, {
+			"Content-Type": "application/rss+xml",
+		});
+	}
+
+	const keyType = (result.key?.metadata as { type?: string } | null)?.type ?? "custom";
+	if (keyType !== "torznab" && keyType !== "custom") {
+		return c.body(torznabError("This API key is not authorized to access the Torznab feed"), 403, {
 			"Content-Type": "application/rss+xml",
 		});
 	}
@@ -62,30 +70,4 @@ feeds.get("/torznab", async (c) => {
 	return c.body(xml, 200, { "Content-Type": "application/rss+xml" });
 });
 
-feeds.get("/rss", async (c) => {
-	const root = create({ version: "1.0", encoding: "UTF-8" })
-		.ele("rss", { version: "2.0" })
-		.ele("channel")
-		.ele("title")
-		.txt("My Hono RSS Feed")
-		.up()
-		.ele("link")
-		.txt("https://example.com")
-		.up()
-		.ele("item")
-		.ele("title")
-		.txt("First Sample Post")
-		.up()
-		.ele("description")
-		.txt("This is the content of the first sample post.")
-		.up()
-		.ele("pubDate")
-		.txt("Mon, 09 Feb 2026 00:00:00 GMT")
-		.up()
-		.up()
-		.up();
-
-	const xml = root.end({ prettyPrint: true });
-
-	return c.body(xml, 200, { "Content-Type": "application/rss+xml" });
-});
+feeds.get("/rss", handleRss);

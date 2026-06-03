@@ -1,0 +1,78 @@
+---
+title: RSS Feed
+description: Query parameters, response format, and examples for the Minato RSS feed.
+---
+
+The RSS feed returns a standard RSS 2.0 document. It supports the same filtering as the search API, making it suitable for RSS readers, webhook triggers, and custom automation.
+
+**Endpoint:** `GET /api/v1/feeds/rss`
+
+**Required key type:** `rss` or `custom`
+
+## Query parameters
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `apikey` | string | — | **Required.** Your API key. |
+| `q` | string | `""` | Free-text search query. Supports the same [Minato Query](/docs/search) syntax as the search box. |
+| `type` | string | — | Filter by content type (`movie`, `tv`, `anime`, `music`, etc.). |
+| `sort` | string | `publishedAt:desc` | Sort order. See [sort values](#sort-values) below. |
+| `limit` | number | `50` | Number of items to return. Clamped to 1–100. |
+| `seeders` | number | — | Minimum seeder count. |
+
+### Sort values
+
+| Value | Description |
+|---|---|
+| `publishedAt:desc` | Newest first (default) |
+| `publishedAt:asc` | Oldest first |
+| `seeders:desc` | Most seeded first |
+| `seeders:asc` | Least seeded first |
+| `size:desc` | Largest first |
+| `size:asc` | Smallest first |
+| `trackerTitle:asc` | Title A → Z |
+| `trackerTitle:desc` | Title Z → A |
+
+## Response format
+
+The response is `Content-Type: application/rss+xml; charset=utf-8`. Each torrent becomes one `<item>`.
+
+| RSS element | Source | Notes |
+|---|---|---|
+| `<title>` | Tracker title | The raw title reported by the scraper |
+| `<guid>` | Info hash | `isPermaLink="false"` |
+| `<link>` | Magnet link or source URL | Prefers the magnet link when available |
+| `<pubDate>` | `publishedAt` or `createdAt` | RFC 2822 date |
+| `<enclosure>` | Same URL as `<link>` | `type="application/x-bittorrent"`, `length` is the torrent size in bytes |
+| `<description>` | Size, seeders, leechers, type, source | Plain text, one field per line |
+| `<category>` | Content type | `movie`, `tv`, etc. — empty if unknown |
+
+## Examples
+
+Fetch the 10 newest movies:
+
+```bash
+curl "https://your-minato/api/v1/feeds/rss?apikey=mk_xxx&type=movie&limit=10"
+```
+
+Search for a specific title with at least 5 seeders:
+
+```bash
+curl "https://your-minato/api/v1/feeds/rss?apikey=mk_xxx&q=breaking+bad&seeders=5"
+```
+
+Most-seeded results across all types:
+
+```bash
+curl "https://your-minato/api/v1/feeds/rss?apikey=mk_xxx&sort=seeders:desc"
+```
+
+## Error responses
+
+Errors are returned as a minimal RSS 2.0 document with the error message in `<channel><description>`.
+
+| HTTP status | Cause |
+|---|---|
+| `400` | `apikey` parameter is missing |
+| `401` | API key is invalid or expired |
+| `403` | API key type is not permitted to access the RSS feed |

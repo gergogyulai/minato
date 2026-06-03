@@ -206,7 +206,7 @@ function CreateDialog({
 	onCreated: (key: string) => void;
 }) {
 	const [name, setName] = useState("");
-	const [type, setType] = useState<"torznab" | "custom" | "sidecar">("torznab");
+	const [type, setType] = useState<"torznab" | "rss" | "custom" | "sidecar">("torznab");
 	const [expiry, setExpiry] = useState("never");
 	const [saving, setSaving] = useState(false);
 
@@ -261,6 +261,7 @@ function CreateDialog({
 								</SelectTrigger>
 								<SelectContent>
 									<SelectItem value="torznab">Torznab</SelectItem>
+									<SelectItem value="rss">RSS Feed</SelectItem>
 									<SelectItem value="custom">Custom</SelectItem>
 									<SelectItem value="sidecar">Sidecar scraper</SelectItem>
 								</SelectContent>
