@@ -1,7 +1,7 @@
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Loader2 } from "lucide-react";
+import { CheckCircle2, Fingerprint, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import z from "zod";
@@ -9,16 +9,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { authClient } from "@/lib/auth-client";
 import { client, orpc } from "@/utils/orpc";
 
 export const Route = createFileRoute("/setup/")({
 	component: SetupComponent,
 });
 
-type SetupStep = "admin" | "scrapers" | "flaresolverr";
+// "passkey" is a frontend-only step — never sent to the server
+type FrontendStep = "admin" | "passkey" | "scrapers" | "flaresolverr";
+type ServerStep = "admin" | "scrapers" | "flaresolverr";
 
-const steps: { key: SetupStep; title: string }[] = [
+const steps: { key: FrontendStep; title: string }[] = [
 	{ key: "admin", title: "Admin Account" },
+	{ key: "passkey", title: "Passkey" },
 	{ key: "scrapers", title: "Built-in Scrapers" },
 	{ key: "flaresolverr", title: "FlareSolverr" },
 ];
@@ -28,9 +32,9 @@ function StepIndicator({
 	completedSteps,
 	onNavigate,
 }: {
-	currentStep: SetupStep;
-	completedSteps: SetupStep[];
-	onNavigate: (step: SetupStep) => void;
+	currentStep: FrontendStep;
+	completedSteps: FrontendStep[];
+	onNavigate: (step: FrontendStep) => void;
 }) {
 	const currentIndex = steps.findIndex((s) => s.key === currentStep);
 	const adminCompleted = completedSteps.includes("admin");
@@ -52,8 +56,11 @@ function StepIndicator({
 				{steps.map((step, index) => {
 					const isCompleted = completedSteps.includes(step.key);
 					const isCurrent = currentStep === step.key;
-					// Can only navigate freely once admin is completed; admin step itself is then locked
-					const canNavigate = adminCompleted && step.key !== "admin";
+					// After admin is done, user can freely navigate to non-admin, non-passkey steps
+					const canNavigate =
+						adminCompleted &&
+						step.key !== "admin" &&
+						step.key !== "passkey";
 
 					return (
 						<button
@@ -90,8 +97,8 @@ function StepIndicator({
 
 function SetupComponent() {
 	const navigate = useNavigate();
-	const [currentStep, setCurrentStep] = useState<SetupStep>("admin");
-	const [completedSteps, setCompletedSteps] = useState<SetupStep[]>([]);
+	const [currentStep, setCurrentStep] = useState<FrontendStep>("admin");
+	const [completedSteps, setCompletedSteps] = useState<FrontendStep[]>([]);
 	const [isInitialized, setIsInitialized] = useState(false);
 
 	// Fetch setup status to restore progress
@@ -99,35 +106,45 @@ function SetupComponent() {
 		orpc.setup.getStatus.queryOptions(),
 	);
 
-	// Initialize state from setup status
+	// Initialize state from setup status — insert "passkey" after "admin" in the frontend view
 	useEffect(() => {
 		if (setupStatus?.setupProgress && !isInitialized) {
-			setCurrentStep(setupStatus.setupProgress.currentStep);
-			setCompletedSteps(setupStatus.setupProgress.completedSteps);
+			const serverStep = setupStatus.setupProgress.currentStep as ServerStep;
+			// If the server says we're on "scrapers", show "passkey" first (it comes before scrapers)
+			const frontendStep: FrontendStep =
+				serverStep === "scrapers" &&
+				!setupStatus.setupProgress.completedSteps.includes("scrapers")
+					? "passkey"
+					: serverStep;
+			setCurrentStep(frontendStep);
+			setCompletedSteps(setupStatus.setupProgress.completedSteps as FrontendStep[]);
 			setIsInitialized(true);
 		}
 	}, [setupStatus, isInitialized]);
 
-	// Mutation to update progress in the database
+	// Sync progress to the server — skip when on the passkey step (not a server-tracked step)
 	const updateProgressMutation = useMutation({
 		mutationFn: async (data: {
-			currentStep: SetupStep;
-			completedSteps: SetupStep[];
+			currentStep: ServerStep;
+			completedSteps: ServerStep[];
 		}) => {
 			return await client.setup.updateProgress(data);
 		},
 	});
 
-	// Update progress in database whenever it changes
 	useEffect(() => {
-		if (isInitialized) {
-			updateProgressMutation.mutate({ currentStep, completedSteps });
-		}
+		if (!isInitialized || currentStep === "passkey") return;
+		updateProgressMutation.mutate({
+			currentStep: currentStep as ServerStep,
+			completedSteps: completedSteps.filter(
+				(s): s is ServerStep => s !== "passkey",
+			),
+		});
 	}, [currentStep, completedSteps]);
 
 	const currentStepIndex = steps.findIndex((s) => s.key === currentStep);
 
-	const markStepCompleted = (step: SetupStep) => {
+	const markStepCompleted = (step: FrontendStep) => {
 		if (!completedSteps.includes(step)) {
 			setCompletedSteps((prev) => [...prev, step]);
 		}
@@ -179,7 +196,11 @@ function SetupComponent() {
 					currentStep={currentStep}
 					completedSteps={completedSteps}
 					onNavigate={(step) => {
-						if (completedSteps.includes("admin") && step !== "admin") {
+						if (
+							completedSteps.includes("admin") &&
+							step !== "admin" &&
+							step !== "passkey"
+						) {
 							setCurrentStep(step);
 						}
 					}}
@@ -202,6 +223,15 @@ function SetupComponent() {
 							}}
 						/>
 					)}
+					{currentStep === "passkey" && (
+						<PasskeyStep
+							onComplete={() => {
+								markStepCompleted("passkey");
+								goToNextStep();
+							}}
+							onSkip={goToNextStep}
+						/>
+					)}
 					{currentStep === "scrapers" && (
 						<ScrapersStep
 							onComplete={() => {
@@ -210,9 +240,7 @@ function SetupComponent() {
 							}}
 							onSkip={goToNextStep}
 							onBack={() => {
-								if (!completedSteps.includes("admin")) {
-									setCurrentStep("admin");
-								}
+								setCurrentStep("passkey");
 							}}
 						/>
 					)}
@@ -241,13 +269,6 @@ function AdminStep({ onComplete }: { onComplete: () => void }) {
 		}) => {
 			return await client.setup.createAdmin(data);
 		},
-		onSuccess: () => {
-			toast.success("Admin account created");
-			onComplete();
-		},
-		onError: (error) => {
-			toast.error(error.message || "Failed to create admin account");
-		},
 	});
 
 	const form = useForm({
@@ -262,11 +283,32 @@ function AdminStep({ onComplete }: { onComplete: () => void }) {
 				toast.error("Passwords do not match");
 				return;
 			}
-			createAdminMutation.mutate({
+
+			const result = await createAdminMutation.mutateAsync({
 				name: value.name,
 				email: value.email,
 				password: value.password,
 			});
+
+			if (!result.success) {
+				toast.error(result.message || "Failed to create admin account");
+				return;
+			}
+
+			// Sign in so the browser has an authenticated session for passkey registration
+			const signInResult = await authClient.signIn.email({
+				email: value.email,
+				password: value.password,
+			});
+
+			if (signInResult.error) {
+				// Account was created — proceed anyway, passkey step will be skippable
+				toast.warning("Account created but sign-in failed. You can add a passkey later.");
+			} else {
+				toast.success("Admin account created");
+			}
+
+			onComplete();
 		},
 		validators: {
 			onSubmit: z.object({
@@ -309,7 +351,7 @@ function AdminStep({ onComplete }: { onComplete: () => void }) {
 								onBlur={field.handleBlur}
 								onChange={(e) => field.handleChange(e.target.value)}
 								placeholder="Your name"
-								disabled={createAdminMutation.isPending}
+								disabled={form.state.isSubmitting}
 								className="h-10"
 							/>
 						</div>
@@ -332,7 +374,7 @@ function AdminStep({ onComplete }: { onComplete: () => void }) {
 								onBlur={field.handleBlur}
 								onChange={(e) => field.handleChange(e.target.value)}
 								placeholder="admin@example.com"
-								disabled={createAdminMutation.isPending}
+								disabled={form.state.isSubmitting}
 								className="h-10"
 							/>
 						</div>
@@ -356,7 +398,7 @@ function AdminStep({ onComplete }: { onComplete: () => void }) {
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}
 									placeholder="••••••••"
-									disabled={createAdminMutation.isPending}
+									disabled={form.state.isSubmitting}
 									className="h-10"
 								/>
 							</div>
@@ -379,7 +421,7 @@ function AdminStep({ onComplete }: { onComplete: () => void }) {
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}
 									placeholder="••••••••"
-									disabled={createAdminMutation.isPending}
+									disabled={form.state.isSubmitting}
 									className="h-10"
 								/>
 							</div>
@@ -388,19 +430,101 @@ function AdminStep({ onComplete }: { onComplete: () => void }) {
 				</div>
 
 				<div className="pt-2">
-					<Button
-						type="submit"
-						className="h-10 w-full"
-						disabled={createAdminMutation.isPending}
-					>
-						{createAdminMutation.isPending ? (
-							<Loader2 className="h-4 w-4 animate-spin" />
-						) : (
-							"Continue"
+					<form.Subscribe>
+						{(state) => (
+							<Button
+								type="submit"
+								className="h-10 w-full"
+								disabled={!state.canSubmit || state.isSubmitting}
+							>
+								{state.isSubmitting ? (
+									<Loader2 className="h-4 w-4 animate-spin" />
+								) : (
+									"Continue"
+								)}
+							</Button>
 						)}
-					</Button>
+					</form.Subscribe>
 				</div>
 			</form>
+		</div>
+	);
+}
+
+function PasskeyStep({
+	onComplete,
+	onSkip,
+}: {
+	onComplete: () => void;
+	onSkip: () => void;
+}) {
+	const [registered, setRegistered] = useState(false);
+	const [pending, setPending] = useState(false);
+
+	async function registerPasskey() {
+		setPending(true);
+		const result = await authClient.passkey.addPasskey();
+		setPending(false);
+
+		if (result?.error) {
+			toast.error(result.error.message || "Failed to register passkey");
+			return;
+		}
+
+		setRegistered(true);
+		toast.success("Passkey registered");
+	}
+
+	return (
+		<div className="space-y-6">
+			<p className="text-muted-foreground text-sm leading-relaxed">
+				Passkeys let you sign in with Face ID, Touch ID, or a security key —
+				no password needed. You can always add one later from the dashboard.
+			</p>
+
+			{registered ? (
+				<div className="flex items-center gap-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
+					<CheckCircle2 className="size-4 shrink-0 text-emerald-500" />
+					<p className="text-emerald-600 text-sm dark:text-emerald-400">
+						Passkey registered successfully.
+					</p>
+				</div>
+			) : (
+				<Button
+					type="button"
+					variant="outline"
+					className="h-10 w-full gap-2"
+					onClick={registerPasskey}
+					disabled={pending}
+				>
+					{pending ? (
+						<Loader2 className="size-4 animate-spin" />
+					) : (
+						<Fingerprint className="size-4" />
+					)}
+					Register passkey
+				</Button>
+			)}
+
+			<div className="flex items-center gap-2 pt-2">
+				<div className="flex-1" />
+				{!registered && (
+					<Button
+						variant="ghost"
+						size="sm"
+						onClick={onSkip}
+						disabled={pending}
+						className="text-muted-foreground"
+					>
+						Skip for now
+					</Button>
+				)}
+				{registered && (
+					<Button size="sm" onClick={onComplete} className="min-w-24">
+						Continue
+					</Button>
+				)}
+			</div>
 		</div>
 	);
 }

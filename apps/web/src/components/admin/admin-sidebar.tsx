@@ -8,6 +8,7 @@ import {
 	LogOut,
 	Menu,
 	Settings,
+	ShieldCheck,
 	SlidersHorizontal,
 	Users,
 } from "lucide-react";
@@ -32,6 +33,7 @@ const NAV: NavItem[] = [
 	{ to: "/dashboard/queues", label: "Queues", icon: ListOrdered },
 	{ to: "/dashboard/api-keys", label: "API Keys", icon: KeyRound },
 	{ to: "/dashboard/users", label: "Users", icon: Users },
+	{ to: "/dashboard/security", label: "Security", icon: ShieldCheck },
 	{ to: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 
