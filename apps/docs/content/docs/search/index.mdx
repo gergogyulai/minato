@@ -1,0 +1,162 @@
+---
+title: Minato Query
+description: Search syntax reference for Minato's inline query language.
+---
+
+Minato Query is the search language that powers the torrent browser. You can combine plain keywords with inline filters, source directives, and database identifiers — all in a single search box.
+
+## Plain text search
+
+Type any keywords to run a full-text search. The engine searches across the following fields:
+
+- Tracker title (the raw title reported by the scraper)
+- Parsed release title
+- Enriched title, overview, tagline, and episode title (when available)
+
+```
+breaking bad
+the dark knight rises
+attack on titan s02
+```
+
+Typo tolerance is enabled — minor spelling mistakes are corrected automatically.
+
+---
+
+## Inline filters
+
+Append `key:value` tokens anywhere in your query to narrow results without touching the filter panel. These tokens are stripped from the full-text portion before it reaches the search engine.
+
+```
+breaking bad season:4 res:1080p
+```
+
+### Supported filter keys
+
+| Key | Alias | Filters on | Example |
+|---|---|---|---|
+| `year` | — | Enriched release year (exact) | `year:2023` |
+| `res` | `resolution` | Parsed video resolution | `res:1080p` |
+| `type` | — | Content type | `type:movie` |
+| `group` | — | Parsed release group | `group:yts` |
+| `season` | — | Season number | `season:2` |
+| `ep` | — | Episode number | `ep:5` |
+
+Keys are case-insensitive. `RES:1080p` and `res:1080p` are equivalent.
+
+**`year:`** matches the enriched year field exactly. It overrides any year range set in the filter panel for the same query. If no enrichment data exists for a torrent, it won't match a `year:` filter.
+
+**Inline filters override the filter panel** for the same field. If you have `resolution: 1080p` checked in the panel and type `res:720p` in the box, `720p` wins.
+
+### Common values
+
+**`type`** — `movie`, `tv`, `anime`, `music`, `book`, `game`, `software`
+
+**`res` / `resolution`** — `360p`, `480p`, `720p`, `1080p`, `2160p`, `4320p`
+
+Values outside these lists are accepted as-is and matched literally against whatever the scraper or release parser reported.
+
+---
+
+## Source directives
+
+Prefix a query with `!scraper-id` to restrict results to a single source. The scraper ID is matched against your installed scrapers.
+
+```
+!1337x breaking bad season:4
+!knaben linux iso type:software
+```
+
+The directive maps to a `sourceNames` filter in the search index — only torrents ingested by that scraper are returned. Directive matching is case-insensitive.
+
+If the ID doesn't match any registered scraper, the token is passed through as a regular keyword rather than silently dropped.
+
+---
+
+## Identifier lookup
+
+Paste a bare IMDb or TMDB identifier to look up a specific title directly instead of running a full-text search.
+
+| Format | Example |
+|---|---|
+| IMDb ID | `tt0903747` |
+| TMDB ID | `tmdb:1396` |
+
+When the **entire query** is a single identifier (nothing else typed), the search is scoped to the corresponding ID field in the enrichment data. This bypasses the full-text scorer and returns only torrents matched to that exact title.
+
+```
+tt0903747
+tmdb:1396
+```
+
+Mixing an identifier with other tokens (e.g., `tt0903747 1080p`) disables the exact-lookup path — the identifier is treated as a keyword instead.
+
+---
+
+## Combining everything
+
+Inline filters, directives, and keywords all compose freely in one query. Filter panel selections apply on top of whatever the search box produces.
+
+```
+!knaben tt0903747 res:2160p
+breaking bad season:5 ep:14 group:yts
+type:movie year:2024 res:1080p
+```
+
+Only one directive and one identifier are recognised per query — extras are treated as keywords.
+
+---
+
+## Filter panel
+
+The filter panel provides additional controls that aren't part of the inline query syntax. Panel filters and inline query filters combine with AND semantics.
+
+| Filter | Description |
+|---|---|
+| **Type** | One or more content types (multi-select) |
+| **Resolution** | One or more resolutions (multi-select) |
+| **Genre** | One or more genres from enrichment metadata (multi-select) |
+| **Group** | One or more release groups (multi-select) |
+| **Year** | Release year range — min and/or max |
+| **Size** | File size range in GB — min and/or max |
+| **Min seeders** | Lower bound on the seeder count |
+
+Genre, size, and seeder filters are only available through the panel — there are no inline equivalents.
+
+---
+
+## Sort
+
+Use the sort selector above the results table to order by:
+
+| Option | Description |
+|---|---|
+| `seeds ↓` | Most seeders first (default) |
+| `seeds ↑` | Fewest seeders first |
+| `size ↓ / ↑` | Largest or smallest first |
+| `newest first` | Most recently published first |
+| `oldest first` | Oldest first |
+| `title A→Z / Z→A` | Alphabetical by tracker title |
+
+When no explicit sort is chosen the default ranking prioritises relevance (word match, typo, proximity), then seeders descending, then file size descending.
+
+---
+
+## Examples
+
+```
+# 4K movies from 2023
+type:movie res:2160p year:2023
+
+# Specific episode from a specific group
+breaking bad season:4 ep:9 group:yts
+
+# Search only within a specific source
+!knaben linux iso type:software
+
+# Exact title lookup by IMDb ID
+tt0944947
+
+# Anime, high resolution, with panel genre filter applied on top
+type:anime res:1080p year:2024
+```
