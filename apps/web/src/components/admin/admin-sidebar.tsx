@@ -4,6 +4,7 @@ import {
 	Boxes,
 	KeyRound,
 	LayoutDashboard,
+	ListOrdered,
 	LogOut,
 	Menu,
 	Settings,
@@ -28,6 +29,7 @@ type NavItem = {
 const NAV: NavItem[] = [
 	{ to: "/dashboard", label: "Overview", icon: LayoutDashboard, exact: true },
 	{ to: "/dashboard/scrapers", label: "Scrapers", icon: Boxes },
+	{ to: "/dashboard/queues", label: "Queues", icon: ListOrdered },
 	{ to: "/dashboard/api-keys", label: "API Keys", icon: KeyRound },
 	{ to: "/dashboard/users", label: "Users", icon: Users },
 	{ to: "/dashboard/settings", label: "Settings", icon: Settings },
