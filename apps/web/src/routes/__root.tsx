@@ -18,6 +18,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { link, type orpc } from "@/utils/orpc";
 
 import "../index.css";
+import { RaycastMenu } from "@/components/minato-command-menu";
 
 export interface RouterAppContext {
 	orpc: typeof orpc;
@@ -85,6 +86,7 @@ function RootComponent() {
 					{/* <Header /> */}
 					<main>
 						<Outlet />
+						<RaycastMenu />
 					</main>
 				</div>
 				<Toaster richColors />
