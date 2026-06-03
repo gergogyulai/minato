@@ -6,16 +6,11 @@ import { logger } from "@/utils/logger";
 
 const log = logger.child({ task: "cleanup-unused-assets" });
 
-/**
- * RESPONSIBILITY: Cleanup sharded local storage.
- * Matches filesystem folders against 'poster_url' or 'backdrop_url' in DB.
- */
 export async function cleanupUnusedAssets() {
 	let foldersDeleted = 0;
 	let totalScanned = 0;
 
 	try {
-		// 1. Get Shards (e.g., "tm")
 		const shards = await readdir(mediaRoot);
 
 		for (const shard of shards) {
@@ -31,7 +26,6 @@ export async function cleanupUnusedAssets() {
 				const batch = idFolders.slice(i, i + batchSize);
 				totalScanned += batch.length;
 
-				// 3. Reconstruct the DB path string to check for existence eg. "/tm/tmdb-1396/poster.webp"
 				const dbPathsToVerify = batch.map(
 					(folder) => `/${shard}/${folder}/poster.webp`,
 				);

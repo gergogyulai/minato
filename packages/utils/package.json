@@ -9,6 +9,10 @@
 	"scripts": {
 		"typecheck": "tsc --noEmit"
 	},
+	"dependencies": {
+		"pino": "^9.6.0",
+		"pino-pretty": "^13.0.0"
+	},
 	"devDependencies": {
 		"@project-minato/typescript": "workspace:*",
 		"typescript": "catalog:"

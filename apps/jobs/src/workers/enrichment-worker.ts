@@ -65,11 +65,13 @@ export function startEnrichmentWorker() {
 
 				if (!torrent) {
 					log.warn({ infoHash }, "Torrent not found");
+					job.log("Torrent not found, skipping enrichment");
 					return;
 				}
 
 				if (torrent.enrichedAt && !isRefresh) {
 					log.debug({ infoHash }, "Already enriched, skipping");
+					job.log("Already enriched, skipping");
 					return;
 				}
 
@@ -91,12 +93,14 @@ export function startEnrichmentWorker() {
 					!torrentType ||
 					providerRegistry.getProvidersForType(torrentType).length === 0
 				) {
+					job.log("Unsupported type, skipping");
 					log.debug({ infoHash, torrentType }, "Unsupported type, skipping");
 					await markAsEnriched(infoHash);
 					return;
 				}
 
 				if (!cleanTitle) {
+					job.log("No title available, skipping");
 					log.debug({ infoHash }, "No title available, skipping");
 					await markAsEnriched(infoHash);
 					return;
@@ -233,16 +237,18 @@ export function startEnrichmentWorker() {
 					log.warn({ infoHash }, "Enrichment write returned nothing");
 					return;
 				}
-
+				
 				await markAsEnriched(infoHash);
-
+				
 				const enriched = await db.query.torrents.findFirst({
 					where: eq(torrents.infoHash, infoHash),
 					with: { enrichment: true },
 				});
-
+				
+				job.log("Enrichment complete, updating search index...");
 				if (enriched) {
 					await meiliBatcher.add(formatTorrentForMeilisearch(enriched));
+					job.log("Meilisearch update queued");
 					log.debug({ infoHash }, "Meilisearch updated");
 				}
 			}, JOB_TIMEOUT_MS),
