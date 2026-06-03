@@ -522,7 +522,7 @@ async function onChildExit(
 	const cleanExit = exitCode === 0;
 	const cron = dbRow.schedule ?? dbRow.recommendedSchedule ?? null;
 
-	if (cleanExit && dbRow.lifecycle === "scheduled") {
+	if (cleanExit && (dbRow.lifecycle === "scheduled" || dbRow.lifecycle === "poller")) {
 		record.restarts = 0;
 		if (cron) {
 			try {

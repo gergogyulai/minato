@@ -15,7 +15,9 @@ import type { ScraperSource } from "@project-minato/db";
 import { logger } from "@/utils/logger";
 import type { ScraperManifest } from "./process";
 
-const REQUIRED_MINATO_FIELDS = ["capabilities"] as const;
+const REQUIRED_MINATO_FIELDS = ["capabilities", "type"] as const;
+const VALID_SCRAPER_TYPES = ["scheduled", "daemon", "poller"] as const;
+type ValidScraperType = (typeof VALID_SCRAPER_TYPES)[number];
 const REQUIRED_PKG_FIELDS = [
 	"title",
 	"description",
@@ -77,6 +79,13 @@ export function readManifest(dir: string): ScraperManifest {
 				? (rawAuthor as { name: string }).name
 				: undefined;
 
+	const scraperType = minato.type as string;
+	if (!(VALID_SCRAPER_TYPES as readonly string[]).includes(scraperType)) {
+		throw new Error(
+			`package.json at ${pkgPath} has invalid "minato.type" value "${scraperType}" — must be one of: ${VALID_SCRAPER_TYPES.join(", ")}`,
+		);
+	}
+
 	return {
 		id: pkg.name as string,
 		name: pkg.name as string,
@@ -86,6 +95,7 @@ export function readManifest(dir: string): ScraperManifest {
 		entry: pkg.module as string,
 		capabilities: minato.capabilities as string[],
 		defaultConfig: minato.defaultConfig as Record<string, unknown> | undefined,
+		scraperType: scraperType as ValidScraperType,
 	};
 }
 

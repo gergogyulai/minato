@@ -27,6 +27,7 @@ export type ScraperManifest = {
 	entry: string;
 	capabilities: string[];
 	defaultConfig?: Record<string, unknown>;
+	scraperType: "scheduled" | "daemon" | "poller";
 };
 
 // First-party scrapers are baked into the Docker image with deps already

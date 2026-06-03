@@ -41,9 +41,10 @@ const manifestSnapshotSchema = z.object({
 	entry: z.string(),
 	capabilities: z.array(z.string()),
 	defaultConfig: z.record(z.string(), z.unknown()).optional(),
+	scraperType: z.enum(["scheduled", "daemon", "poller"]).optional(),
 });
 
-const lifecycleSchema = z.enum(["scheduled", "daemon"]);
+const lifecycleSchema = z.enum(["scheduled", "daemon", "poller"]);
 const stateSchema = z.enum([
 	"installing",
 	"ready",

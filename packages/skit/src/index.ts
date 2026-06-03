@@ -19,7 +19,7 @@ export { FlareSolverr } from "@project-minato/api-clients";
 // ---------------------------------------------------------------------------
 
 export type Capability = "ingest" | "status" | "commands";
-export type Lifecycle = "scheduled" | "daemon";
+export type Lifecycle = "scheduled" | "daemon" | "poller";
 
 export type TorrentInput = {
 	infoHash: string;
@@ -92,12 +92,24 @@ export type ScheduledScraperDefinition<TConfig = Record<string, unknown>> =
 export type DaemonScraperDefinition<TConfig = Record<string, unknown>> =
 	BaseDefinition<TConfig>;
 
+export type FeedPollerDefinition<TConfig = Record<string, unknown>> =
+	BaseDefinition<TConfig> & {
+		/** RSS/Atom feed URL(s) this poller reads. Declarative — the runtime does not fetch automatically. */
+		feedUrl: string | string[];
+		recommendedSchedule?: string;
+	};
+
 export type ScraperDefinition<TConfig = Record<string, unknown>> =
 	| ({
 			lifecycle: "scheduled";
 			recommendedSchedule?: string;
 	  } & BaseDefinition<TConfig>)
-	| ({ lifecycle: "daemon" } & BaseDefinition<TConfig>);
+	| ({ lifecycle: "daemon" } & BaseDefinition<TConfig>)
+	| ({
+			lifecycle: "poller";
+			feedUrl: string | string[];
+			recommendedSchedule?: string;
+	  } & BaseDefinition<TConfig>);
 
 // ---------------------------------------------------------------------------
 // Factory functions — the entry points scrapers export by default.
@@ -113,6 +125,12 @@ export function defineDaemonScraper<TConfig>(
 	definition: DaemonScraperDefinition<TConfig>,
 ): ScraperDefinition<TConfig> {
 	return { lifecycle: "daemon", ...definition };
+}
+
+export function defineFeedPoller<TConfig>(
+	definition: FeedPollerDefinition<TConfig>,
+): ScraperDefinition<TConfig> {
+	return { lifecycle: "poller", ...definition };
 }
 
 // ---------------------------------------------------------------------------

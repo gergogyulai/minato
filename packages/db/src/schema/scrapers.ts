@@ -32,6 +32,7 @@ export type ScraperManifestSnapshot = {
 	entry: string;
 	capabilities: string[];
 	defaultConfig?: Record<string, unknown>;
+	scraperType?: "scheduled" | "daemon" | "poller";
 };
 
 export type ScraperState =
@@ -60,7 +61,7 @@ export const scrapers = pgTable("scrapers", {
 
 	// Lifecycle authority — written by scraper.register; null between install
 	// and first registration only.
-	lifecycle: text("lifecycle").$type<"scheduled" | "daemon">(),
+	lifecycle: text("lifecycle").$type<"scheduled" | "daemon" | "poller">(),
 
 	// Scheduling — both are 5-field UTC cron expressions.
 	// Effective = schedule ?? recommendedSchedule ?? null (manual only).

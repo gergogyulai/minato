@@ -144,6 +144,7 @@ type EnsureKeyBody = {
 		entry: string;
 		capabilities: string[];
 		defaultConfig?: Record<string, unknown>;
+		scraperType?: "scheduled" | "daemon" | "poller";
 	};
 	source:
 		| { kind: "first_party" }

@@ -12,6 +12,7 @@
 	"type": "module",
 	"private": true,
 	"minato": {
+		"type": "scheduled",
 		"capabilities": [
 			"ingest",
 			"status",

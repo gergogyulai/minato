@@ -11,9 +11,14 @@
 				"minato": {
 					"description": "Minato scraper manifest.",
 					"type": "object",
-					"required": ["capabilities"],
+					"required": ["capabilities", "type"],
 					"additionalProperties": false,
 					"properties": {
+						"type": {
+							"type": "string",
+							"description": "Scraper kind. Must match the factory used in source: 'scheduled' → defineScheduledScraper, 'daemon' → defineDaemonScraper, 'poller' → defineFeedPoller.",
+							"enum": ["scheduled", "daemon", "poller"]
+						},
 						"capabilities": {
 							"type": "array",
 							"description": "Capabilities this scraper exposes. Declare only what you actually use.",

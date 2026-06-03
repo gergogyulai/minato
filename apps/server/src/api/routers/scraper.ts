@@ -107,6 +107,18 @@ export const scraperRouter = {
 	register: scraperRegisterContract.handler(async ({ input, context }) => {
 		const { scraperId } = context;
 
+		const [current] = await db
+			.select({ manifest: scrapers.manifest })
+			.from(scrapers)
+			.where(eq(scrapers.id, scraperId))
+			.limit(1);
+
+		if (current?.manifest?.scraperType && current.manifest.scraperType !== input.lifecycle) {
+			throw new ORPCError("BAD_REQUEST", {
+				message: `Type mismatch: package.json declares minato.type "${current.manifest.scraperType}" but source exports lifecycle "${input.lifecycle}". Fix the factory function or the minato.type field.`,
+			});
+		}
+
 		await db
 			.update(scrapers)
 			.set({
