@@ -67,7 +67,7 @@ export const parseMinatoQuery = (
 			if (rawKey) {
 				const normalizedKey = rawKey.toLowerCase();
 				const value = valParts.join(":").toLowerCase();
-
+				
 				if ((SUPPORTED_KV_KEYS as readonly string[]).includes(normalizedKey)) {
 					filters[normalizedKey as SupportedKVKey] = value;
 					metaTokens.add(token);
