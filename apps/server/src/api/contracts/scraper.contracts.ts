@@ -269,3 +269,29 @@ export const scraperRunNowContract = adminProcedure
 	})
 	.input(z.object({ id: z.string() }))
 	.output(z.object({ queued: z.boolean() }));
+
+export const scraperStatsContract = adminProcedure
+	.route({
+		method: "GET",
+		path: "/scraper/:id/stats",
+		summary: "Yield statistics and hourly activity for a single scraper",
+		tags: ["scraper"],
+	})
+	.input(
+		z.object({
+			id: z.string(),
+			hours: z.number().int().min(1).max(168).default(48),
+		}),
+	)
+	.output(
+		z.object({
+			yield: z.object({
+				total: z.number(),
+				last24h: z.number(),
+				last48h: z.number(),
+				last7d: z.number(),
+				byType: z.array(z.object({ type: z.string(), count: z.number() })),
+			}),
+			activity: z.array(z.object({ date: z.string(), count: z.number() })),
+		}),
+	);

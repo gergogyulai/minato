@@ -1,4 +1,5 @@
 import {
+	aiRepairQueue,
 	enrichQueue,
 	housekeeperQueue,
 	ingestQueue,
@@ -16,6 +17,25 @@ const queueCountsSchema = z.object({
 	paused: z.number(),
 });
 
+const jobSchema = z.object({
+	id: z.string(),
+	name: z.string(),
+	data: z.unknown(),
+	failedReason: z.string().nullable(),
+	stacktrace: z.array(z.string()).nullable(),
+	timestamp: z.number(),
+	processedOn: z.number().nullable(),
+	finishedOn: z.number().nullable(),
+	attemptsMade: z.number(),
+});
+
+const QUEUE_MAP = {
+	ingest: ingestQueue,
+	enrich: enrichQueue,
+	housekeeper: housekeeperQueue,
+	ai_repair: aiRepairQueue,
+} as const;
+
 export const queuesRouter = {
 	status: adminProcedure
 		.route({
@@ -30,6 +50,7 @@ export const queuesRouter = {
 				{ name: "ingest", queue: ingestQueue },
 				{ name: "enrich", queue: enrichQueue },
 				{ name: "housekeeper", queue: housekeeperQueue },
+				{ name: "ai_repair", queue: aiRepairQueue },
 			];
 
 			const queues = await Promise.all(
@@ -55,5 +76,44 @@ export const queuesRouter = {
 			);
 
 			return { queues };
+		}),
+
+	jobs: adminProcedure
+		.route({
+			method: "GET",
+			path: "/queues/jobs",
+			summary: "Paginated job list for a queue and status",
+			tags: ["queues"],
+		})
+		.input(
+			z.object({
+				queue: z.enum(["ingest", "enrich", "housekeeper", "ai_repair"]),
+				status: z.enum(["waiting", "failed", "active", "delayed"]),
+				start: z.coerce.number().int().min(0).default(0),
+				end: z.coerce.number().int().min(0).default(99),
+			}),
+		)
+		.output(z.object({ jobs: z.array(jobSchema) }))
+		.handler(async ({ input }) => {
+			const { queue: queueName, status, start } = input;
+			const maxEnd = status === "failed" ? 499 : 99;
+			const end = Math.min(input.end, maxEnd);
+
+			const queue = QUEUE_MAP[queueName];
+			const raw = await queue.getJobs([status], start, end);
+
+			const jobs = raw.map((job) => ({
+				id: String(job.id ?? ""),
+				name: job.name,
+				data: job.data,
+				failedReason: job.failedReason ?? null,
+				stacktrace: job.stacktrace?.length ? job.stacktrace : null,
+				timestamp: job.timestamp,
+				processedOn: job.processedOn ?? null,
+				finishedOn: job.finishedOn ?? null,
+				attemptsMade: job.attemptsMade,
+			}));
+
+			return { jobs };
 		}),
 };

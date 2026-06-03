@@ -12,6 +12,8 @@ import {
 	scraperCommands,
 	scraperStatus,
 	scrapers,
+	sql,
+	torrents,
 } from "@project-minato/db";
 import { communityScrapersDir } from "@project-minato/env/paths";
 import {
@@ -28,6 +30,7 @@ import {
 	scraperRemoveContract,
 	scraperRunNowContract,
 	scraperSetEnabledContract,
+	scraperStatsContract,
 	scraperStatusContract,
 	scraperUpdateConfigContract,
 	scraperUpdateContract,
@@ -486,5 +489,88 @@ export const scraperRouter = {
 		});
 
 		return { queued: true };
+	}),
+
+	stats: scraperStatsContract.handler(async ({ input }) => {
+		const [existing] = await db
+			.select({ id: scrapers.id })
+			.from(scrapers)
+			.where(eq(scrapers.id, input.id))
+			.limit(1);
+
+		if (!existing) {
+			throw new ORPCError("NOT_FOUND", {
+				message: `Unknown scraper: ${input.id}`,
+			});
+		}
+
+		const hours = input.hours ?? 48;
+
+		const [yieldResult, byTypeResult, activityResult] = await Promise.all([
+			db.execute<{
+				total: number;
+				last_24h: number;
+				last_48h: number;
+				last_7d: number;
+			}>(sql`
+				SELECT
+					count(*)::int AS total,
+					count(*) FILTER (WHERE created_at >= now() - interval '24 hours')::int AS last_24h,
+					count(*) FILTER (WHERE created_at >= now() - interval '48 hours')::int AS last_48h,
+					count(*) FILTER (WHERE created_at >= now() - interval '7 days')::int AS last_7d
+				FROM ${torrents}
+				WHERE sources @> jsonb_build_array(jsonb_build_object('scraper', ${input.id}::text))
+			`),
+			db.execute<{ type: string; count: number }>(sql`
+				SELECT coalesce(type, 'unknown') AS type, count(*)::int AS count
+				FROM ${torrents}
+				WHERE sources @> jsonb_build_array(jsonb_build_object('scraper', ${input.id}::text))
+				GROUP BY type
+				ORDER BY count DESC
+			`),
+			db.execute<{ date: string; count: number }>(sql`
+				SELECT to_char(d.hour, 'YYYY-MM-DD HH24:00') AS date,
+				       count(t.info_hash)::int AS count
+				FROM generate_series(
+					date_trunc('hour', now()) - make_interval(hours => ${hours - 1}),
+					date_trunc('hour', now()),
+					interval '1 hour'
+				) AS d(hour)
+				LEFT JOIN ${torrents} t
+					ON date_trunc('hour', t.created_at) = d.hour
+					AND t.sources @> jsonb_build_array(jsonb_build_object('scraper', ${input.id}::text))
+				GROUP BY d.hour
+				ORDER BY d.hour
+			`),
+		]);
+
+		const yieldRows = (
+			(yieldResult as unknown as { rows?: unknown[] }).rows ?? yieldResult
+		) as { total: number; last_24h: number; last_48h: number; last_7d: number }[];
+		const byTypeRows = (
+			(byTypeResult as unknown as { rows?: unknown[] }).rows ?? byTypeResult
+		) as { type: string; count: number }[];
+		const activityRows = (
+			(activityResult as unknown as { rows?: unknown[] }).rows ?? activityResult
+		) as { date: string; count: number }[];
+
+		const y = yieldRows[0] ?? { total: 0, last_24h: 0, last_48h: 0, last_7d: 0 };
+
+		return {
+			yield: {
+				total: Number(y.total),
+				last24h: Number(y.last_24h),
+				last48h: Number(y.last_48h),
+				last7d: Number(y.last_7d),
+				byType: byTypeRows.map((r) => ({
+					type: r.type,
+					count: Number(r.count),
+				})),
+			},
+			activity: activityRows.map((r) => ({
+				date: r.date,
+				count: Number(r.count),
+			})),
+		};
 	}),
 };

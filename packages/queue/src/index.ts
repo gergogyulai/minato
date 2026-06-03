@@ -11,6 +11,7 @@ export const QUEUES = {
 	INGEST: "torrent_ingest",
 	ENRICH: "torrent_enrich",
 	HOUSEKEEPER: "housekeeper_queue",
+	AI_REPAIR: "ai_repair_queue",
 	SCRAPER_CONTROL: "scraper_control",
 } as const;
 
@@ -40,6 +41,7 @@ export type ScraperControlJobData = { scraperId: string };
 export const ingestQueue = new Queue(QUEUES.INGEST, { connection });
 export const enrichQueue = new Queue(QUEUES.ENRICH, { connection });
 export const housekeeperQueue = new Queue(QUEUES.HOUSEKEEPER, { connection });
+export const aiRepairQueue = new Queue(QUEUES.AI_REPAIR, { connection });
 export const scraperControlQueue = new Queue<ScraperControlJobData>(
 	QUEUES.SCRAPER_CONTROL,
 	{ connection },
