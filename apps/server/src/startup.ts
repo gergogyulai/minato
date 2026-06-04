@@ -51,7 +51,11 @@ export async function startup(): Promise<void> {
 	const searchSync = await syncMeilisearch(db);
 
 	const config = getConfig();
-	await applyGlobalSearchProfile(config.search.profile);
+	try {
+		await applyGlobalSearchProfile(config.search.profile);
+	} catch (err) {
+		console.warn("[startup] search profile apply failed — server will start with existing ranking rules:", err);
+	}
 
 	if (searchSync.reindexRequired) {
 		console.log(

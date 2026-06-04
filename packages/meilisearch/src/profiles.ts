@@ -1,3 +1,4 @@
+import { MeiliSearchTaskTimeOutError } from "meilisearch";
 import { meiliClient } from "./client";
 
 export const RANKING_PROFILES_OPTIONS = [
@@ -63,7 +64,17 @@ export async function applyGlobalSearchProfile(
 
 	const task = await index.updateRankingRules(rules);
 
-	await meiliClient.tasks.waitForTask(task.taskUid, { timeout: 30_000 });
+	try {
+		await meiliClient.tasks.waitForTask(task.taskUid, { timeout: 30_000 });
+	} catch (err) {
+		if (err instanceof MeiliSearchTaskTimeOutError) {
+			console.warn(
+				`[search] ranking rules update timed out waiting for confirmation (task ${task.taskUid}) — Meilisearch will apply it in the background`,
+			);
+			return;
+		}
+		throw err;
+	}
 
 	console.log(`Index is now ${profileName} oriented.`);
 }
