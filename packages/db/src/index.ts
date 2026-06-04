@@ -4,6 +4,7 @@ import type {
 	BuildQueryResult,
 	ExtractTablesWithRelations,
 } from "drizzle-orm/relations";
+import { Pool } from "pg";
 import * as schema from "./schema";
 
 type Schema = typeof schema;
@@ -15,9 +16,17 @@ export type TorrentWithRelations = BuildQueryResult<
 	{ with: { enrichment: true } }
 >;
 
-export const db = drizzle(env.DATABASE_URL, { schema });
+const pool = new Pool({
+	connectionString: env.DATABASE_URL,
+	max: 50,
+	min: 5,
+	idleTimeoutMillis: 30_000,
+	connectionTimeoutMillis: 5_000,
+});
+
+export const db = drizzle(pool, { schema });
 export async function closeDb(): Promise<void> {
-	await db.$client.end();
+	await pool.end();
 }
 
 export * from "drizzle-orm";

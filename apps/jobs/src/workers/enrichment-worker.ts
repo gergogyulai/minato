@@ -2,9 +2,10 @@ import { db, enrichments, eq, torrents } from "@project-minato/db";
 import { env } from "@project-minato/env/jobs";
 import {
 	formatTorrentForMeilisearch,
-	MeiliBatcher,
+	meiliClient,
 } from "@project-minato/meilisearch";
 import { connection, ENRICH_JOBS, QUEUES } from "@project-minato/queue";
+import { Batcher } from "@project-minato/utils/batcher";
 import { type Job, Worker } from "bullmq";
 import { type MapperContext, mapMetadata } from "@/lib/metadata/mappers/index";
 import { AniListProvider } from "@/lib/metadata/providers/anilist";
@@ -43,11 +44,18 @@ const ENRICH_BATCH_TIMEOUT = 30000; // 30 seconds
 const JOB_TIMEOUT_MS = 60000; // 60 seconds fail-safe for the worker
 
 export function startEnrichmentWorker() {
-	const meiliBatcher = new MeiliBatcher(
-		"torrents",
-		ENRICH_BATCH_SIZE,
-		ENRICH_BATCH_TIMEOUT,
-	);
+	const meiliBatcher = new Batcher<ReturnType<typeof formatTorrentForMeilisearch>>({
+		maxSize: ENRICH_BATCH_SIZE,
+		maxWaitMs: ENRICH_BATCH_TIMEOUT,
+		onFlush: async (batch) => {
+			await meiliClient
+				.index("torrents")
+				.addDocuments(batch, { primaryKey: "infoHash" });
+		},
+		onError: (err, failedBatch) => {
+			log.error({ err, count: failedBatch.length }, "Meilisearch batch failed");
+		},
+	});
 
 	const worker = new Worker<EnrichJobData>(
 		QUEUES.ENRICH,
@@ -238,16 +246,16 @@ export function startEnrichmentWorker() {
 					return;
 				}
 				
-				await markAsEnriched(infoHash);
-				
-				const enriched = await db.query.torrents.findFirst({
-					where: eq(torrents.infoHash, infoHash),
-					with: { enrichment: true },
-				});
-				
+				const markedTorrent = await markAsEnriched(infoHash);
+
 				job.log("Enrichment complete, updating search index...");
-				if (enriched) {
-					await meiliBatcher.add(formatTorrentForMeilisearch(enriched));
+				if (markedTorrent) {
+					await meiliBatcher.add(
+						formatTorrentForMeilisearch({
+							...markedTorrent,
+							enrichment: finalEnrichment ?? null,
+						}),
+					);
 					job.log("Meilisearch update queued");
 					log.debug({ infoHash }, "Meilisearch updated");
 				}

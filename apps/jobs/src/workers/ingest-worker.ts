@@ -1,9 +1,10 @@
 import { db, eq, torrents } from "@project-minato/db";
 import {
 	formatTorrentForMeilisearch,
-	MeiliBatcher,
+	meiliClient,
 } from "@project-minato/meilisearch";
 import { connection, enrichQueue, QUEUES } from "@project-minato/queue";
+import { Batcher } from "@project-minato/utils/batcher";
 import { type Job, Worker } from "bullmq";
 import ReleaseParser from "release-parser";
 import { logger } from "@/utils/logger";
@@ -18,11 +19,32 @@ const INGEST_BATCH_SIZE = 500;
 const INGEST_BATCH_TIMEOUT = 5000;
 
 export function startIngestWorker() {
-	const meiliBatcher = new MeiliBatcher(
-		"torrents",
-		INGEST_BATCH_SIZE,
-		INGEST_BATCH_TIMEOUT,
-	);
+	const meiliBatcher = new Batcher<ReturnType<typeof formatTorrentForMeilisearch>>({
+		maxSize: INGEST_BATCH_SIZE,
+		maxWaitMs: INGEST_BATCH_TIMEOUT,
+		onFlush: async (batch) => {
+			await meiliClient
+				.index("torrents")
+				.addDocuments(batch, { primaryKey: "infoHash" });
+		},
+		onError: (err, failedBatch) => {
+			log.error({ err, count: failedBatch.length }, "Meilisearch batch failed");
+		},
+	});
+
+	const enrichBatcher = new Batcher<string>({
+		maxSize: 100,
+		maxWaitMs: 2000,
+		onFlush: async (batch) => {
+			await enrichQueue.addBulk(
+				batch.map((infoHash) => ({
+					name: "enrich",
+					data: { infoHash },
+					opts: { delay: 1000 },
+				})),
+			);
+		},
+	});
 
 	const worker = new Worker<IngestJobData>(
 		QUEUES.INGEST,
@@ -49,7 +71,7 @@ export function startIngestWorker() {
 				return;
 			}
 
-			await db
+			const [updatedTorrent] = await db
 				.update(torrents)
 				.set({
 					releaseData: release.data,
@@ -57,21 +79,15 @@ export function startIngestWorker() {
 					indexedAt: new Date(),
 					isDirty: false,
 				})
-				.where(eq(torrents.infoHash, infoHash));
-
-			const [updatedTorrent] = await db
-				.select()
-				.from(torrents)
 				.where(eq(torrents.infoHash, infoHash))
-				.limit(1);
+				.returning();
 
 			if (!updatedTorrent) {
 				log.warn({ infoHash }, "Updated torrent not found");
 				return;
 			}
 
-			const torrentDoc = formatTorrentForMeilisearch(updatedTorrent);
-			await meiliBatcher.add(torrentDoc);
+			await meiliBatcher.add(formatTorrentForMeilisearch(updatedTorrent));
 
 			log.debug(
 				{
@@ -89,10 +105,10 @@ export function startIngestWorker() {
 				!updatedTorrent.enrichedAt
 			) {
 				log.debug({ infoHash }, "Queuing for enrichment");
-				await enrichQueue.add("enrich", { infoHash }, { delay: 1000 });
+				await enrichBatcher.add(infoHash);
 			}
 		},
-		{ connection, concurrency: 512 },
+		{ connection, concurrency: 128 },
 	);
 
 	worker.on("completed", (job) => {
@@ -105,7 +121,7 @@ export function startIngestWorker() {
 
 	worker.on("closing", async () => {
 		log.info("Worker closing, flushing remaining batch...");
-		await meiliBatcher.flush();
+		await Promise.all([meiliBatcher.flush(), enrichBatcher.flush()]);
 	});
 
 	return worker;
