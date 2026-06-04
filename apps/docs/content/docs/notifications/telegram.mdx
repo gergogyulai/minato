@@ -1,0 +1,55 @@
+---
+title: Telegram
+description: Receive Minato alerts in a Telegram chat or group via the Bot API.
+---
+
+Telegram notifications are delivered through a bot you create and own. Messages are formatted as HTML and land in any chat or group the bot has access to.
+
+---
+
+## 1. Create a bot
+
+Open Telegram and start a conversation with [@BotFather](https://t.me/BotFather). Send `/newbot` and follow the prompts — you'll pick a display name and a username, then BotFather hands you a **bot token** that looks like:
+
+```
+123456789:ABC-DEF1234ghIkl-zyx57W2v1u123ew11
+```
+
+Copy it somewhere safe. This is the only credential Minato needs to send messages on your behalf.
+
+---
+
+## 2. Find your chat ID
+
+The bot needs to know where to deliver messages. The destination is identified by a **chat ID** — a numeric value that differs depending on the target.
+
+**Personal chat**
+
+Start a conversation with your new bot (just send it any message), then call the Telegram API in your browser:
+
+```
+https://api.telegram.org/bot<token>/getUpdates
+```
+
+Look for `"chat":{"id":...}` in the response — that's your personal chat ID (a positive integer).
+
+**Group or channel**
+
+Add the bot to the group or channel and send a message mentioning it, then call `getUpdates` above. Group and channel IDs are negative integers, for example `-100123456789`.
+
+Alternatively, add [@userinfobot](https://t.me/userinfobot) to any chat — it replies with the chat ID directly.
+
+---
+
+## 3. Add the channel in Minato
+
+Go to **Dashboard → Notifications → Add channel**, select **Telegram**, and fill in:
+
+| Field | Value |
+|---|---|
+| **Bot token** | The token from BotFather |
+| **Chat ID** | Your personal, group, or channel ID |
+
+Select the events you want to receive and click **Create**.
+
+Use the **Test** button (⚗) in the channel list to send a sample message and confirm delivery before a real event fires.

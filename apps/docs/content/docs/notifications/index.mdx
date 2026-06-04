@@ -1,0 +1,40 @@
+---
+title: Notifications
+description: Get alerted on scraper events and new content via Telegram, ntfy, or Discord.
+---
+
+Minato can push alerts to external channels whenever something notable happens — a scraper finishes a run, crashes, changes state, or a daily digest of newly ingested content is ready.
+
+Notification channels are configured per user in **Dashboard → Notifications**. Each channel subscribes to one or more events and delivers independently, so you can fan out to multiple destinations (e.g. Telegram for failures, Discord for daily digests).
+
+---
+
+## Events
+
+| Event | When it fires |
+|---|---|
+| **Scraper completed** | A scheduled or poller scraper exits with code 0 |
+| **Scraper failed** | A scraper crashes or exits with a non-zero code |
+| **Scraper state changed** | Any state transition (starting, paused, stopped, etc.) |
+| **Daily digest** | Once per day — a count of torrents ingested in the last 24 hours |
+| **Wanted torrent found** | A newly ingested torrent matches an item on your wanted list |
+
+The daily digest fires approximately every 24 hours from when the jobs service starts. If no new torrents were ingested since the last digest, the notification is skipped.
+
+---
+
+## Delivery behaviour
+
+Notifications are dispatched asynchronously through the internal job queue. A short delay between the event and delivery is normal.
+
+If a channel fails to deliver (network error, bad credentials, etc.) the job is retried automatically. A failure on one channel does not prevent others from receiving the same notification.
+
+---
+
+## Channels
+
+<Cards>
+  <Card title="Telegram" href="/docs/notifications/telegram" description="Deliver messages via the Telegram Bot API" />
+  <Card title="ntfy" href="/docs/notifications/ntfy" description="Publish to a self-hosted or ntfy.sh topic" />
+  <Card title="Discord" href="/docs/notifications/discord" description="Post embed messages via a Discord webhook" />
+</Cards>

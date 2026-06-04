@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
 import {
+	Bell,
 	Boxes,
 	KeyRound,
 	LayoutDashboard,
@@ -32,6 +33,7 @@ const NAV: NavItem[] = [
 	{ to: "/dashboard/scrapers", label: "Scrapers", icon: Boxes },
 	{ to: "/dashboard/queues", label: "Queues", icon: ListOrdered },
 	{ to: "/dashboard/api-keys", label: "API Keys", icon: KeyRound },
+	{ to: "/dashboard/notifications", label: "Notifications", icon: Bell },
 	{ to: "/dashboard/users", label: "Users", icon: Users },
 	{ to: "/dashboard/security", label: "Security", icon: ShieldCheck },
 	{ to: "/dashboard/settings", label: "Settings", icon: Settings },

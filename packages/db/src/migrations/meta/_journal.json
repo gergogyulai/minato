@@ -43,6 +43,13 @@
       "when": 1780247928904,
       "tag": "0005_stiff_mordo",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1780488155344,
+      "tag": "0006_clammy_deathbird",
+      "breakpoints": true
     }
   ]
 }

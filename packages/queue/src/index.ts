@@ -13,6 +13,7 @@ export const QUEUES = {
 	HOUSEKEEPER: "housekeeper_queue",
 	AI_REPAIR: "ai_repair_queue",
 	SCRAPER_CONTROL: "scraper_control",
+	NOTIFICATIONS: "notifications_queue",
 } as const;
 
 export const ENRICH_JOBS = {
@@ -38,12 +39,35 @@ export const SCRAPER_CONTROL_JOBS = {
 
 export type ScraperControlJobData = { scraperId: string };
 
+export const NOTIFICATION_JOBS = {
+	DISPATCH: "dispatch",
+	DIGEST: "digest",
+} as const;
+
+export type NotificationEvent =
+	| "scraper_completed"
+	| "scraper_failed"
+	| "scraper_state_changed"
+	| "torrent_digest"
+	| "wanted_torrent_found";
+
+export type NotificationDispatchJobData = {
+	event: NotificationEvent;
+	payload: Record<string, unknown>;
+	/** When set, deliver only to this specific channel (used for test sends). */
+	channelId?: string;
+};
+
 export const ingestQueue = new Queue(QUEUES.INGEST, { connection });
 export const enrichQueue = new Queue(QUEUES.ENRICH, { connection });
 export const housekeeperQueue = new Queue(QUEUES.HOUSEKEEPER, { connection });
 export const aiRepairQueue = new Queue(QUEUES.AI_REPAIR, { connection });
 export const scraperControlQueue = new Queue<ScraperControlJobData>(
 	QUEUES.SCRAPER_CONTROL,
+	{ connection },
+);
+export const notificationsQueue = new Queue<NotificationDispatchJobData>(
+	QUEUES.NOTIFICATIONS,
 	{ connection },
 );
 

@@ -9,6 +9,7 @@ import { searchRouter } from "@/api/routers/search";
 import { setupRouter } from "@/api/routers/setup";
 import { statsRouter } from "@/api/routers/stats";
 import { torrentRouter } from "@/api/routers/torrents";
+import { notificationsRouter } from "@/api/routers/notifications";
 import { usersRouter } from "@/api/routers/users";
 
 export const appRouter = {
@@ -28,6 +29,7 @@ export const appRouter = {
 	stats: statsRouter,
 	queues: queuesRouter,
 	users: usersRouter,
+	notifications: notificationsRouter,
 };
 export type AppRouter = typeof appRouter;
 export type AppRouterClient = RouterClient<typeof appRouter>;

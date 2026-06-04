@@ -1,0 +1,38 @@
+---
+title: Discord
+description: Post Minato alerts as rich embed messages to a Discord channel via a webhook.
+---
+
+Discord notifications are delivered as embedded messages through a webhook URL you create in your server. No bot account or token is required — Discord generates the webhook for you.
+
+---
+
+## 1. Create a webhook
+
+1. Open Discord and go to the channel you want to receive notifications in.
+2. Open **Channel Settings** (the gear icon next to the channel name).
+3. Go to **Integrations → Webhooks → New Webhook**.
+4. Give it a name (e.g. "Minato") and optionally set an avatar.
+5. Click **Copy Webhook URL**.
+
+The URL looks like:
+
+```
+https://discord.com/api/webhooks/1234567890123456789/xxxxxxxxxxxxxxxxxxxx
+```
+
+Keep this URL private — anyone with it can post to your channel.
+
+---
+
+## 2. Add the channel in Minato
+
+Go to **Dashboard → Notifications → Add channel**, select **Discord**, and fill in:
+
+| Field | Description |
+|---|---|
+| **Webhook URL** | The full URL copied from Discord's webhook settings |
+
+Select the events you want to receive and click **Create**.
+
+Use the **Test** button (⚗) in the channel list to post a sample embed and confirm it appears in the right channel.

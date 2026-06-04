@@ -11,6 +11,7 @@ import { logger } from "@/utils/logger";
 import { startEnrichmentWorker } from "@/workers/enrichment-worker";
 import { startHousekeeperWorker } from "@/workers/housekeeper-worker";
 import { startIngestWorker } from "@/workers/ingest-worker";
+import { startNotificationWorker } from "@/workers/notification-worker";
 
 const BOOTSTRAP_MAX_RETRIES = 10;
 const BOOTSTRAP_INITIAL_DELAY_MS = 3_000;
@@ -31,7 +32,8 @@ async function bootstrap(attempt = 1): Promise<void> {
 		const ingestWorker = startIngestWorker();
 		const enrichmentWorker = startEnrichmentWorker();
 		const housekeeperWorker = startHousekeeperWorker();
-		logger.info("Workers active: ingest, enrichment, housekeeper");
+		const notificationWorker = startNotificationWorker();
+		logger.info("Workers active: ingest, enrichment, housekeeper, notifications");
 
 		await startSupervisor();
 		logger.info("Supervisor active");
@@ -47,6 +49,7 @@ async function bootstrap(attempt = 1): Promise<void> {
 					ingestWorker.close(),
 					enrichmentWorker.close(),
 					housekeeperWorker.close(),
+					notificationWorker.close(),
 					connection.quit(),
 					closeDb(),
 					closePubSub(),
