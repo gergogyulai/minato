@@ -35,6 +35,7 @@ export const SCRAPER_CONTROL_JOBS = {
 	RUN: "run",
 	KILL: "kill",
 	RELOAD: "reload",
+	ENABLE: "enable",
 } as const;
 
 export type ScraperControlJobData = { scraperId: string };

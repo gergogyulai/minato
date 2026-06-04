@@ -314,7 +314,17 @@ export const scraperRouter = {
 			.set({ enabled: input.enabled, updatedAt: new Date() })
 			.where(eq(scrapers.id, input.id));
 
-		if (!input.enabled) {
+		if (input.enabled) {
+			await scraperControlQueue.add(SCRAPER_CONTROL_JOBS.ENABLE, {
+				scraperId: input.id,
+			});
+		} else {
+			await db.delete(scraperStatus).where(eq(scraperStatus.scraperId, input.id));
+			await db
+				.update(scrapers)
+				.set({ nextRunAt: null, updatedAt: new Date() })
+				.where(eq(scrapers.id, input.id));
+
 			// Tell the supervisor to kill the process directly. The supervisor's
 			// onChildExit will see enabled=false and keep the state as stopped.
 			await scraperControlQueue.add(SCRAPER_CONTROL_JOBS.KILL, {

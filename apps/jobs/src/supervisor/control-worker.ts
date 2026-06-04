@@ -10,6 +10,7 @@ import {
 	cancelTimer,
 	killManaged,
 	managed,
+	scheduleEnabled,
 	spawnManaged,
 } from "./supervisor";
 
@@ -53,6 +54,15 @@ export function startControlWorker(): Worker<ScraperControlJobData> {
 				}
 				await killManaged(record);
 				await spawnManaged(record);
+				return;
+			}
+
+			if (job.name === SCRAPER_CONTROL_JOBS.ENABLE) {
+				if (!record) {
+					logger.warn(`enable: scraper ${scraperId} not in registry, skipping`);
+					return;
+				}
+				await scheduleEnabled(scraperId);
 				return;
 			}
 

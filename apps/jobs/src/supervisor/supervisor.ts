@@ -19,6 +19,10 @@ import {
 	scrapers,
 } from "@project-minato/db";
 import { CronExpressionParser } from "cron-parser";
+import {
+	NOTIFICATION_JOBS,
+	notificationsQueue,
+} from "@project-minato/queue";
 import { logger as rootLogger } from "@/utils/logger";
 
 const logger = rootLogger.child({ component: "supervisor" });
@@ -98,6 +102,15 @@ async function setState(
 		logger.info(
 			`scraper[${id}] ${previous ?? "init"} → ${next}${extra.reason ? ` (${extra.reason})` : ""}`,
 		);
+		void notificationsQueue.add(NOTIFICATION_JOBS.DISPATCH, {
+			event: "scraper_state_changed",
+			payload: {
+				scraperId: id,
+				scraperName: record?.name ?? id,
+				fromState: previous,
+				toState: next,
+			},
+		});
 	}
 }
 
@@ -442,11 +455,58 @@ export async function spawnManaged(record: ManagedScraper): Promise<void> {
 	void handle.exited.then((code) => void onChildExit(record, code));
 }
 
+export async function scheduleEnabled(id: string): Promise<void> {
+	const record = managed.get(id);
+	if (!record) return;
+	if (record.proc) return;
+
+	const [dbRow] = await db
+		.select({
+			lifecycle: scrapers.lifecycle,
+			schedule: scrapers.schedule,
+			recommendedSchedule: scrapers.recommendedSchedule,
+		})
+		.from(scrapers)
+		.where(eq(scrapers.id, id))
+		.limit(1);
+
+	if (!dbRow) return;
+
+	const cron = dbRow.schedule ?? dbRow.recommendedSchedule ?? null;
+
+	if ((dbRow.lifecycle === "scheduled" || dbRow.lifecycle === "poller") && cron) {
+		try {
+			const next = CronExpressionParser.parse(cron, { tz: "UTC" }).next().toDate();
+			await db
+				.update(scrapers)
+				.set({ nextRunAt: next, updatedAt: new Date() })
+				.where(eq(scrapers.id, id));
+			await setState(id, "scheduled", {
+				reason: `enabled, next run @ ${next.toISOString()}`,
+			});
+			scheduleAt(id, next, () => {
+				const current = managed.get(id);
+				if (current && !stopping) void spawnManaged(current);
+			});
+		} catch (err) {
+			await setState(id, "error", {
+				reason: "invalid cron on enable",
+				lastError: `cron parse error: ${(err as Error).message}`,
+			});
+		}
+		return;
+	}
+
+	record.restarts = 0;
+	await spawnManaged(record);
+}
+
 export async function killManaged(record: ManagedScraper): Promise<void> {
 	cancelTimer(record.id);
-	if (!record.proc) return;
-	await record.proc.killGracefully();
-	record.proc = null;
+	if (record.proc) {
+		await record.proc.killGracefully();
+		record.proc = null;
+	}
 	await setState(record.id, "stopped", { pid: null });
 }
 
@@ -524,6 +584,10 @@ async function onChildExit(
 
 	if (cleanExit && (dbRow.lifecycle === "scheduled" || dbRow.lifecycle === "poller")) {
 		record.restarts = 0;
+		void notificationsQueue.add(NOTIFICATION_JOBS.DISPATCH, {
+			event: "scraper_completed",
+			payload: { scraperId: record.id, scraperName: record.name, exitCode: 0 },
+		});
 		if (cron) {
 			try {
 				const next = CronExpressionParser.parse(cron, { tz: "UTC" })
@@ -561,6 +625,15 @@ async function onChildExit(
 	// backoff with jitter.
 	record.restarts += 1;
 	const delay = backoffMs(record.restarts - 1);
+	void notificationsQueue.add(NOTIFICATION_JOBS.DISPATCH, {
+		event: "scraper_failed",
+		payload: {
+			scraperId: record.id,
+			scraperName: record.name,
+			exitCode,
+			restarts: record.restarts,
+		},
+	});
 	await setState(record.id, "error", {
 		reason: `exited ${exitCode} (attempt ${record.restarts})`,
 		pid: null,
