@@ -4,6 +4,7 @@ import {
 	ArrowLeft,
 	CalendarClock,
 	CloudDownload,
+	Info,
 	Loader2,
 	Pause,
 	Play,
@@ -36,6 +37,13 @@ import {
 import { StatCard } from "@/components/admin/stat-card";
 import { StatusPill } from "@/components/admin/status-pill";
 import { Button } from "@/components/ui/button";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { client, orpc } from "@/utils/orpc";
 
@@ -79,6 +87,56 @@ function Panel({
 }
 
 const fmt = (n: number) => n.toLocaleString();
+
+function humanCron(expr: string): string {
+	const parts = expr.trim().split(/\s+/);
+	if (parts.length !== 5) return expr;
+	const [min, hour, dom, month, dow] = parts;
+
+	const every = (field: string) => field === "*" || field === "*/1";
+	const everyN = (field: string) => field.startsWith("*/") ? Number(field.slice(2)) : null;
+
+	// Every N minutes
+	if (every(hour) && every(dom) && every(month) && every(dow)) {
+		const n = everyN(min);
+		if (n !== null) return `Every ${n} minutes`;
+		if (every(min)) return "Every minute";
+		return `At minute ${min} of every hour`;
+	}
+
+	// Hourly
+	if (every(dom) && every(month) && every(dow)) {
+		const n = everyN(hour);
+		if (n !== null) {
+			const suffix = min === "0" || every(min) ? "" : ` at minute ${min}`;
+			return `Every ${n} hours${suffix}`;
+		}
+		const minuteStr = every(min) ? "0" : min;
+		if (!hour.includes(",") && !hour.includes("-")) {
+			return `Daily at ${hour.padStart(2, "0")}:${minuteStr.padStart(2, "0")}`;
+		}
+	}
+
+	// Daily at specific time
+	if (!hour.includes("*") && !min.includes("*") && every(dom) && every(month) && every(dow)) {
+		const minuteStr = min.padStart(2, "0");
+		return `Daily at ${hour.padStart(2, "0")}:${minuteStr}`;
+	}
+
+	// Weekly on specific days
+	const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+	if (!hour.includes("*") && !min.includes("*") && every(dom) && every(month) && !every(dow)) {
+		const days = dow.split(",").map((d) => dayNames[Number(d)] ?? d).join(", ");
+		return `Weekly on ${days} at ${hour.padStart(2, "0")}:${min.padStart(2, "0")}`;
+	}
+
+	// Monthly
+	if (!hour.includes("*") && !min.includes("*") && !dom.includes("*") && every(month) && every(dow)) {
+		return `Monthly on day ${dom} at ${hour.padStart(2, "0")}:${min.padStart(2, "0")}`;
+	}
+
+	return expr;
+}
 
 function ScraperDetailPage() {
 	const { id } = Route.useParams();
@@ -147,6 +205,7 @@ function ScraperDetail({
 	onRemoved: () => void;
 }) {
 	const [busy, setBusy] = useState<string | null>(null);
+	const [infoOpen, setInfoOpen] = useState(false);
 	const [scheduleOpen, setScheduleOpen] = useState(false);
 	const [configOpen, setConfigOpen] = useState(false);
 	const [removeOpen, setRemoveOpen] = useState(false);
@@ -201,6 +260,14 @@ function ScraperDetail({
 					description={`${sc.id} · v${sc.installedVersion}`}
 					actions={
 						<div className="flex items-center gap-3">
+							<Button
+								size="sm"
+								variant="ghost"
+								onClick={() => setInfoOpen(true)}
+								className="gap-1.5 text-muted-foreground"
+							>
+								<Info className="size-4" /> About
+							</Button>
 							<span className="text-muted-foreground text-xs">
 								{sc.enabled ? "Enabled" : "Disabled"}
 							</span>
@@ -233,7 +300,7 @@ function ScraperDetail({
 					{effectiveSchedule && (
 						<>
 							<span aria-hidden>·</span>
-							<span className="font-mono">{effectiveSchedule}</span>
+							<span title={effectiveSchedule}>{humanCron(effectiveSchedule)}</span>
 						</>
 					)}
 					{sc.lastSeenAt && (
@@ -549,6 +616,7 @@ function ScraperDetail({
 				/>
 			</Panel>
 
+			<ScraperInfoDialog open={infoOpen} onOpenChange={setInfoOpen} scraper={sc} />
 			<ScraperScheduleDialog
 				open={scheduleOpen}
 				onOpenChange={setScheduleOpen}
@@ -578,5 +646,153 @@ function ScraperDetail({
 				}
 			/>
 		</div>
+	);
+}
+
+function InfoRow({
+	label,
+	children,
+}: {
+	label: string;
+	children: React.ReactNode;
+}) {
+	return (
+		<div className="grid grid-cols-[7rem_1fr] items-start gap-2">
+			<span className="pt-0.5 text-muted-foreground text-xs">{label}</span>
+			<span className="min-w-0 break-all text-sm">{children}</span>
+		</div>
+	);
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+	return (
+		<div className="space-y-2">
+			<p className="font-medium text-muted-foreground text-xs uppercase tracking-wider">
+				{title}
+			</p>
+			<div className="space-y-2">{children}</div>
+		</div>
+	);
+}
+
+function ScraperInfoDialog({
+	open,
+	onOpenChange,
+	scraper: sc,
+}: {
+	open: boolean;
+	onOpenChange: (o: boolean) => void;
+	scraper: Scraper;
+}) {
+	const m = sc.manifest;
+	const effectiveType = sc.lifecycle ?? m.scraperType;
+
+	return (
+		<Dialog open={open} onOpenChange={onOpenChange}>
+			<DialogContent className="sm:max-w-lg">
+				<DialogHeader>
+					<DialogTitle>{m.title ?? sc.name}</DialogTitle>
+					<DialogDescription className="font-mono">{sc.id}</DialogDescription>
+				</DialogHeader>
+
+				<div className="max-h-[60vh] space-y-6 overflow-y-auto pr-1">
+					<Section title="Identity">
+						{m.title && m.title !== sc.name && (
+							<InfoRow label="Package name">{sc.name}</InfoRow>
+						)}
+						<InfoRow label="Version">
+							<span className="font-mono">v{m.version}</span>
+						</InfoRow>
+						{m.author && <InfoRow label="Author">{m.author}</InfoRow>}
+					</Section>
+
+					<Section title="Runtime">
+						{effectiveType && (
+							<InfoRow label="Type">
+								<span className="capitalize">{effectiveType}</span>
+							</InfoRow>
+						)}
+						{m.capabilities.length > 0 && (
+							<InfoRow label="Capabilities">
+								<div className="flex flex-wrap gap-1">
+									{m.capabilities.map((cap) => (
+										<span
+											key={cap}
+											className="rounded border border-border bg-muted/50 px-1.5 py-0.5 font-mono text-xs"
+										>
+											{cap}
+										</span>
+									))}
+								</div>
+							</InfoRow>
+						)}
+					</Section>
+
+					<Section title="Source">
+						<InfoRow label="Kind">
+							<span className="capitalize">{sc.source.kind.replace("_", " ")}</span>
+						</InfoRow>
+						{sc.source.kind === "git" && (
+							<>
+								<InfoRow label="Repository">
+									<span className="font-mono text-xs">{sc.source.url}</span>
+								</InfoRow>
+								{sc.source.ref && (
+									<InfoRow label="Ref">
+										<span className="font-mono text-xs">{sc.source.ref}</span>
+									</InfoRow>
+								)}
+							</>
+						)}
+						{sc.source.kind === "registry" && (
+							<InfoRow label="Slug">
+								<span className="font-mono text-xs">{sc.source.slug}</span>
+							</InfoRow>
+						)}
+					</Section>
+
+					{(sc.recommendedSchedule ?? sc.schedule) && (
+						<Section title="Schedule">
+							{sc.recommendedSchedule && (
+								<InfoRow label="Recommended">
+									<span>{humanCron(sc.recommendedSchedule)}</span>
+									<span className="mt-0.5 block font-mono text-muted-foreground text-xs">{sc.recommendedSchedule}</span>
+								</InfoRow>
+							)}
+							{sc.schedule && (
+								<InfoRow label="Override">
+									<span>{humanCron(sc.schedule)}</span>
+									<span className="mt-0.5 block font-mono text-muted-foreground text-xs">{sc.schedule}</span>
+								</InfoRow>
+							)}
+						</Section>
+					)}
+
+					{m.defaultConfig && Object.keys(m.defaultConfig).length > 0 && (
+						<Section title="Default config">
+							{Object.entries(m.defaultConfig).map(([key, val]) => (
+								<InfoRow key={key} label={key}>
+									<span className="font-mono text-xs">{JSON.stringify(val)}</span>
+								</InfoRow>
+							))}
+						</Section>
+					)}
+
+					<Section title="Installation">
+						<InfoRow label="Installed">
+							{new Date(sc.installedAt).toLocaleString()}
+						</InfoRow>
+						<InfoRow label="Last updated">
+							{new Date(sc.updatedAt).toLocaleString()}
+						</InfoRow>
+						{sc.lastSeenAt && (
+							<InfoRow label="Last seen">
+								{new Date(sc.lastSeenAt).toLocaleString()}
+							</InfoRow>
+						)}
+					</Section>
+				</div>
+			</DialogContent>
+		</Dialog>
 	);
 }

@@ -2,13 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
 	Boxes,
-	CalendarClock,
-	ChevronRight,
 	CloudDownload,
 	Loader2,
 	Pause,
 	Play,
-	Settings2,
 	Square,
 	Trash2,
 } from "lucide-react";
@@ -18,8 +15,6 @@ import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 import { EmptyState } from "@/components/admin/empty-state";
 import { PageHeader } from "@/components/admin/page-header";
-import { ScraperConfigDialog } from "@/components/admin/scraper-config-dialog";
-import { ScraperScheduleDialog } from "@/components/admin/scraper-schedule-dialog";
 import {
 	scraperStateLabel,
 	scraperStateTone,
@@ -65,11 +60,11 @@ function ScrapersPage() {
 			/>
 
 			{scrapers.isLoading && (
-				<div className="space-y-4">
-					{[0, 1].map((i) => (
+				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+					{[0, 1, 2, 3].map((i) => (
 						<div
 							key={i}
-							className="h-32 animate-pulse rounded-xl border border-border bg-muted/30"
+							className="h-52 animate-pulse rounded-xl border border-border bg-muted/30"
 						/>
 					))}
 				</div>
@@ -89,7 +84,7 @@ function ScrapersPage() {
 				/>
 			)}
 
-			<div className="space-y-4">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				{scrapers.data?.scrapers.map((sc) => (
 					<ScraperCard
 						key={sc.id}
@@ -116,8 +111,6 @@ function ScraperCard({
 	onChange: () => void;
 }) {
 	const [busy, setBusy] = useState<string | null>(null);
-	const [scheduleOpen, setScheduleOpen] = useState(false);
-	const [configOpen, setConfigOpen] = useState(false);
 	const [removeOpen, setRemoveOpen] = useState(false);
 
 	const total = sc.status?.progressTotal ?? 0;
@@ -139,87 +132,85 @@ function ScraperCard({
 	}
 
 	return (
-		<div className="rounded-xl border border-border bg-card p-5">
-			<div className="flex flex-wrap items-start justify-between gap-4">
-				<div className="min-w-0">
-					<div className="flex items-center gap-2.5">
-						<h3 className="truncate font-semibold text-base text-foreground">
-							{sc.name}
-						</h3>
-						<StatusPill
-							tone={scraperStateTone(sc.state)}
-							dot
-							pulse={sc.state === "running"}
-						>
-							{scraperStateLabel(sc.state)}
-						</StatusPill>
-						<Link
-							to="/dashboard/scrapers/$id"
-							params={{ id: sc.id }}
-							className="ml-0.5 inline-flex items-center gap-0.5 text-muted-foreground text-xs transition-colors hover:text-foreground"
-						>
-							Details <ChevronRight className="size-3" />
-						</Link>
+		<div className="flex flex-col overflow-hidden rounded-xl border border-border bg-card transition-shadow hover:shadow-md">
+			{/* Clickable body */}
+			<Link
+				to="/dashboard/scrapers/$id"
+				params={{ id: sc.id }}
+				className="flex flex-1 flex-col gap-4 p-6 transition-colors hover:bg-muted/40"
+			>
+				{/* Header */}
+				<div className="flex items-start justify-between gap-3">
+					<div className="min-w-0 flex-1">
+						<div className="mb-1.5 flex flex-wrap items-center gap-2">
+							<h3 className="truncate font-semibold text-base text-foreground transition-colors group-hover:text-primary">
+								{sc.name}
+							</h3>
+							<StatusPill
+								tone={scraperStateTone(sc.state)}
+								dot
+								pulse={sc.state === "running"}
+							>
+								{scraperStateLabel(sc.state)}
+							</StatusPill>
+						</div>
+						<p className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-muted-foreground text-xs">
+							<span className="font-mono">{sc.id}</span>
+							<span aria-hidden className="opacity-40">·</span>
+							<span>v{sc.installedVersion}</span>
+							<span aria-hidden className="opacity-40">·</span>
+							<span className="capitalize">{sc.source.kind.replace("_", " ")}</span>
+						</p>
 					</div>
-					<p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-muted-foreground text-xs">
-						<span className="font-mono">{sc.id}</span>
-						<span aria-hidden>·</span>
-						<span>v{sc.installedVersion}</span>
-						<span aria-hidden>·</span>
-						<span className="capitalize">
-							{sc.source.kind.replace("_", " ")}
-						</span>
-						{sc.schedule && (
-							<>
-								<span aria-hidden>·</span>
-								<span className="font-mono">{sc.schedule}</span>
-							</>
-						)}
-					</p>
-				</div>
 
-				<div className="flex items-center gap-3">
-					<span className="text-muted-foreground text-xs">
-						{sc.enabled ? "Enabled" : "Disabled"}
-					</span>
-					<Switch
-						checked={sc.enabled}
-						disabled={busy !== null}
-						onCheckedChange={(enabled) =>
-							run(
-								"enable",
-								() => client.scraper.setEnabled({ id: sc.id, enabled }),
-								enabled ? "Scraper enabled" : "Scraper disabled",
-							)
-						}
-					/>
-				</div>
-			</div>
-
-			{pct !== null && (
-				<div className="mt-4">
-					<div className="mb-1 flex justify-between text-muted-foreground text-xs">
-						<span>{sc.status?.message ?? "Working"}</span>
-						<span className="tabular-nums">
-							{current.toLocaleString()} / {total.toLocaleString()} ({pct}%)
-						</span>
-					</div>
-					<div className="h-1.5 overflow-hidden rounded-full bg-muted">
-						<div
-							className="h-full rounded-full bg-primary transition-all"
-							style={{ width: `${pct}%` }}
+					{/* Stop propagation so the switch doesn't navigate */}
+					<div onClick={(e) => e.preventDefault()}>
+						<Switch
+							checked={sc.enabled}
+							disabled={busy !== null}
+							onCheckedChange={(enabled) =>
+								run(
+									"enable",
+									() => client.scraper.setEnabled({ id: sc.id, enabled }),
+									enabled ? "Scraper enabled" : "Scraper disabled",
+								)
+							}
 						/>
 					</div>
 				</div>
-			)}
 
-			{sc.lastError && (
-				<p className="mt-3 rounded-md border border-red-500/20 bg-red-500/5 px-3 py-2 text-red-600 text-xs dark:text-red-400">
-					{sc.lastError}
-				</p>
-			)}
+				{/* Progress */}
+				{pct !== null && (
+					<div className="space-y-1.5">
+						<div className="flex items-center justify-between text-xs text-muted-foreground">
+							<span className="truncate pr-2">{sc.status?.message ?? "Working"}</span>
+							<span className="shrink-0 font-mono tabular-nums">{pct}%</span>
+						</div>
+						<div className="h-1.5 overflow-hidden rounded-full bg-muted">
+							<div
+								className="h-full rounded-full bg-primary transition-all duration-300"
+								style={{ width: `${pct}%` }}
+							/>
+						</div>
+						<p className="text-right text-muted-foreground/70 text-xs tabular-nums">
+							{current.toLocaleString()} / {total.toLocaleString()}
+						</p>
+					</div>
+				)}
 
-			<div className="mt-4 flex flex-wrap items-center gap-2 border-border border-t pt-4">
+				{/* Error */}
+				{sc.lastError && (
+					<p className="rounded-md border border-red-500/20 bg-red-500/5 px-3 py-2 text-red-600 text-xs dark:text-red-400">
+						{sc.lastError}
+					</p>
+				)}
+
+				{/* Spacer to anchor footer */}
+				<div className="flex-1" />
+			</Link>
+
+			{/* Footer actions */}
+			<div className="flex flex-wrap items-center gap-1.5 border-border border-t bg-muted/20 px-4 py-3">
 				{sc.state === "running" && (
 					<Button
 						size="sm"
@@ -228,14 +219,13 @@ function ScraperCard({
 						onClick={() =>
 							run(
 								"pause",
-								() =>
-									client.scraper.issueCommand({ id: sc.id, command: "pause" }),
+								() => client.scraper.issueCommand({ id: sc.id, command: "pause" }),
 								"Pause requested",
 							)
 						}
-						className="gap-1.5"
+						className="h-7 gap-1.5 text-xs"
 					>
-						<Pause className="size-3.5" /> Pause
+						<Pause className="size-3" /> Pause
 					</Button>
 				)}
 				{sc.state === "paused" && (
@@ -246,14 +236,13 @@ function ScraperCard({
 						onClick={() =>
 							run(
 								"resume",
-								() =>
-									client.scraper.issueCommand({ id: sc.id, command: "resume" }),
+								() => client.scraper.issueCommand({ id: sc.id, command: "resume" }),
 								"Resume requested",
 							)
 						}
-						className="gap-1.5"
+						className="h-7 gap-1.5 text-xs"
 					>
-						<Play className="size-3.5" /> Resume
+						<Play className="size-3" /> Resume
 					</Button>
 				)}
 				{(sc.state === "running" || sc.state === "paused") && (
@@ -264,14 +253,13 @@ function ScraperCard({
 						onClick={() =>
 							run(
 								"stop",
-								() =>
-									client.scraper.issueCommand({ id: sc.id, command: "stop" }),
+								() => client.scraper.issueCommand({ id: sc.id, command: "stop" }),
 								"Stop requested",
 							)
 						}
-						className="gap-1.5"
+						className="h-7 gap-1.5 text-xs"
 					>
-						<Square className="size-3.5" /> Stop
+						<Square className="size-3" /> Stop
 					</Button>
 				)}
 				{(sc.state === "ready" ||
@@ -290,33 +278,16 @@ function ScraperCard({
 									"Scraper triggered",
 								)
 							}
-							className="gap-1.5"
+							className="h-7 gap-1.5 text-xs"
 						>
 							{busy === "run" ? (
-								<Loader2 className="size-3.5 animate-spin" />
+								<Loader2 className="size-3 animate-spin" />
 							) : (
-								<Play className="size-3.5" />
+								<Play className="size-3" />
 							)}
 							Run Now
 						</Button>
 					)}
-
-				<Button
-					size="sm"
-					variant="ghost"
-					onClick={() => setScheduleOpen(true)}
-					className="gap-1.5 text-muted-foreground"
-				>
-					<CalendarClock className="size-3.5" /> Schedule
-				</Button>
-				<Button
-					size="sm"
-					variant="ghost"
-					onClick={() => setConfigOpen(true)}
-					className="gap-1.5 text-muted-foreground"
-				>
-					<Settings2 className="size-3.5" /> Config
-				</Button>
 
 				<div className="flex-1" />
 
@@ -333,12 +304,12 @@ function ScraperCard({
 									"Update pulled",
 								)
 							}
-							className="gap-1.5 text-muted-foreground"
+							className="h-7 gap-1.5 text-muted-foreground text-xs"
 						>
 							{busy === "update" ? (
-								<Loader2 className="size-3.5 animate-spin" />
+								<Loader2 className="size-3 animate-spin" />
 							) : (
-								<CloudDownload className="size-3.5" />
+								<CloudDownload className="size-3" />
 							)}
 							Update
 						</Button>
@@ -346,26 +317,15 @@ function ScraperCard({
 							size="sm"
 							variant="ghost"
 							onClick={() => setRemoveOpen(true)}
-							className="gap-1.5 text-red-600 hover:text-red-600 dark:text-red-400"
+							className="h-7 gap-1.5 text-red-600 text-xs hover:text-red-600 dark:text-red-400"
 						>
-							<Trash2 className="size-3.5" /> Remove
+							<Trash2 className="size-3" /> Remove
 						</Button>
 					</>
 				)}
+
 			</div>
 
-			<ScraperScheduleDialog
-				open={scheduleOpen}
-				onOpenChange={setScheduleOpen}
-				scraper={sc}
-				onSaved={onChange}
-			/>
-			<ScraperConfigDialog
-				open={configOpen}
-				onOpenChange={setConfigOpen}
-				scraper={sc}
-				onSaved={onChange}
-			/>
 			<ConfirmDialog
 				open={removeOpen}
 				onOpenChange={setRemoveOpen}
