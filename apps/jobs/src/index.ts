@@ -8,6 +8,7 @@ import { connection } from "@project-minato/queue";
 import { startSupervisor, stopAllScrapers } from "@/supervisor";
 import { checkInfrastructure } from "@/utils/infra";
 import { logger } from "@/utils/logger";
+import { startAIRepairWorker } from "@/workers/ai-repair-worker";
 import { startEnrichmentWorker } from "@/workers/enrichment-worker";
 import { startHousekeeperWorker } from "@/workers/housekeeper-worker";
 import { startIngestWorker } from "@/workers/ingest-worker";
@@ -31,9 +32,10 @@ async function bootstrap(attempt = 1): Promise<void> {
 
 		const ingestWorker = startIngestWorker();
 		const enrichmentWorker = startEnrichmentWorker();
+		const aiRepairWorker = startAIRepairWorker();
 		const housekeeperWorker = startHousekeeperWorker();
 		const notificationWorker = startNotificationWorker();
-		logger.info("Workers active: ingest, enrichment, housekeeper, notifications");
+		logger.info("Workers active: ingest, enrichment, ai-repair, housekeeper, notifications");
 
 		await startSupervisor();
 		logger.info("Supervisor active");
@@ -48,6 +50,7 @@ async function bootstrap(attempt = 1): Promise<void> {
 				await Promise.all([
 					ingestWorker.close(),
 					enrichmentWorker.close(),
+					aiRepairWorker.close(),
 					housekeeperWorker.close(),
 					notificationWorker.close(),
 					connection.quit(),

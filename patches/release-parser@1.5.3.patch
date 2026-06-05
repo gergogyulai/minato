@@ -1,8 +1,14 @@
 diff --git a/Users/gergo/Developer/project-minato/node_modules/release-parser/.bun-tag-513593bc7811804 b/.bun-tag-513593bc7811804
 new file mode 100644
 index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+diff --git a/Users/gergo/Developer/project-minato/node_modules/release-parser/.bun-tag-abc15ada13ceb9e4 b/.bun-tag-abc15ada13ceb9e4
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+diff --git a/Users/gergo/Developer/project-minato/node_modules/release-parser/.bun-tag-c40816e63a325b3e b/.bun-tag-c40816e63a325b3e
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
 diff --git a/ReleaseParser.js b/ReleaseParser.js
-index b087ab0ed1592595fc7611b0447a3970a1ec1df7..a0e56f1e258d3cfed3e30eb2ec36c3b9d4138269 100644
+index b087ab0ed1592595fc7611b0447a3970a1ec1df7..fcce0d7556a6880d8debe8e2a864105163d599db 100644
 --- a/ReleaseParser.js
 +++ b/ReleaseParser.js
 @@ -40,6 +40,43 @@ const ReleaseParser = /** @lends module:ReleaseParser */ ( releaseName, section
@@ -190,6 +196,12 @@ index b087ab0ed1592595fc7611b0447a3970a1ec1df7..a0e56f1e258d3cfed3e30eb2ec36c3b9
  		if ( type === 'movie' || type === 'xxx' || type === 'tv' )
  		{
  			// Change source DVD/Bluray to format DVDR if no res and format given
+@@ -2438,4 +2546,5 @@ String.prototype.capitalizeWord = function( str = '' )
+ 	return str.charAt(0).toUpperCase() + str.slice(1)
+ }
+ 
++export { patterns }
+ export default ReleaseParser
 diff --git a/ReleasePatterns.js b/ReleasePatterns.js
 index 6301b495c980a5d92fd7b4f4ab708e05698fe98b..01f0042f65c8ad9321ed419e4a3f28a1c017f7c9 100644
 --- a/ReleasePatterns.js
@@ -237,3 +249,85 @@ index 6301b495c980a5d92fd7b4f4ab708e05698fe98b..01f0042f65c8ad9321ed419e4a3f28a1
  	// Formats
  	formatsVideo : [ 'AVC', 'VCD', 'SVCD', 'CVCD', 'XViD', 'DiVX', 'x264', 'x265', 'h264', 'h265', 'HEVC', 'MP4', 'MPEG', 'MPEG2', 'VC1', 'WMV' ],
  	formatsMusic : [ 'FLAC', 'KONTAKT', 'MP3', 'OGG', 'WAV' ],
+diff --git a/index.d.ts b/index.d.ts
+index 5d5c10bcce50e064a62cafb736012192eb67ea72..f7229190934eaa34ea3d730828ddc05713c17c03 100644
+--- a/index.d.ts
++++ b/index.d.ts
+@@ -28,7 +28,7 @@ type releaseDevice = '3DO' | 'Analogue Pocket' | 'Atari Jaguar' | 'Bandai Wonde
+ type releaseOS = 'IBM AIX' | 'Android' | 'BlackBerry' | 'BSD' | 'HP-UX' | 'iOS' | 'Linux' | 'macOS' | 'PalmOS' | 'Solaris' | 'SunOS' | 'Symbian' | 'Ubuntu' | 'Unix' | 'WebOS' | 'Windows' | 'Windows CE' | 'Windows Mobile';
+ 
+ // Type
+-type releaseType = 'ABook' | 'Anime' | 'App' | 'Bookware' | 'eBook' | 'Font' | 'Game' | 'Music' | 'MusicVideo' | 'TV' | 'Sports' | 'XXX' | 'Movie';
++type releaseType = 'ABook' | 'Anime' | 'App' | 'Bookware' | 'eBook' | 'Font' | 'Game' | 'Music' | 'MusicVideo' | 'TV' | 'Sports' | 'XXX' | 'Movie' | 'Unknown';
+ 
+ // Language
+ type releaseLanguage = {
+@@ -121,4 +121,67 @@ type Release = {
+ 	data: ReleaseData;
+ };
+ 
++export const patterns: {
++	REGEX_LANGUAGE: string;
++	REGEX_DATE: string;
++	REGEX_DATE_MONTHNAME: string;
++	REGEX_DATE_MUSIC: string;
++	REGEX_YEAR_SIMPLE: string;
++	REGEX_YEAR: string;
++	REGEX_GROUP: string;
++	REGEX_EPISODE: string;
++	REGEX_EPISODE_OTHER: string;
++	REGEX_EPISODE_TV: string;
++	REGEX_DISC: string;
++	REGEX_SEASON: string;
++	REGEX_TITLE: string;
++	REGEX_TITLE_EBOOK: string;
++	REGEX_TITLE_FONT: string;
++	REGEX_TITLE_MOVIE: string;
++	REGEX_TITLE_MOVIE_EXTRA: string;
++	REGEX_TITLE_MUSIC: string;
++	REGEX_TITLE_ABOOK: string;
++	REGEX_TITLE_MVID: string;
++	REGEX_TITLE_APP: string;
++	REGEX_TITLE_BOOKWARE: string;
++	REGEX_TITLE_TV: string;
++	REGEX_TITLE_TV_EPISODE: string;
++	REGEX_TITLE_TV_DATE: string;
++	REGEX_TITLE_XXX: string;
++	REGEX_TITLE_XXX_DATE: string;
++	REGEX_VERSION_TEXT: string;
++	REGEX_VERSION: string;
++	REGEX_VERSION_BOOKWARE: string;
++	TYPE: Record<releaseType, string | string[]>;
++	SOURCE: Record<releaseSource, string | string[]>;
++	FORMAT: Record<releaseFormat, string | string[]>;
++	RESOLUTION: Record<releaseResolution, string | string[]>;
++	AUDIO: Record<releaseAudio, string | string[]>;
++	DEVICE: Record<releaseDevice, string | string[]>;
++	OS: Record<releaseOS, string | string[]>;
++	LANGUAGES: Record<string, string | string[]>;
++	FLAGS: Record<releaseFlag, string | string[]>;
++	MONTHS: Record<number, string>;
++	SPORTS: string[];
++	BOOKWARE: string[];
++	GROUPS_GAMES: string[];
++	GROUPS_APPS: string[];
++	flagsMovie: string[];
++	flagsEbook: string[];
++	flagsMusic: string[];
++	flagsApps: string[];
++	flagsGames: string[];
++	flagsAnime: string[];
++	flagsXxx: string[];
++	flagsVideo: string[];
++	formatsVideo: releaseFormat[];
++	formatsMusic: releaseFormat[];
++	formatsMvid: releaseFormat[];
++	sourcesGames: releaseSource[];
++	sourcesMovies: releaseSource[];
++	sourcesMusic: releaseSource[];
++	sourcesMvid: releaseSource[];
++	sourcesTv: releaseSource[];
++};
++
+ export default function ReleaseParser( source: string, section?: string ): Release;
+\ No newline at end of file

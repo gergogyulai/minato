@@ -3,10 +3,11 @@ import {
 	formatTorrentForMeilisearch,
 	meiliClient,
 } from "@project-minato/meilisearch";
-import { connection, enrichQueue, QUEUES } from "@project-minato/queue";
+import { aiRepairQueue, connection, enrichQueue, QUEUES } from "@project-minato/queue";
 import { Batcher } from "@project-minato/utils/batcher";
 import { type Job, Worker } from "bullmq";
 import ReleaseParser from "release-parser";
+import { getReleaseConfidence } from "@/lib/repair/confidence";
 import { logger } from "@/utils/logger";
 
 const log = logger.child({ worker: "ingest" });
@@ -98,7 +99,12 @@ export function startIngestWorker() {
 				"Document queued",
 			);
 
-			if (
+			const confidence = getReleaseConfidence(release.data);
+
+			if (confidence === "low") {
+				log.debug({ infoHash }, "Low confidence — queuing for AI repair");
+				await aiRepairQueue.add("repair", { infoHash });
+			} else if (
 				(updatedTorrent.releaseData?.type === "Movie" ||
 					updatedTorrent.releaseData?.type === "TV" ||
 					updatedTorrent.releaseData?.type === "Anime") &&

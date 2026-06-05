@@ -1,0 +1,1 @@
+ALTER TABLE "torrents" ADD COLUMN "repaired_at" timestamp;

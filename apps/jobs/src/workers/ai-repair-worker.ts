@@ -1,6 +1,10 @@
-import { connection, QUEUES, enrichQueue } from "@project-minato/queue";
+import { connection, ENRICH_JOBS, QUEUES, enrichQueue } from "@project-minato/queue";
 import { db, torrents } from "@project-minato/db";
 import { eq } from "drizzle-orm";
+import {
+	formatTorrentForMeilisearch,
+	meiliClient,
+} from "@project-minato/meilisearch";
 
 import { type Job, Worker } from "bullmq";
 import { logger } from "@/utils/logger";
@@ -40,37 +44,35 @@ export function startAIRepairWorker() {
         "deepseek/deepseek-v4-flash",
       );
       const repairedReleaseDataObj = JSON.parse(repairedReleaseData);
+      
+      const mergedReleaseData = {
+        ...torrent.releaseData,
+        ...repairedReleaseDataObj,
+      };
 
       log.info({ infoHash, repairedReleaseData }, "Repaired release data");
 
-      await db
+      const [updatedTorrent] = await db
         .update(torrents)
         .set({
-          releaseData: JSON.parse(repairedReleaseData),
+          releaseData: mergedReleaseData,
           type: repairedReleaseDataObj.type ?? null,
           isDirty: false,
+          repairedAt: new Date(),
         })
-        .where(eq(torrents.infoHash, infoHash));
-
-      const [updatedTorrent] = await db
-        .select()
-        .from(torrents)
-        .where(eq(torrents.infoHash, infoHash))
-        .limit(1);
+        .where(eq(torrents.infoHash, infoHash)).returning();
 
       if (!updatedTorrent) {
         log.warn({ infoHash }, "Updated torrent not found");
         return;
       }
 
-      if (
-        updatedTorrent.releaseData?.type === "TV" ||
-        updatedTorrent.releaseData?.type === "Movie" ||
-        updatedTorrent.releaseData?.type === "Anime"
-      ) {
-        log.debug({ infoHash }, "Queuing for enrichment");
-        await enrichQueue.add("enrich", { infoHash }, { delay: 1000 });
-      }
+      await meiliClient
+        .index("torrents")
+        .addDocuments([formatTorrentForMeilisearch(updatedTorrent)], { primaryKey: "infoHash" });
+
+      log.debug({ infoHash }, "Queuing for re-enrichment after repair");
+      await enrichQueue.add(ENRICH_JOBS.REFRESH, { infoHash }, { delay: 1000 });
     },
     {
       connection,

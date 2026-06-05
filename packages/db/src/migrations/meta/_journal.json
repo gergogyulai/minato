@@ -50,6 +50,13 @@
       "when": 1780488155344,
       "tag": "0006_clammy_deathbird",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1780633523410,
+      "tag": "0007_simple_ego",
+      "breakpoints": true
     }
   ]
 }

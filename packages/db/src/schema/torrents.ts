@@ -59,6 +59,7 @@ export const torrents = pgTable(
 		lastSeenAt: timestamp("last_seen_at").defaultNow().notNull(),
 		indexedAt: timestamp("indexed_at"),
 		enrichedAt: timestamp("enriched_at"),
+		repairedAt: timestamp("repaired_at"),
 	},
 	(table) => [
 		index("is_dirty_partial_idx")
