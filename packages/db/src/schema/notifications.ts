@@ -17,7 +17,6 @@ export type NotificationEvent =
 	| "scraper_completed"
 	| "scraper_failed"
 	| "scraper_state_changed"
-	| "torrent_digest"
 	| "wanted_torrent_found";
 
 export type TelegramChannelConfig = { botToken: string; chatId: string };
@@ -45,7 +44,6 @@ export const notificationChannels = pgTable(
 			.notNull()
 			.default([]),
 		enabled: boolean("enabled").notNull().default(true),
-		lastDigestAt: timestamp("last_digest_at"),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 		updatedAt: timestamp("updated_at").defaultNow().notNull(),
 	},

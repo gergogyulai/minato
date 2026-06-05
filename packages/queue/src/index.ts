@@ -42,14 +42,12 @@ export type ScraperControlJobData = { scraperId: string };
 
 export const NOTIFICATION_JOBS = {
 	DISPATCH: "dispatch",
-	DIGEST: "digest",
 } as const;
 
 export type NotificationEvent =
 	| "scraper_completed"
 	| "scraper_failed"
 	| "scraper_state_changed"
-	| "torrent_digest"
 	| "wanted_torrent_found";
 
 export type NotificationDispatchJobData = {

@@ -5,7 +5,6 @@ const notificationEventSchema = z.enum([
 	"scraper_completed",
 	"scraper_failed",
 	"scraper_state_changed",
-	"torrent_digest",
 	"wanted_torrent_found",
 ]);
 
@@ -38,7 +37,6 @@ const channelOutputSchema = z.object({
 	config: channelConfigSchema,
 	events: z.array(notificationEventSchema),
 	enabled: z.boolean(),
-	lastDigestAt: z.date().nullable(),
 	createdAt: z.date(),
 	updatedAt: z.date(),
 });
