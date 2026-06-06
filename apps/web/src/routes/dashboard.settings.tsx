@@ -473,19 +473,6 @@ function SettingsPage() {
                 )}
               </div>
             </div>
-            <Field
-              label="Enabled scrapers"
-              hint="Comma-separated scraper IDs enabled by default."
-              htmlFor="enabled-scrapers"
-            >
-              <Input
-                id="enabled-scrapers"
-                value={form.enabledScrapers}
-                onChange={(e) => set("enabledScrapers", e.target.value)}
-                placeholder="1337x, knaben, yts"
-                className="font-mono text-sm"
-              />
-            </Field>
           </Section>
 
           <Section
