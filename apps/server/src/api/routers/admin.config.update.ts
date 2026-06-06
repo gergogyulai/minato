@@ -41,6 +41,73 @@ export const adminRouter = {
 			}
 		}),
 
+	checkOllama: adminProcedure
+		.input(z.object({ url: z.string().url("Invalid URL") }))
+		.output(
+			z.object({
+				success: z.boolean(),
+				message: z.string(),
+				version: z.string().optional(),
+			}),
+		)
+		.handler(async ({ input }) => {
+			try {
+				const res = await fetch(`${input.url}/api/version`, {
+					signal: AbortSignal.timeout(5000),
+				});
+				if (!res.ok) {
+					return { success: false, message: `Ollama returned HTTP ${res.status}` };
+				}
+				const data = (await res.json()) as { version?: string };
+				return {
+					success: true,
+					message: "Ollama is reachable",
+					version: data.version,
+				};
+			} catch (error) {
+				return {
+					success: false,
+					message:
+						error instanceof Error ? error.message : "Failed to connect to Ollama",
+				};
+			}
+		}),
+
+	checkProxy: adminProcedure
+		.input(z.object({ url: z.string().min(1, "URL is required") }))
+		.output(
+			z.object({
+				success: z.boolean(),
+				message: z.string(),
+				ip: z.string().optional(),
+			}),
+		)
+		.handler(async ({ input }) => {
+			try {
+				const res = await (fetch as typeof fetch & ((url: string, init: RequestInit & { proxy?: string }) => Promise<Response>))(
+					"https://api.ipify.org?format=json",
+					{
+						proxy: input.url,
+						signal: AbortSignal.timeout(10000),
+					},
+				);
+				if (!res.ok) {
+					return { success: false, message: `Proxy returned HTTP ${res.status}` };
+				}
+				const data = (await res.json()) as { ip?: string };
+				return {
+					success: true,
+					message: data.ip ? `Connected via ${data.ip}` : "Proxy is reachable",
+					ip: data.ip,
+				};
+			} catch (error) {
+				return {
+					success: false,
+					message: error instanceof Error ? error.message : "Failed to connect through proxy",
+				};
+			}
+		}),
+
 	config: {
 		update: adminProcedure
 			.input(
