@@ -4,6 +4,7 @@ import { Database } from "bun:sqlite";
 import { db, torrents } from "@project-minato/db";
 import { exportsDir } from "@project-minato/env/paths";
 import type { Job } from "bullmq";
+import { gt } from "drizzle-orm";
 import { logger } from "@/utils/logger";
 
 const log = logger.child({ task: "export-sqlite" });
@@ -78,7 +79,7 @@ export async function exportSqlite(job: Job) {
 		},
 	);
 
-	let offset = 0;
+	let cursor: string | null = null;
 	let totalExported = 0;
 
 	log.info({ filename }, "Starting SQLite export...");
@@ -87,14 +88,15 @@ export async function exportSqlite(job: Job) {
 		const rows = await db
 			.select()
 			.from(torrents)
-			.limit(BATCH_SIZE)
-			.offset(offset);
+			.where(cursor !== null ? gt(torrents.infoHash, cursor) : undefined)
+			.orderBy(torrents.infoHash)
+			.limit(BATCH_SIZE);
 
 		if (rows.length === 0) break;
 
 		insertBatch(rows);
 		totalExported += rows.length;
-		offset += rows.length;
+		cursor = rows[rows.length - 1]!.infoHash;
 
 		await job.updateProgress(totalExported);
 		log.info({ totalExported }, "Export progress...");
