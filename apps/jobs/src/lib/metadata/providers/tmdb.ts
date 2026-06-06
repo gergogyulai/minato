@@ -1,9 +1,5 @@
 import { TMDB } from "tmdb-ts";
-import {
-	calculateTitleSimilarity,
-	TITLE_SIMILARITY_THRESHOLD,
-} from "@/lib/common";
-import type { MetadataProvider } from "@/lib/metadata/provider";
+import { MetadataProvider } from "@/lib/metadata/provider";
 import type { EnrichmentMetadata, MediaType } from "@/lib/metadata/types";
 import { logger } from "@/utils/logger";
 
@@ -15,13 +11,14 @@ export interface TMDBProviderConfig {
 	apiKey: string;
 }
 
-export class TMDBProvider implements MetadataProvider {
+export class TMDBProvider extends MetadataProvider {
 	readonly name = "TMDB";
 	readonly supportedTypes = ["movie", "tv"] as const;
 
 	private client: TMDB;
 
 	constructor(config: TMDBProviderConfig) {
+		super();
 		this.client = new TMDB(config.apiKey);
 	}
 
@@ -58,11 +55,11 @@ export class TMDBProvider implements MetadataProvider {
 			return null;
 		}
 
-		const titleSimilarity = calculateTitleSimilarity(
+		const titleSimilarity = this.calculateTitleSimilarity(
 			title,
 			searchItem.compareTitle,
 		);
-		if (titleSimilarity < TITLE_SIMILARITY_THRESHOLD) {
+		if (titleSimilarity < this.TITLE_SIMILARITY_THRESHOLD) {
 			log.debug(
 				{ titleSimilarity, title, result: searchItem.compareTitle },
 				"Title similarity below threshold",
