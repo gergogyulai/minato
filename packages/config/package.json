@@ -13,7 +13,8 @@
 		"@project-minato/db": "workspace:*",
 		"@project-minato/env": "workspace:*",
 		"@project-minato/meilisearch": "workspace:*",
-		"@t3-oss/env-core": "^0.13.1",
+		"defu": "catalog:",
+		"dot-prop": "catalog:",
 		"drizzle-orm": "catalog:",
 		"ioredis": "catalog:",
 		"zod": "catalog:"

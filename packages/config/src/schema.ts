@@ -1,6 +1,17 @@
 import { RANKING_PROFILES_OPTIONS } from "@project-minato/meilisearch";
 import { z } from "zod";
 
+const csvToArray = z.preprocess(
+	(val) =>
+		typeof val === "string"
+			? val
+					.split(",")
+					.map((v) => v.trim())
+					.filter(Boolean)
+			: val,
+	z.array(z.string()),
+);
+
 export const setupStepSchema = z.enum(["admin", "scrapers", "flaresolverr"]);
 export type SetupStep = z.infer<typeof setupStepSchema>;
 
@@ -19,17 +30,15 @@ const setupSchema = z.object({
 
 const scraperSchema = z.object({
 	flareSolverrUrl: z.string().url().default("http://localhost:8191"),
-	enabledScrapers: z
-		.array(z.string())
-		.default(["1337x", "thepiratebay", "knaben", "eztv", "yts"]),
+	enabledScrapers: csvToArray.default(["1337x", "thepiratebay", "knaben", "eztv", "yts"]),
 });
 
 const ingestSchema = z.object({
-	concurrency: z.number().int().min(1).max(50).default(5),
+	concurrency: z.coerce.number().int().min(1).max(50).default(5),
 });
 
 const enrichmentSchema = z.object({
-	concurrency: z.number().int().min(1).max(20).default(5),
+	concurrency: z.coerce.number().int().min(1).max(20).default(5),
 });
 
 const workersSchema = z.object({
@@ -41,14 +50,6 @@ const searchSchema = z.object({
 	profile: z.enum(RANKING_PROFILES_OPTIONS).default("health"),
 });
 
-/**
- * Full application config schema.
- *
- * configSchema.parse({}) produces canonical defaults — no separate defaults
- * file or structural skeleton required in the loader.
- *
- * Priority when loading: schema defaults < database rows < env var overrides.
- */
 export const configSchema = z.object({
 	setup: setupSchema.default(setupSchema.parse({})),
 	scraper: scraperSchema.default(scraperSchema.parse({})),
@@ -60,3 +61,19 @@ export const configSchema = z.object({
 export type AppConfig = z.infer<typeof configSchema>;
 export type SetupConfig = AppConfig["setup"];
 export type SetupProgress = z.infer<typeof setupProgressSchema>;
+
+export function getEnvConfig() {
+	return {
+		scraper: {
+			flareSolverrUrl: process.env.MINATO_FLARESOLVERR_URL,
+			enabledScrapers: process.env.MINATO_ENABLED_SCRAPERS,
+		},
+		workers: {
+			ingest: { concurrency: process.env.MINATO_WORKERS_INGEST_CONCURRENCY },
+			enrichment: { concurrency: process.env.MINATO_WORKERS_ENRICHMENT_CONCURRENCY },
+		},
+		search: {
+			profile: process.env.MINATO_SEARCH_ENGINE_PROFILE,
+		},
+	};
+}

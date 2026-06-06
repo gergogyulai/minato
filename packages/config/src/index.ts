@@ -1,17 +1,21 @@
-export { readEnvOverrides } from "./env-overrides";
 export type { LoadedConfig } from "./loader";
 export { loadConfig } from "./loader";
-export { closePubSub, publishReload, setupConfigSubscriber } from "./pubsub";
-export type {
-	AppConfig,
-	SetupConfig,
-	SetupProgress,
-	SetupStep,
+export type { AppConfig, SetupConfig, SetupProgress, SetupStep } from "./schema";
+export {
+	configSchema,
+	getEnvConfig,
+	setupProgressSchema,
+	setupStepSchema,
 } from "./schema";
-export { configSchema, setupProgressSchema, setupStepSchema } from "./schema";
-export { getConfig, getVersion, initConfig, onConfigChange, reloadConfig } from "./store";
-export { deepMerge, setDeep } from "./utils";
-export type { ConfigKeyValidation } from "./validate";
-export { validateConfigKey } from "./validate";
-export type { WriteOptions } from "./write";
-export { writeConfigKey } from "./write";
+export {
+	closePubSub,
+	getConfig,
+	getVersion,
+	initConfig,
+	onConfigChange,
+	publishReload,
+	reloadConfig,
+	setupConfigSubscriber,
+} from "./store";
+export type { ConfigKeyValidation, WriteOptions } from "./write";
+export { validateConfigKey, writeConfigKey } from "./write";

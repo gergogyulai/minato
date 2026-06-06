@@ -1,8 +1,16 @@
 import { integer, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
+type JsonbValue =
+	| string
+	| number
+	| boolean
+	| null
+	| JsonbValue[]
+	| { [k: string]: JsonbValue };
+
 export const settings = pgTable("settings", {
 	key: text("key").primaryKey(),
-	value: jsonb("value").notNull(),
+	value: jsonb("value").$type<JsonbValue>().notNull(),
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 	updatedAt: timestamp("updated_at")
 		.defaultNow()

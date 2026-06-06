@@ -236,7 +236,8 @@
         "@project-minato/db": "workspace:*",
         "@project-minato/env": "workspace:*",
         "@project-minato/meilisearch": "workspace:*",
-        "@t3-oss/env-core": "^0.13.1",
+        "defu": "catalog:",
+        "dot-prop": "catalog:",
         "drizzle-orm": "catalog:",
         "ioredis": "catalog:",
         "zod": "catalog:",
@@ -351,6 +352,8 @@
     "@types/bun": "^1.3.4",
     "better-auth": "^1.5.3",
     "bullmq": "^5.70.0",
+    "defu": "^6.1.4",
+    "dot-prop": "^10.1.0",
     "dotenv": "^17.2.2",
     "drizzle-orm": "^0.45.1",
     "ioredis": "5.10.1",
@@ -1665,6 +1668,8 @@
     "diff": ["diff@8.0.4", "", {}, "sha512-DPi0FmjiSU5EvQV0++GFDOJ9ASQUVFh5kD+OzOnYdi7n3Wpm9hWWGfB/O2blfHcMVTL5WkQXSnRiK9makhrcnw=="],
 
     "discord-webhook-node": ["discord-webhook-node@1.1.8", "", { "dependencies": { "form-data": "^3.0.0", "node-fetch": "^2.6.0" } }, "sha512-3u0rrwywwYGc6HrgYirN/9gkBYqmdpvReyQjapoXARAHi0P0fIyf3W5tS5i3U3cc7e44E+e7dIHYUeec7yWaug=="],
+
+    "dot-prop": ["dot-prop@10.1.0", "", { "dependencies": { "type-fest": "^5.0.0" } }, "sha512-MVUtAugQMOff5RnBy2d9N31iG0lNwg1qAoAOn7pOK5wf94WIaE3My2p3uwTQuvS2AcqchkcR3bHByjaM0mmi7Q=="],
 
     "dotenv": ["dotenv@17.4.2", "", {}, "sha512-nI4U3TottKAcAD9LLud4Cb7b2QztQMUEfHbvhTH09bqXTxnSie8WnjPALV/WMCrJZ6UV/qHJ6L03OqO3LcdYZw=="],
 

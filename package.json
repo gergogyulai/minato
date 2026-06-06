@@ -17,11 +17,13 @@
 			"@better-auth/api-key": "^1.5.3",
 			"drizzle-orm": "^0.45.1",
 			"bullmq": "^5.70.0",
+			"defu": "^6.1.4",
 			"ioredis": "5.10.1",
 			"@orpc/server": "^1.12.2",
 			"@orpc/openapi": "^1.12.2",
 			"@orpc/zod": "^1.12.2",
-			"@orpc/client": "^1.12.2"
+			"@orpc/client": "^1.12.2",
+			"dot-prop": "^10.1.0"
 		}
 	},
 	"type": "module",

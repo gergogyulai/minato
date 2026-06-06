@@ -1,9 +1,9 @@
 import type { db } from "@project-minato/db";
 import { asc, eq, settings, settingsMeta } from "@project-minato/db";
-import { readEnvOverrides } from "./env-overrides";
+import defu from "defu";
+import { setProperty } from "dot-prop";
 import type { AppConfig } from "./schema";
-import { configSchema } from "./schema";
-import { deepMerge, setDeep } from "./utils";
+import { configSchema, getEnvConfig } from "./schema";
 
 type DB = typeof db;
 
@@ -26,12 +26,11 @@ export async function loadConfig(db: DB): Promise<LoadedConfig> {
 		.limit(1);
 	const version = metaRows[0]?.version ?? 1;
 
-	let raw: Record<string, unknown> = {};
+	const dbConfig: Record<string, unknown> = {};
 	for (const row of rows) {
-		raw = setDeep(raw, row.key, row.value);
+		setProperty(dbConfig, row.key, row.value);
 	}
 
-	const envOverrides = readEnvOverrides();
-	const config = configSchema.parse(deepMerge(raw, envOverrides));
+	const config = configSchema.parse(defu(getEnvConfig(), dbConfig));
 	return { config, version };
 }
