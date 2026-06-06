@@ -343,6 +343,7 @@
   },
   "patchedDependencies": {
     "release-parser@1.5.3": "patches/release-parser@1.5.3.patch",
+    "discord-webhook-node@1.1.8": "patches/discord-webhook-node@1.1.8.patch",
   },
   "catalog": {
     "@better-auth/api-key": "^1.5.3",
