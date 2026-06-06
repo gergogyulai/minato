@@ -71,6 +71,7 @@ export async function setupTorrentIndex(): Promise<
 		"enrichment.mediaType",
 		"enrichment.imdbId",
 		"enrichment.tmdbId",
+		"enrichment.tvdbId",
 		"enrichment.seriesDetails.seasonNumber",
 		"enrichment.seriesDetails.episodeNumber",
 		"enrichment.seriesDetails.isSeasonPack",
