@@ -7,6 +7,7 @@ const configRoot =
 		: path.resolve(import.meta.dir, "../../../config");
 
 export const mediaRoot = path.join(configRoot, "media");
+export const exportsDir = path.join(configRoot, "exports");
 export const communityScrapersDir = path.join(configRoot, "scrapers");
 
 // Internal scrapers are baked into the production image; in dev the directory

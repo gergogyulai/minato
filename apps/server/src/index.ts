@@ -20,7 +20,7 @@ import { appRouter } from "@/api/routers/index";
 import { feeds } from "@/feeds";
 import { handleCommandsSse, handleEnsureKey } from "@/scraper/sse";
 import { startup } from "./startup";
-import { mediaRoot } from "@project-minato/env/paths";
+import { exportsDir, mediaRoot } from "@project-minato/env/paths";
 
 const app = new Hono();
 
@@ -57,6 +57,28 @@ app.get(
 		rewriteRequestPath: (path) => path.replace(/^\/assets/, ""),
 	}),
 );
+
+app.get("/api/v1/exports/:filename", async (c) => {
+	const session = await auth.api.getSession({ headers: c.req.raw.headers });
+	if (!session?.user) return c.text("Unauthorized", 401);
+	if ((session.user as { role?: string }).role !== "admin")
+		return c.text("Forbidden", 403);
+
+	const filename = c.req.param("filename");
+	if (!/^[a-zA-Z0-9_-]+\.sqlite$/.test(filename))
+		return c.text("Invalid filename", 400);
+
+	const file = Bun.file(path.join(exportsDir, filename));
+	if (!(await file.exists())) return c.text("Not Found", 404);
+
+	return new Response(file, {
+		headers: {
+			"Content-Type": "application/x-sqlite3",
+			"Content-Disposition": `attachment; filename="${filename}"`,
+			"Content-Length": String(file.size),
+		},
+	});
+});
 
 app.all("/api/v1/auth/*", (c) => auth.handler(c.req.raw));
 

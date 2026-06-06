@@ -1,9 +1,14 @@
+import { readdir, stat } from "node:fs/promises";
+import path from "node:path";
 import {
+	HOUSEKEEPER_JOBS,
 	aiRepairQueue,
 	enrichQueue,
 	housekeeperQueue,
 	ingestQueue,
 } from "@project-minato/queue";
+import { ORPCError } from "@orpc/server";
+import { exportsDir } from "@project-minato/env/paths";
 import { z } from "zod";
 import { adminProcedure } from "@/api";
 
@@ -115,5 +120,90 @@ export const queuesRouter = {
 			}));
 
 			return { jobs };
+		}),
+
+	triggerExportSqlite: adminProcedure
+		.route({
+			method: "POST",
+			path: "/queues/export-sqlite",
+			summary: "Enqueue a full SQLite export of the torrents table",
+			tags: ["queues"],
+		})
+		.output(z.object({ jobId: z.string() }))
+		.handler(async () => {
+			const [activeJobs, waitingJobs] = await Promise.all([
+				housekeeperQueue.getActive(),
+				housekeeperQueue.getWaiting(),
+			]);
+
+			const isAlreadyRunning = [...activeJobs, ...waitingJobs].some(
+				(j) => j.name === HOUSEKEEPER_JOBS.EXPORT_SQLITE,
+			);
+
+			if (isAlreadyRunning) {
+				throw new ORPCError("CONFLICT", {
+					message:
+						"An SQLite export is already active or waiting. Wait for it to finish before triggering another.",
+				});
+			}
+
+			const job = await housekeeperQueue.add(
+				HOUSEKEEPER_JOBS.EXPORT_SQLITE,
+				{},
+				{
+					removeOnComplete: { count: 5 },
+					removeOnFail: false,
+					attempts: 1,
+				},
+			);
+
+			return { jobId: String(job.id) };
+		}),
+
+	listExports: adminProcedure
+		.route({
+			method: "GET",
+			path: "/queues/exports",
+			summary: "List available SQLite export files",
+			tags: ["queues"],
+		})
+		.output(
+			z.object({
+				exports: z.array(
+					z.object({
+						filename: z.string(),
+						sizeBytes: z.number(),
+						createdAt: z.string(),
+					}),
+				),
+			}),
+		)
+		.handler(async () => {
+			let files: string[];
+			try {
+				files = await readdir(exportsDir);
+			} catch {
+				return { exports: [] };
+			}
+
+			const entries = await Promise.all(
+				files
+					.filter((f) => f.endsWith(".sqlite"))
+					.map(async (filename) => {
+						const info = await stat(path.join(exportsDir, filename));
+						return {
+							filename,
+							sizeBytes: info.size,
+							createdAt: info.birthtime.toISOString(),
+						};
+					}),
+			);
+
+			entries.sort(
+				(a, b) =>
+					new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+			);
+
+			return { exports: entries };
 		}),
 };

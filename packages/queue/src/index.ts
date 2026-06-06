@@ -29,6 +29,7 @@ export const HOUSEKEEPER_JOBS = {
 	REFRESH_STALE_METADATA: "refresh_stale_metadata",
 	RECOVER_STALLED_JOBS: "recover_stalled_jobs",
 	FORCE_REINDEX: "force_reindex",
+	EXPORT_SQLITE: "export_sqlite",
 } as const;
 
 export const SCRAPER_CONTROL_JOBS = {

@@ -1,7 +1,8 @@
-import { connection, HOUSEKEEPER_JOBS } from "@project-minato/queue";
+import { connection, HOUSEKEEPER_JOBS, QUEUES } from "@project-minato/queue";
 import { type Job, Worker } from "bullmq";
 import { logger } from "@/utils/logger";
 import { cleanupUnusedAssets } from "@/workers/housekeeper/cleanup-unused-assets";
+import { exportSqlite } from "@/workers/housekeeper/export-sqlite";
 import { performForceReindex } from "@/workers/housekeeper/force-reindex";
 import { refreshStaleMetadata } from "@/workers/housekeeper/refresh-stale-metadata";
 
@@ -9,7 +10,7 @@ const log = logger.child({ worker: "housekeeper" });
 
 export function startHousekeeperWorker() {
 	return new Worker(
-		"housekeeper-queue",
+		QUEUES.HOUSEKEEPER,
 		async (job: Job) => {
 			try {
 				switch (job.name) {
@@ -21,6 +22,9 @@ export function startHousekeeperWorker() {
 
 					case HOUSEKEEPER_JOBS.FORCE_REINDEX:
 						return await performForceReindex(job);
+
+					case HOUSEKEEPER_JOBS.EXPORT_SQLITE:
+						return await exportSqlite(job);
 
 					default:
 						log.warn({ jobName: job.name }, "Unknown job name");
