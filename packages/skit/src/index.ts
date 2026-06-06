@@ -3,7 +3,7 @@
 // config, an optional recommended cron) and a single `run` function. The
 // supervisor and the runtime do everything else.
 
-import type { FlareSolverr } from "@project-minato/api-clients";
+import type { FlareSolverr } from "@project-minato/utils/flaresolverr";
 
 export type {
 	Cookie,
@@ -11,8 +11,8 @@ export type {
 	ProxyConfig,
 	RequestOptions,
 	Solution,
-} from "@project-minato/api-clients";
-export { FlareSolverr } from "@project-minato/api-clients";
+} from "@project-minato/utils/flaresolverr";
+export { FlareSolverr } from "@project-minato/utils/flaresolverr";
 
 // ---------------------------------------------------------------------------
 // Types — the contract between a scraper and the Minato runtime.

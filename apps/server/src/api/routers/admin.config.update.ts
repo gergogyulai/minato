@@ -1,5 +1,5 @@
 import { ORPCError } from "@orpc/server";
-import { FlareSolverr } from "@project-minato/api-clients";
+import { FlareSolverr } from "@project-minato/utils/flaresolverr";
 import {
 	getConfig,
 	getVersion,

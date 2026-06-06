@@ -1,5 +1,5 @@
 import { ORPCError } from "@orpc/server";
-import { FlareSolverr } from "@project-minato/api-clients";
+import { FlareSolverr } from "@project-minato/utils/flaresolverr";
 import { auth } from "@project-minato/auth";
 import type { SetupStep } from "@project-minato/config";
 import { getConfig, writeConfigKey } from "@project-minato/config";

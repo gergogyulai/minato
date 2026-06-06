@@ -7,7 +7,7 @@
 // and the runtime fills in everything else.
 
 import { resolve } from "node:path";
-import { FlareSolverr } from "@project-minato/api-clients";
+import { FlareSolverr } from "@project-minato/utils/flaresolverr";
 import type {
 	IngestClient,
 	IngestResult,

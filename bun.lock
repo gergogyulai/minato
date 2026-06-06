@@ -121,13 +121,13 @@
         "@orpc/openapi": "^1.13.4",
         "@orpc/server": "^1.13.4",
         "@orpc/zod": "^1.13.4",
-        "@project-minato/api-clients": "workspace:*",
         "@project-minato/auth": "workspace:*",
         "@project-minato/config": "workspace:*",
         "@project-minato/db": "workspace:*",
         "@project-minato/env": "workspace:*",
         "@project-minato/meilisearch": "workspace:*",
         "@project-minato/queue": "workspace:*",
+        "@project-minato/utils": "workspace:*",
         "@scalar/hono-api-reference": "^0.9.37",
         "better-auth": "catalog:",
         "cron-parser": "^5.5.0",
@@ -204,15 +204,6 @@
         "tailwindcss": "^4.0.15",
         "typescript": "catalog:",
         "vite": "^6.2.2",
-      },
-    },
-    "packages/api-clients": {
-      "name": "@project-minato/api-clients",
-      "version": "0.0.0",
-      "devDependencies": {
-        "@project-minato/typescript": "workspace:*",
-        "@types/bun": "latest",
-        "typescript": "catalog:",
       },
     },
     "packages/auth": {
@@ -316,7 +307,7 @@
       "name": "@project-minato/skit",
       "version": "0.1.0",
       "dependencies": {
-        "@project-minato/api-clients": "workspace:*",
+        "@project-minato/utils": "workspace:*",
       },
       "devDependencies": {
         "@project-minato/typescript": "workspace:*",
@@ -933,8 +924,6 @@
     "@pinojs/redact": ["@pinojs/redact@0.4.0", "", {}, "sha512-k2ENnmBugE/rzQfEcdWHcCY+/FM3VLzH9cYEsbdsoqrvzAKRhUZeRNhAZvB8OitQJ1TBed3yqWtdjzS6wJKBwg=="],
 
     "@project-minato/api": ["@project-minato/api@workspace:apps/server"],
-
-    "@project-minato/api-clients": ["@project-minato/api-clients@workspace:packages/api-clients"],
 
     "@project-minato/auth": ["@project-minato/auth@workspace:packages/auth"],
 

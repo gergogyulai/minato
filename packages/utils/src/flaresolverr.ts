@@ -1,7 +1,5 @@
 /**
  * FlareSolverr API Client
- * This client provides a simple interface to interact with the FlareSolverr API,
- * allowing you to perform requests, manage sessions, and handle Cloudflare challenges.
  * Supports both https://github.com/FlareSolverr/FlareSolverr and https://github.com/yoori/flare-bypasser
  */
 
@@ -68,9 +66,6 @@ export class FlareSolverr {
 		this.baseURL = url;
 	}
 
-	/**
-	 * Internal helper to handle the fetch logic
-	 */
 	private async sendCommand<T>(body: object): Promise<T> {
 		const response = await fetch(this.baseURL, {
 			method: "POST",
@@ -89,9 +84,6 @@ export class FlareSolverr {
 		return response.json() as Promise<T>;
 	}
 
-	/**
-	 * Perform a GET request through FlareSolverr
-	 */
 	async get(options: RequestOptions): Promise<FlareSolverrResponse<Solution>> {
 		return this.sendCommand({
 			cmd: "request.get",
@@ -99,9 +91,6 @@ export class FlareSolverr {
 		});
 	}
 
-	/**
-	 * Perform a POST request through FlareSolverr
-	 */
 	async post(
 		options: RequestOptions & { postData: string },
 	): Promise<FlareSolverrResponse<Solution>> {
@@ -111,9 +100,6 @@ export class FlareSolverr {
 		});
 	}
 
-	/**
-	 * Create a new persistent session
-	 */
 	async createSession(
 		session?: string,
 		proxy?: ProxyConfig,
@@ -125,16 +111,10 @@ export class FlareSolverr {
 		});
 	}
 
-	/**
-	 * List all active sessions
-	 */
 	async listSessions(): Promise<{ sessions: string[] }> {
 		return this.sendCommand({ cmd: "sessions.list" });
 	}
 
-	/**
-	 * Destroy a persistent session
-	 */
 	async destroySession(session: string): Promise<FlareSolverrResponse<null>> {
 		return this.sendCommand({
 			cmd: "sessions.destroy",
