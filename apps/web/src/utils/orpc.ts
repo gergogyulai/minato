@@ -19,8 +19,12 @@ export const queryClient = new QueryClient({
 	}),
 });
 
+export const apiBase = import.meta.env.PROD
+	? window.location.origin
+	: (env.VITE_SERVER_URL ?? "http://localhost:3000");
+
 export const link = new RPCLink({
-	url: `${import.meta.env.PROD ? window.location.origin : (env.VITE_SERVER_URL ?? "http://localhost:3000")}/api/v1/rpc`,
+	url: `${apiBase}/api/v1/rpc`,
 	fetch(url, options) {
 		return fetch(url, {
 			...options,
