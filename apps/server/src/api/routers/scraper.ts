@@ -36,7 +36,6 @@ import {
 	scraperUpdateContract,
 	scraperUpdateScheduleContract,
 } from "@/api/contracts/scraper.contracts";
-import { publishCommand } from "@/scraper/commands-pubsub";
 
 const ALLOWED_GIT_HOSTS = new Set([
 	"github.com",
@@ -126,7 +125,6 @@ export const scraperRouter = {
 				installedVersion: input.version,
 				lifecycle: input.lifecycle,
 				recommendedSchedule: input.recommendedSchedule ?? null,
-				state: "running",
 				lastError: null,
 				lastSeenAt: new Date(),
 				updatedAt: new Date(),
@@ -410,17 +408,11 @@ export const scraperRouter = {
 			.set({ state: "uninstalling", updatedAt: new Date() })
 			.where(eq(scrapers.id, input.id));
 
-		// Tell the supervisor to kill the process. The supervisor's filesystem
-		// watcher will react to the directory removal below and clean up its
-		// in-memory state.
-		await scraperControlQueue.add(SCRAPER_CONTROL_JOBS.KILL, {
-			scraperId: input.id,
-		});
-
-		// Brief grace window for the supervisor to kill the process before we
-		// delete the directory from under it.
-		await new Promise((r) => setTimeout(r, 1_000));
-
+		// Delete the directory first. The supervisor's community-dir watcher fires
+		// handleHotRemove which kills the running process gracefully. Bun/Node
+		// processes keep their already-loaded modules in memory, so deleting the
+		// source tree mid-run is safe — the watcher's 300ms debounce gives enough
+		// time before the SIGTERM lands.
 		const dir = join(communityScrapersDir, input.id);
 		if (existsSync(dir)) await rm(dir, { recursive: true, force: true });
 
@@ -443,7 +435,7 @@ export const scraperRouter = {
 	issueCommand: scraperIssueCommandContract.handler(
 		async ({ input, context }) => {
 			const [target] = await db
-				.select({ id: scrapers.id })
+				.select({ id: scrapers.id, state: scrapers.state })
 				.from(scrapers)
 				.where(eq(scrapers.id, input.id))
 				.limit(1);
@@ -451,6 +443,13 @@ export const scraperRouter = {
 			if (!target) {
 				throw new ORPCError("NOT_FOUND", {
 					message: `Unknown scraper: ${input.id}`,
+				});
+			}
+
+			const commandableStates = new Set(["running", "paused", "starting"]);
+			if (!commandableStates.has(target.state)) {
+				throw new ORPCError("BAD_REQUEST", {
+					message: `Scraper is ${target.state} — cannot issue commands in this state`,
 				});
 			}
 
@@ -469,7 +468,17 @@ export const scraperRouter = {
 				});
 			}
 
-			publishCommand(input.id, { id: inserted.id, command: input.command });
+			const jobName =
+				input.command === "stop"
+					? SCRAPER_CONTROL_JOBS.STOP
+					: input.command === "pause"
+						? SCRAPER_CONTROL_JOBS.PAUSE
+						: SCRAPER_CONTROL_JOBS.RESUME;
+
+			await scraperControlQueue.add(jobName, {
+				scraperId: input.id,
+				commandId: inserted.id,
+			});
 
 			return { commandId: inserted.id };
 		},

@@ -1,21 +1,16 @@
 // The supervisor's brain — everything that's not pure filesystem I/O or
 // child-process plumbing lives here: the in-memory registry of managed
 // scrapers, the state machine that drives transitions, the single DB
-// state writer, the timer-owning scheduler, the command-ack poller, and
-// the orchestration that ties it all together.
+// state writer, the timer-owning scheduler, and the orchestration that
+// ties it all together.
 
 import { getConfig, onConfigChange } from "@project-minato/config";
 import {
-	and,
 	db,
 	eq,
-	inArray,
-	isNull,
 	type Scraper,
 	type ScraperSource,
 	type ScraperState,
-	scraperCommands,
-	scraperStatus,
 	scrapers,
 } from "@project-minato/db";
 import { CronExpressionParser } from "cron-parser";
@@ -40,7 +35,6 @@ import {
 const API_URL = process.env.MINATO_API_URL ?? "http://localhost:3000";
 const BACKOFF_BASE_MS = 1_000;
 const BACKOFF_MAX_MS = 30_000;
-const ACK_POLL_INTERVAL_MS = 5_000;
 
 // ---------------------------------------------------------------------------
 // Registry & state
@@ -65,7 +59,6 @@ const timers = new Map<
 	{ timeout: ReturnType<typeof setTimeout>; fireAt: Date }
 >();
 let watcher: FSWatcher | null = null;
-let ackTimer: ReturnType<typeof setInterval> | null = null;
 let controlWorker: ReturnType<typeof startControlWorker> | null = null;
 let stopping = false;
 let onboardingPromise: Promise<void> | null = null;
@@ -146,6 +139,25 @@ function backoffMs(attempt: number): number {
 	// crashing on the same dependency failure.
 	const jitter = base * 0.2 * (Math.random() * 2 - 1);
 	return Math.max(BACKOFF_BASE_MS, Math.round(base + jitter));
+}
+
+// Parses the cron expression, writes nextRunAt to DB, transitions to
+// "scheduled", and arms the in-process timer. Throws on invalid cron so the
+// call site can set state=error.
+async function scheduleNextRun(record: ManagedScraper, cron: string): Promise<void> {
+	const next = CronExpressionParser.parse(cron, { tz: "UTC" }).next().toDate();
+	await db
+		.update(scrapers)
+		.set({ nextRunAt: next, updatedAt: new Date() })
+		.where(eq(scrapers.id, record.id));
+	await setState(record.id, "scheduled", {
+		reason: `next run @ ${next.toISOString()}`,
+		pid: null,
+	});
+	scheduleAt(record.id, next, () => {
+		const current = managed.get(record.id);
+		if (current && !stopping) void spawnManaged(current);
+	});
 }
 
 // ---------------------------------------------------------------------------
@@ -254,12 +266,6 @@ export async function start(
 	});
 	if (watcher) logger.info(`Watching community scrapers at ${communityDir}`);
 
-	ackTimer = setInterval(() => {
-		pollCommandAcks().catch((err) =>
-			logger.warn(`[supervisor] ack poll failed: ${(err as Error).message}`),
-		);
-	}, ACK_POLL_INTERVAL_MS);
-
 	controlWorker = startControlWorker();
 	logger.info("Control worker started");
 
@@ -275,10 +281,6 @@ export async function start(
 export async function stopAll(): Promise<void> {
 	stopping = true;
 	watcher?.close();
-	if (ackTimer) {
-		clearInterval(ackTimer);
-		ackTimer = null;
-	}
 	if (controlWorker) {
 		await controlWorker.close();
 		controlWorker = null;
@@ -350,34 +352,35 @@ async function onboard(
 	if (dbRow.lifecycle === "scheduled" && dbRow.nextRunAt) {
 		const now = new Date();
 		const cron = dbRow.schedule ?? dbRow.recommendedSchedule ?? null;
-		let fireAt: Date;
 
 		if (dbRow.nextRunAt > now) {
-			fireAt = dbRow.nextRunAt;
-		} else if (cron) {
+			// Persisted time is still future — arm directly without updating nextRunAt.
+			await setState(manifest.id, "scheduled", {
+				reason: `next run @ ${dbRow.nextRunAt.toISOString()} (restored)`,
+				pid: null,
+			});
+			scheduleAt(manifest.id, dbRow.nextRunAt, () => {
+				const current = managed.get(manifest.id);
+				if (current && !stopping) void spawnManaged(current);
+			});
+			return;
+		}
+
+		if (cron) {
 			// Missed the scheduled window — advance to next occurrence from now.
 			try {
-				fireAt = CronExpressionParser.parse(cron, { tz: "UTC" }).next().toDate();
+				await scheduleNextRun(record, cron);
 			} catch {
 				await setState(manifest.id, "error", {
 					reason: "invalid cron on restore",
 					lastError: "cron parse error",
 				});
-				return;
 			}
-		} else {
-			// No cron, missed run — spawn immediately.
-			await spawnManaged(record);
 			return;
 		}
 
-		await setState(manifest.id, "scheduled", {
-			reason: `next run @ ${fireAt.toISOString()} (restored)`,
-		});
-		scheduleAt(manifest.id, fireAt, () => {
-			const current = managed.get(manifest.id);
-			if (current && !stopping) void spawnManaged(current);
-		});
+		// No cron, missed run — spawn immediately.
+		await spawnManaged(record);
 		return;
 	}
 
@@ -476,18 +479,7 @@ export async function scheduleEnabled(id: string): Promise<void> {
 
 	if ((dbRow.lifecycle === "scheduled" || dbRow.lifecycle === "poller") && cron) {
 		try {
-			const next = CronExpressionParser.parse(cron, { tz: "UTC" }).next().toDate();
-			await db
-				.update(scrapers)
-				.set({ nextRunAt: next, updatedAt: new Date() })
-				.where(eq(scrapers.id, id));
-			await setState(id, "scheduled", {
-				reason: `enabled, next run @ ${next.toISOString()}`,
-			});
-			scheduleAt(id, next, () => {
-				const current = managed.get(id);
-				if (current && !stopping) void spawnManaged(current);
-			});
+			await scheduleNextRun(record, cron);
 		} catch (err) {
 			await setState(id, "error", {
 				reason: "invalid cron on enable",
@@ -503,10 +495,15 @@ export async function scheduleEnabled(id: string): Promise<void> {
 
 export async function killManaged(record: ManagedScraper): Promise<void> {
 	cancelTimer(record.id);
-	if (record.proc) {
-		await record.proc.killGracefully();
-		record.proc = null;
-	}
+	const proc = record.proc;
+	// Null out proc and set state synchronously before awaiting killGracefully.
+	// handle.exited resolves when the process exits, which is also when
+	// killGracefully's internal race resolves — so onChildExit fires before
+	// killGracefully returns. The synchronous update here ensures onChildExit
+	// sees state="stopped" and returns early instead of scheduling a restart.
+	record.proc = null;
+	record.state = "stopped";
+	if (proc) await proc.killGracefully();
 	await setState(record.id, "stopped", { pid: null });
 }
 
@@ -532,48 +529,6 @@ async function onChildExit(
 		return;
 	}
 
-	// Scraper exited because of a stop command issued via the dashboard. Ack
-	// the command and leave the scraper stopped rather than restarting it.
-	const [stopCmd] = await db
-		.select({ id: scraperCommands.id })
-		.from(scraperCommands)
-		.where(
-			and(
-				eq(scraperCommands.scraperId, record.id),
-				eq(scraperCommands.command, "stop"),
-				inArray(scraperCommands.status, ["pending", "delivered"]),
-			),
-		)
-		.limit(1);
-
-	if (stopCmd) {
-		await db
-			.update(scraperCommands)
-			.set({ status: "acked", ackedAt: new Date() })
-			.where(eq(scraperCommands.id, stopCmd.id));
-
-		// Persist nextRunAt so a scheduled scraper resumes its schedule on restart.
-		if (dbRow?.lifecycle === "scheduled") {
-			const cron = dbRow.schedule ?? dbRow.recommendedSchedule ?? null;
-			if (cron) {
-				try {
-					const next = CronExpressionParser.parse(cron, { tz: "UTC" })
-						.next()
-						.toDate();
-					await db
-						.update(scrapers)
-						.set({ nextRunAt: next, updatedAt: new Date() })
-						.where(eq(scrapers.id, record.id));
-				} catch {
-					// invalid cron — leave nextRunAt as-is
-				}
-			}
-		}
-
-		await setState(record.id, "stopped", { reason: "stop command", pid: null });
-		return;
-	}
-
 	if (!dbRow?.enabled) {
 		await setState(record.id, "stopped", { reason: "disabled", pid: null });
 		return;
@@ -590,21 +545,7 @@ async function onChildExit(
 		});
 		if (cron) {
 			try {
-				const next = CronExpressionParser.parse(cron, { tz: "UTC" })
-					.next()
-					.toDate();
-				await db
-					.update(scrapers)
-					.set({ nextRunAt: next, updatedAt: new Date() })
-					.where(eq(scrapers.id, record.id));
-				await setState(record.id, "scheduled", {
-					reason: `next run @ ${next.toISOString()}`,
-					pid: null,
-				});
-				scheduleAt(record.id, next, () => {
-					const current = managed.get(record.id);
-					if (current && !stopping) void spawnManaged(current);
-				});
+				await scheduleNextRun(record, cron);
 			} catch (err) {
 				await setState(record.id, "error", {
 					reason: "invalid cron",
@@ -646,62 +587,3 @@ async function onChildExit(
 	});
 }
 
-// ---------------------------------------------------------------------------
-// Command acknowledgement
-// ---------------------------------------------------------------------------
-
-// Watches for delivered-but-not-acked commands and marks them acknowledged
-// once the scraper's reported phase aligns with the command. SSE delivery
-// only proves the child received the bytes; this is the positive signal
-// that the child acted on it.
-async function pollCommandAcks(): Promise<void> {
-	const pending = await db
-		.select({
-			id: scraperCommands.id,
-			scraperId: scraperCommands.scraperId,
-			command: scraperCommands.command,
-			deliveredAt: scraperCommands.deliveredAt,
-		})
-		.from(scraperCommands)
-		.where(
-			and(
-				eq(scraperCommands.status, "delivered"),
-				isNull(scraperCommands.ackedAt),
-			),
-		);
-
-	if (pending.length === 0) return;
-
-	const scraperIds = [...new Set(pending.map((p) => p.scraperId))];
-	const statuses = await db
-		.select({
-			scraperId: scraperStatus.scraperId,
-			phase: scraperStatus.phase,
-			reportedAt: scraperStatus.reportedAt,
-		})
-		.from(scraperStatus)
-		.where(inArray(scraperStatus.scraperId, scraperIds));
-
-	const phaseByScraper = new Map(statuses.map((s) => [s.scraperId, s]));
-
-	for (const cmd of pending) {
-		const reported = phaseByScraper.get(cmd.scraperId);
-		if (!reported) continue;
-		if (cmd.deliveredAt && reported.reportedAt < cmd.deliveredAt) continue;
-
-		const matches =
-			(cmd.command === "pause" && reported.phase === "paused") ||
-			(cmd.command === "resume" && reported.phase === "running") ||
-			(cmd.command === "stop" && reported.phase === "idle");
-
-		if (matches) {
-			await db
-				.update(scraperCommands)
-				.set({ status: "acked", ackedAt: new Date() })
-				.where(eq(scraperCommands.id, cmd.id));
-			logger.info(
-				`command ${cmd.id} (${cmd.command}) acked by ${cmd.scraperId}`,
-			);
-		}
-	}
-}

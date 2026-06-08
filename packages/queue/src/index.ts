@@ -37,9 +37,16 @@ export const SCRAPER_CONTROL_JOBS = {
 	KILL: "kill",
 	RELOAD: "reload",
 	ENABLE: "enable",
+	STOP: "stop",
+	PAUSE: "pause",
+	RESUME: "resume",
 } as const;
 
-export type ScraperControlJobData = { scraperId: string };
+export type ScraperControlJobData = {
+	scraperId: string;
+	/** Present on STOP/PAUSE/RESUME jobs so the worker can ack the audit row. */
+	commandId?: string;
+};
 
 export const NOTIFICATION_JOBS = {
 	DISPATCH: "dispatch",

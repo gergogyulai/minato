@@ -13,7 +13,6 @@ import { AniListProvider } from "@/lib/metadata/providers/anilist";
 import { TMDBProvider } from "@/lib/metadata/providers/tmdb";
 import { MetadataResolver } from "@/lib/metadata/resolver";
 import type { MediaType } from "@/lib/metadata/types";
-import { tmdbRateLimiter } from "@/rate-limiter";
 import type { EnrichJobData } from "@/types/enrich";
 import { checkWantedItems } from "@/lib/wanted/matcher";
 import { markAsEnriched } from "@/utils/enrich";
@@ -98,7 +97,6 @@ async function processEnrichJob(
 		return;
 	}
 
-	await tmdbRateLimiter.waitForToken();
 	log.info({ infoHash, title, type, year, isRefresh }, "Enriching");
 
 	const preferredProvider = isRefresh

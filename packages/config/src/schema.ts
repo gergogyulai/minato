@@ -76,7 +76,7 @@ export const configSchema = z.object({
   scraper: scraperSchema.default(scraperSchema.parse({})),
   search: searchSchema.default(searchSchema.parse({})),
   workers: workersSchema.default(workersSchema.parse({})),
-  internalSupervisorSecret: z.string().optional(),
+  internalSupervisorSecret: z.string().default(""),
 });
 
 export type AppConfig = z.infer<typeof configSchema>;
