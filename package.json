@@ -45,7 +45,8 @@
 	},
 	"dependencies": {
 		"@project-minato/env": "workspace:*",
-		"dotenv": "catalog:"
+		"dotenv": "catalog:",
+		"limiter": "^3.0.0"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.4",

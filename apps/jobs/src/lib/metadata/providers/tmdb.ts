@@ -1,6 +1,7 @@
 import { TMDB } from "tmdb-ts";
 import { MetadataProvider } from "@/lib/metadata/provider";
 import type { EnrichmentMetadata, MediaType } from "@/lib/metadata/types";
+import { tmdbRateLimiter } from "@/lib/metadata/ratelimit";
 import { logger } from "@/utils/logger";
 
 const log = logger.child({ module: "TMDBProvider" });
@@ -31,6 +32,7 @@ export class TMDBProvider extends MetadataProvider {
 		let searchItem: { id: number; compareTitle: string } | null = null;
 
 		if (isMovie) {
+			await tmdbRateLimiter.removeTokens(1);
 			const res = await this.client.search.movies({ query: title, year });
 			if (res.results[0]) {
 				searchItem = {
@@ -39,6 +41,7 @@ export class TMDBProvider extends MetadataProvider {
 				};
 			}
 		} else {
+			await tmdbRateLimiter.removeTokens(1);
 			const res = await this.client.search.tvShows({
 				query: title,
 				first_air_date_year: year,
@@ -68,7 +71,9 @@ export class TMDBProvider extends MetadataProvider {
 		}
 
 		if (isMovie) {
+			await tmdbRateLimiter.removeTokens(1);
 			const details = await this.client.movies.details(searchItem.id);
+			await tmdbRateLimiter.removeTokens(1);
 			const externalIds = await this.client.movies.externalIds(searchItem.id);
 			const releaseDate = details.release_date || null;
 			const releaseYear = releaseDate
@@ -92,7 +97,9 @@ export class TMDBProvider extends MetadataProvider {
 			};
 		}
 
+		await tmdbRateLimiter.removeTokens(1);
 		const details = await this.client.tvShows.details(searchItem.id);
+		await tmdbRateLimiter.removeTokens(1);
 		const externalIds = await this.client.tvShows.externalIds(searchItem.id);
 		const firstAirDate = details.first_air_date || null;
 

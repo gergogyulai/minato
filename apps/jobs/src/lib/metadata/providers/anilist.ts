@@ -1,6 +1,7 @@
 import { GraphQLClient, gql } from "graphql-request";
 import { MetadataProvider } from "@/lib/metadata/provider";
 import type { EnrichmentMetadata, MediaType } from "@/lib/metadata/types";
+import { anilistRateLimiter } from "@/lib/metadata/ratelimit";
 
 const ANILIST_API_URL = "https://graphql.anilist.co";
 
@@ -78,6 +79,7 @@ export class AniListProvider extends MetadataProvider {
       }
     `;
 
+		await anilistRateLimiter.removeTokens(1);
 		const searchData = await this.client.request<AniListSearchResponse>(
 			SEARCH_QUERY,
 			{ search: title, year },
@@ -130,6 +132,7 @@ export class AniListProvider extends MetadataProvider {
       }
     `;
 
+		await anilistRateLimiter.removeTokens(1);
 		const detailData = await this.client.request<AniListDetailResponse>(
 			DETAIL_QUERY,
 			{ id: searchItem.id },
