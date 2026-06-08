@@ -1,5 +1,8 @@
+diff --git a/node_modules/discord-webhook-node/.bun-tag-64fd5bd58edc26f8 b/.bun-tag-64fd5bd58edc26f8
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
 diff --git a/index.d.ts b/index.d.ts
-index e52cd145e7caf29ebd3f178e1e66aead26aa49ab..5e6cd2ab5587d03af626722d957e1de89145276d 100644
+index e52cd145e7caf29ebd3f178e1e66aead26aa49ab..33069f759b23cb1c29ec2124639c072f2abc7f58 100644
 --- a/index.d.ts
 +++ b/index.d.ts
 @@ -1,87 +1,304 @@
@@ -380,6 +383,7 @@ index e52cd145e7caf29ebd3f178e1e66aead26aa49ab..5e6cd2ab5587d03af626722d957e1de8
 +        inline?: boolean
 +    ): Promise<void>;
  }
+\ No newline at end of file
 diff --git a/package.json b/package.json
 index 3705641b314574d7bfa2a7191f128d215e1f125f..b0a374909cac72fe38acbe9731bbebf358cda97c 100644
 --- a/package.json
@@ -977,19 +981,17 @@ index 38c0d94cad2e1f523033ec5dd93b2a9d44c8ff7c..67bdfd610f35fe2209b9cf224e1d0587
 +
 +module.exports = Webhook;
 diff --git a/src/index.mjs b/src/index.mjs
-index c4dbc7e2a766fbd0fa529bf4008b017cb2d0ada3..a54ce291d221e184a5d4e4bd86366a7082118f2a 100644
+index c4dbc7e2a766fbd0fa529bf4008b017cb2d0ada3..c0d241a1dcbc87781df6c0083c19ff626458d2e1 100644
 --- a/src/index.mjs
 +++ b/src/index.mjs
-@@ -1,7 +1,8 @@
+@@ -1,7 +1,5 @@
 -import discord_webhook from "./index.js";
 +// ESM entry — bridges the CJS implementation for native ES module consumers.
-+import { createRequire } from 'node:module';
++import { Webhook, MessageBuilder } from "./index.js";
  
 -const Webhook = discord_webhook.Webhook;
 -const MessageBuilder = discord_webhook.MessageBuilder;
-+const require = createRequire(import.meta.url);
-+const { Webhook, MessageBuilder } = require('./index.js');
- 
+-
 -export default discord_webhook;
 -export {Webhook, MessageBuilder};
 +export { Webhook, MessageBuilder };

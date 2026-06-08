@@ -7,8 +7,8 @@ export default defineConfig({
 	clean: true,
 	treeshake: true,
 	minify: true,
-	// Bundle everything except sharp (native addon — requires prebuilt .node binaries
-	// that cannot be inlined by tsdown and must be installed in the final image).
+	// Bundle everything except native addons and packages with dynamic require()
+	// that bundlers cannot statically inline. These must be installed in the final image.
 	noExternal: [/.*/],
-	external: ["sharp"],
+	external: ["sharp", "discord-webhook-node"],
 });

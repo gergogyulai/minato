@@ -59,6 +59,8 @@ COPY --from=builder /app/apps/scraper ./apps/scraper
 ##   - better-auth + @better-auth/* adapters: left external due to dynamic require()
 ##   - drizzle-orm: required at runtime by @better-auth/drizzle-adapter (dynamic require)
 ##   - sharp: native addon, needs Alpine/musl prebuilt (not the glibc one from builder)
+##   - discord-webhook-node: uses createRequire() bridge that bundlers cannot inline
+##   - pino + pino-pretty: runtime deps of @project-minato/utils (used by skit runner)
 COPY apps/jobs/package.json /tmp/jobs-pkg.json
 RUN bun -e "const {readFileSync,writeFileSync}=require('fs'); \
   const jobs=JSON.parse(readFileSync('/tmp/jobs-pkg.json','utf8')); \
@@ -68,10 +70,20 @@ RUN bun -e "const {readFileSync,writeFileSync}=require('fs'); \
     '@better-auth/api-key':'^1.5.3', \
     '@better-auth/passkey':'^1.5.3', \
     '@better-auth/drizzle-adapter':'^1.5.3', \
-    'drizzle-orm':'^0.45.1' \
+    'drizzle-orm':'^0.45.1', \
+    'discord-webhook-node':jobs.dependencies['discord-webhook-node'], \
+    'pino':'^9.6.0', \
+    'pino-pretty':'^13.0.0' \
   }}));" \
   && bun install --production \
   && rm package.json
+
+## Copy workspace packages the supervisor resolves at runtime via import.meta.resolve()
+COPY --from=builder /app/packages/skit ./packages/skit
+COPY --from=builder /app/packages/utils ./packages/utils
+RUN mkdir -p node_modules/@project-minato \
+  && ln -sf ../../packages/skit node_modules/@project-minato/skit \
+  && ln -sf ../../packages/utils node_modules/@project-minato/utils
 
 ## copy nginx config (Alpine nginx uses http.d/, not sites-available/)
 COPY docker/nginx.conf /etc/nginx/http.d/default.conf
