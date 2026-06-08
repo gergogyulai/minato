@@ -19,7 +19,7 @@ import { logger } from "@/utils/logger";
 const log = logger.child({ worker: "notifications" });
 
 async function handleDispatch(job: Job<NotificationDispatchJobData>): Promise<void> {
-	const { event, payload, channelId } = job.data;
+	const { event, payload, channelId, userId } = job.data;
 
 	const channels = channelId
 		? await db
@@ -38,6 +38,7 @@ async function handleDispatch(job: Job<NotificationDispatchJobData>): Promise<vo
 					and(
 						eq(notificationChannels.enabled, true),
 						sql`${event} = ANY(${notificationChannels.events})`,
+						userId ? eq(notificationChannels.userId, userId) : undefined,
 					),
 				);
 

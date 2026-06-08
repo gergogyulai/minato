@@ -54,8 +54,10 @@ export type NotificationEvent =
 export type NotificationDispatchJobData = {
 	event: NotificationEvent;
 	payload: Record<string, unknown>;
-	/** When set, deliver only to this specific channel (used for test sends). */
+	/** When set, deliver only to this specific channel*/
 	channelId?: string;
+	/** When set, deliver only to channels owned by this user. */
+	userId?: string;
 };
 
 export const ingestQueue = new Queue(QUEUES.INGEST, { connection });

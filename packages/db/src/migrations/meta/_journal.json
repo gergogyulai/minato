@@ -64,6 +64,20 @@
       "when": 1780695983685,
       "tag": "0008_chubby_giant_girl",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1780861062594,
+      "tag": "0009_flimsy_chat",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1780863019206,
+      "tag": "0010_dry_xavin",
+      "breakpoints": true
     }
   ]
 }

@@ -1,11 +1,12 @@
 import "dotenv/config";
 import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
-import { sharedSchema } from "./schema";
+import { sharedSchema, tmdbAccessTokenSchema } from "./schema";
 
 export const env = createEnv({
 	server: {
 		...sharedSchema,
+		...tmdbAccessTokenSchema,
 		BETTER_AUTH_SECRET: z.string().min(1),
 		BETTER_AUTH_URL: z.string().url().optional(),
 		CORS_ORIGIN: z.string().url().optional(),

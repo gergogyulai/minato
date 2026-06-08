@@ -15,6 +15,7 @@ import { MetadataResolver } from "@/lib/metadata/resolver";
 import type { MediaType } from "@/lib/metadata/types";
 import { tmdbRateLimiter } from "@/rate-limiter";
 import type { EnrichJobData } from "@/types/enrich";
+import { checkWantedItems } from "@/lib/wanted/matcher";
 import { markAsEnriched } from "@/utils/enrich";
 import { logger } from "@/utils/logger";
 import { withTimeout } from "@/utils/with-timeout";
@@ -151,6 +152,10 @@ async function processEnrichJob(
 	}
 
 	await batcher.add(formatTorrentForMeilisearch({ ...enrichedTorrent, enrichment: finalEnrichment }));
+
+	await checkWantedItems(enrichedTorrent, finalEnrichment).catch((err) =>
+		log.error({ err, infoHash }, "Wanted item check failed"),
+	);
 
 	job.log("Enrichment complete");
 	log.debug({ infoHash }, "Enrichment complete");

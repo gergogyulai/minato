@@ -11,6 +11,7 @@ import { statsRouter } from "@/api/routers/stats";
 import { torrentRouter } from "@/api/routers/torrents";
 import { notificationsRouter } from "@/api/routers/notifications";
 import { usersRouter } from "@/api/routers/users";
+import { wantedRouter } from "@/api/routers/wanted";
 
 export const appRouter = {
 	privateData: protectedProcedure.handler(({ context }) => {
@@ -30,6 +31,7 @@ export const appRouter = {
 	queues: queuesRouter,
 	users: usersRouter,
 	notifications: notificationsRouter,
+	wanted: wantedRouter,
 };
 export type AppRouter = typeof appRouter;
 export type AppRouterClient = RouterClient<typeof appRouter>;
