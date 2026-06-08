@@ -1,0 +1,5 @@
+{
+  "apps": {
+    "apps/web": { "name": "minato", "script": "dev:app" }
+  }
+}

@@ -1,10 +1,12 @@
 {
 	"name": "@project-minato/web",
+	"portless": { "name": "minato", "script": "dev:app", "appPort": 3001 },
 	"version": "0.0.0",
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"dev": "vite dev",
+		"dev": "portless",
+		"dev:app": "vite dev",
 		"build": "vite build",
 		"serve": "vite preview",
 		"start": "vite",

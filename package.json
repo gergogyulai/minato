@@ -51,6 +51,7 @@
 		"@biomejs/biome": "^2.4.4",
 		"@project-minato/typescript": "workspace:*",
 		"@types/bun": "catalog:",
+		"portless": "latest",
 		"turbo": "^2.8.11",
 		"typescript": "catalog:"
 	},

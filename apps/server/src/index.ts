@@ -225,6 +225,7 @@ await startup();
 
 const server = Bun.serve({
 	fetch: app.fetch,
+	port: process.env.PORT ? Number(process.env.PORT) : 3000,
 });
 
 async function shutdown(signal: string) {

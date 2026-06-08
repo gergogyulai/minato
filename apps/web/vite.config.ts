@@ -29,8 +29,11 @@ export default defineConfig({
 	},
 	server: {
 		port: 3001,
+		host: "127.0.0.1",
+		allowedHosts: ["minato.localhost"],
 		proxy: {
-			"/assets": "http://localhost:3000",
+			"/api": { target: "http://localhost:3000" },
+			"/assets": { target: "http://localhost:3000" },
 		},
 	},
 });

@@ -28,6 +28,13 @@ dev-server:
 dev-jobs:
     bun turbo dev --filter=@project-minato/jobs
 
+# ─── local dev setup (one-time) ──────────────────────────────────────────────
+
+# Trust the portless local CA in the system trust store (run once, after bun install)
+# Linux: install libnss3-tools first for Firefox support (sudo apt install libnss3-tools)
+dev-trust:
+    bunx portless trust
+
 # ─── build ───────────────────────────────────────────────────────────────────
 
 # Build all apps via turborepo
