@@ -12,7 +12,6 @@ import {
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { useState } from "react";
 
-import Header from "@/components/header";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { link, type orpc } from "@/utils/orpc";
@@ -83,7 +82,6 @@ function RootComponent() {
 				storageKey="vite-ui-theme"
 			>
 				<div className="min-h-screen">
-					{/* <Header /> */}
 					<main>
 						<Outlet />
 						<RaycastMenu />

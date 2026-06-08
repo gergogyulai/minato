@@ -29,7 +29,6 @@ import { orpc } from "@/utils/orpc";
 
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { formatBytesString } from "@/lib/utils";
-import TorrentHeader from "@/components/torrent-header";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
