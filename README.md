@@ -14,7 +14,7 @@
   <br>
 </div>
 
-Minato is a self-hosted torrent indexer. Browse releases from the dashboard, or connect it to Sonarr and Radarr via Torznab. It scrapes, enriches, and indexes — so you always have something to search. [Read the docs →](https://minato-docs.vercel.app)
+Minato is a self-hosted torrent indexer. Browse releases from the dashboard, or connect it to Sonarr and Radarr via Torznab. It scrapes, enriches, and indexes — so you always have something to search. [Read the docs →](https://projectminato.org)
 
 - 🏠 Self-hosted torrent indexer
 - 🔍 Full-text search with inline directives
