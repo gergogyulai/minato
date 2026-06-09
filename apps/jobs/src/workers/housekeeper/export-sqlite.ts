@@ -5,7 +5,7 @@ import { db, torrents } from "@project-minato/db";
 import { exportsDir } from "@project-minato/env/paths";
 import type { Job } from "bullmq";
 import { gt } from "drizzle-orm";
-import { logger } from "@/utils/logger";
+import { logger } from "@project-minato/utils/logger";
 
 const log = logger.child({ task: "export-sqlite" });
 const BATCH_SIZE = 1000;

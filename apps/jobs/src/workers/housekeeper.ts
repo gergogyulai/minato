@@ -1,6 +1,6 @@
 import { connection, HOUSEKEEPER_JOBS, QUEUES } from "@project-minato/queue";
 import { type Job, Worker } from "bullmq";
-import { logger } from "@/utils/logger";
+import { logger } from "@project-minato/utils/logger";
 import { cleanupUnusedAssets } from "@/workers/housekeeper/cleanup-unused-assets";
 import { exportSqlite } from "@/workers/housekeeper/export-sqlite";
 import { performForceReindex } from "@/workers/housekeeper/force-reindex";

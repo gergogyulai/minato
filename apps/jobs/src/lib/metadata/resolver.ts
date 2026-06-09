@@ -1,6 +1,6 @@
 import type { MetadataProvider } from "@/lib/metadata/provider";
 import type { EnrichmentMetadata, MediaType } from "@/lib/metadata/types";
-import { logger } from "@/utils/logger";
+import { logger } from "@project-minato/utils/logger";
 
 const log = logger.child({ module: "MetadataResolver" });
 

@@ -2,7 +2,7 @@ import { TMDB } from "tmdb-ts";
 import { MetadataProvider } from "@/lib/metadata/provider";
 import type { EnrichmentMetadata, MediaType } from "@/lib/metadata/types";
 import { tmdbRateLimiter } from "@/lib/metadata/ratelimit";
-import { logger } from "@/utils/logger";
+import { logger } from "@project-minato/utils/logger";
 
 const log = logger.child({ module: "TMDBProvider" });
 

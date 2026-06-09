@@ -12,7 +12,7 @@ import {
 } from "node:fs";
 import { join, resolve } from "node:path";
 import type { ScraperSource } from "@project-minato/db";
-import { logger } from "@/utils/logger";
+import { logger } from "@project-minato/utils/logger";
 import type { ScraperManifest } from "./process";
 
 const REQUIRED_MINATO_FIELDS = ["capabilities", "type"] as const;

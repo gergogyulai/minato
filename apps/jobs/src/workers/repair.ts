@@ -12,7 +12,7 @@ import {
 } from "@project-minato/meilisearch";
 
 import { type Job, Worker } from "bullmq";
-import { logger } from "@/utils/logger";
+import { logger } from "@project-minato/utils/logger";
 import { generateMetadataFromRelease } from "@/lib/repair/generation";
 
 const log = logger.child({ worker: "ai-repair-worker" });
@@ -21,7 +21,7 @@ interface AIRepairJobData {
   infoHash: string;
 }
 
-export function startAIRepairWorker() {
+export function startRepairWorker() {
   return new Worker(
     QUEUES.AI_REPAIR,
     async (job: Job<AIRepairJobData>) => {

@@ -2,7 +2,7 @@ import { readdir, rm, stat } from "node:fs/promises";
 import path from "node:path";
 import { db, enrichments, sql } from "@project-minato/db";
 import { mediaRoot } from "@project-minato/env/paths";
-import { logger } from "@/utils/logger";
+import { logger } from "@project-minato/utils/logger";
 
 const log = logger.child({ task: "cleanup-unused-assets" });
 

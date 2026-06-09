@@ -5,7 +5,7 @@ import {
 } from "@project-minato/meilisearch";
 import type { Job } from "bullmq";
 import { eq } from "drizzle-orm";
-import { logger } from "@/utils/logger";
+import { logger } from "@project-minato/utils/logger";
 
 const log = logger.child({ task: "force-reindex" });
 

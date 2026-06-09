@@ -16,7 +16,7 @@ import type { MediaType } from "@/lib/metadata/types";
 import type { EnrichJobData } from "@/types/enrich";
 import { checkWantedItems } from "@/lib/wanted/matcher";
 import { markAsEnriched } from "@/utils/enrich";
-import { logger } from "@/utils/logger";
+import { logger } from "@project-minato/utils/logger";
 import { withTimeout } from "@/utils/with-timeout";
 
 const log = logger.child({ worker: "enrichment" });

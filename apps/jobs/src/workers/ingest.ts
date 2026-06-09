@@ -8,7 +8,7 @@ import { Batcher } from "@project-minato/utils/batcher";
 import { type Job, Worker } from "bullmq";
 import ReleaseParser from "release-parser";
 import { getReleaseConfidence } from "@/lib/repair/confidence";
-import { logger } from "@/utils/logger";
+import { logger } from "@project-minato/utils/logger";
 
 const log = logger.child({ worker: "ingest" });
 

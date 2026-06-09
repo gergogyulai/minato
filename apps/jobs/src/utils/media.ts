@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { mediaRoot } from "@project-minato/env/paths";
 import sharp from "sharp";
-import { logger } from "@/utils/logger";
+import { logger } from "@project-minato/utils/logger";
 
 const log = logger.child({ module: "media" });
 

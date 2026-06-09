@@ -7,12 +7,12 @@ import { closeDb, db, runMigrations } from "@project-minato/db";
 import { connection } from "@project-minato/queue";
 import { startSupervisor, stopAllScrapers } from "@/supervisor";
 import { checkInfrastructure } from "@/utils/infra";
-import { logger } from "@/utils/logger";
-import { startAIRepairWorker } from "@/workers/ai-repair-worker";
-import { startEnrichmentWorker } from "@/workers/enrichment-worker";
-import { startHousekeeperWorker } from "@/workers/housekeeper-worker";
-import { startIngestWorker } from "@/workers/ingest-worker";
-import { startNotificationWorker } from "@/workers/notification-worker";
+import { logger } from "@project-minato/utils/logger";
+import { startRepairWorker } from "@/workers/repair";
+import { startEnrichmentWorker } from "@/workers/enrichment";
+import { startHousekeeperWorker } from "@/workers/housekeeper";
+import { startIngestWorker } from "@/workers/ingest";
+import { startNotificationWorker } from "@/workers/notification";
 
 const BOOTSTRAP_MAX_RETRIES = 10;
 const BOOTSTRAP_INITIAL_DELAY_MS = 3_000;
@@ -32,7 +32,7 @@ async function bootstrap(attempt = 1): Promise<void> {
 
 		const ingestWorker = startIngestWorker();
 		const enrichmentWorker = startEnrichmentWorker();
-		const aiRepairWorker = startAIRepairWorker();
+		const aiRepairWorker = startRepairWorker();
 		const housekeeperWorker = startHousekeeperWorker();
 		const notificationWorker = startNotificationWorker();
 		logger.info("Workers active: ingest, enrichment, ai-repair, housekeeper, notifications");

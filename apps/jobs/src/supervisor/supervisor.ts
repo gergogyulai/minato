@@ -18,7 +18,7 @@ import {
 	NOTIFICATION_JOBS,
 	notificationsQueue,
 } from "@project-minato/queue";
-import { logger as rootLogger } from "@/utils/logger";
+import { logger as rootLogger } from "@project-minato/utils/logger";
 
 const logger = rootLogger.child({ component: "supervisor" });
 

@@ -12,7 +12,7 @@ import {
 	Worker,
 	connection,
 } from "@project-minato/queue";
-import { logger as rootLogger } from "@/utils/logger";
+import { logger as rootLogger } from "@project-minato/utils/logger";
 import {
 	cancelTimer,
 	killManaged,

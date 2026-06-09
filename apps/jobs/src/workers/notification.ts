@@ -14,7 +14,7 @@ import {
 import { type Job, Worker } from "bullmq";
 
 import { deliverToChannel } from "@/lib/notifications";
-import { logger } from "@/utils/logger";
+import { logger } from "@project-minato/utils/logger";
 
 const log = logger.child({ worker: "notifications" });
 

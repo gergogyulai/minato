@@ -11,7 +11,7 @@ import {
 import type { Enrichment, Torrent, WantedItem } from "@project-minato/db";
 import { NOTIFICATION_JOBS, notificationsQueue } from "@project-minato/queue";
 
-import { logger } from "@/utils/logger";
+import { logger } from "@project-minato/utils/logger";
 
 const log = logger.child({ lib: "wanted-matcher" });
 
