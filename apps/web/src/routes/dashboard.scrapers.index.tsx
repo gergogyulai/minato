@@ -117,6 +117,7 @@ function ScraperCard({
 	const current = sc.status?.progressCurrent ?? 0;
 	const pct = total > 0 ? Math.round((current / total) * 100) : null;
 	const removable = sc.source.kind !== "first_party";
+	const isSidecar = sc.kind === "sidecar";
 
 	async function run(key: string, fn: () => Promise<unknown>, ok: string) {
 		setBusy(key);
@@ -146,13 +147,19 @@ function ScraperCard({
 							<h3 className="truncate font-semibold text-base text-foreground transition-colors group-hover:text-primary">
 								{sc.name}
 							</h3>
-							<StatusPill
-								tone={scraperStateTone(sc.state)}
-								dot
-								pulse={sc.state === "running"}
-							>
-								{scraperStateLabel(sc.state)}
-							</StatusPill>
+							{isSidecar ? (
+								<StatusPill tone={sc.live ? "success" : "neutral"} dot pulse={sc.live}>
+									{sc.live ? "Live" : "Offline"}
+								</StatusPill>
+							) : (
+								<StatusPill
+									tone={scraperStateTone(sc.state)}
+									dot
+									pulse={sc.state === "running"}
+								>
+									{scraperStateLabel(sc.state)}
+								</StatusPill>
+							)}
 						</div>
 						<p className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-muted-foreground text-xs">
 							<span className="font-mono">{sc.id}</span>
@@ -164,19 +171,21 @@ function ScraperCard({
 					</div>
 
 					{/* Stop propagation so the switch doesn't navigate */}
-					<div onClick={(e) => e.preventDefault()}>
-						<Switch
-							checked={sc.enabled}
-							disabled={busy !== null}
-							onCheckedChange={(enabled) =>
-								run(
-									"enable",
-									() => client.scraper.setEnabled({ id: sc.id, enabled }),
-									enabled ? "Scraper enabled" : "Scraper disabled",
-								)
-							}
-						/>
-					</div>
+					{!isSidecar && (
+						<div onClick={(e) => e.preventDefault()}>
+							<Switch
+								checked={sc.enabled}
+								disabled={busy !== null}
+								onCheckedChange={(enabled) =>
+									run(
+										"enable",
+										() => client.scraper.setEnabled({ id: sc.id, enabled }),
+										enabled ? "Scraper enabled" : "Scraper disabled",
+									)
+								}
+							/>
+						</div>
+					)}
 				</div>
 
 				{/* Progress */}
@@ -211,7 +220,7 @@ function ScraperCard({
 
 			{/* Footer actions */}
 			<div className="flex flex-wrap items-center gap-1.5 border-border border-t bg-muted/20 px-4 py-3">
-				{sc.state === "running" && (
+				{(isSidecar ? sc.live : sc.state === "running") && (
 					<Button
 						size="sm"
 						variant="outline"
@@ -228,7 +237,7 @@ function ScraperCard({
 						<Pause className="size-3" /> Pause
 					</Button>
 				)}
-				{sc.state === "paused" && (
+				{(isSidecar ? sc.live : sc.state === "paused") && (
 					<Button
 						size="sm"
 						variant="outline"
@@ -245,7 +254,9 @@ function ScraperCard({
 						<Play className="size-3" /> Resume
 					</Button>
 				)}
-				{(sc.state === "running" || sc.state === "paused") && (
+				{(isSidecar
+					? sc.live
+					: sc.state === "running" || sc.state === "paused") && (
 					<Button
 						size="sm"
 						variant="outline"
@@ -262,10 +273,11 @@ function ScraperCard({
 						<Square className="size-3" /> Stop
 					</Button>
 				)}
-				{(sc.state === "ready" ||
-					sc.state === "scheduled" ||
-					sc.state === "stopped" ||
-					sc.state === "error") &&
+				{!isSidecar &&
+					(sc.state === "ready" ||
+						sc.state === "scheduled" ||
+						sc.state === "stopped" ||
+						sc.state === "error") &&
 					sc.enabled && (
 						<Button
 							size="sm"
@@ -293,26 +305,28 @@ function ScraperCard({
 
 				{removable && (
 					<>
-						<Button
-							size="sm"
-							variant="ghost"
-							disabled={busy !== null}
-							onClick={() =>
-								run(
-									"update",
-									() => client.scraper.update({ id: sc.id }),
-									"Update pulled",
-								)
-							}
-							className="h-7 gap-1.5 text-muted-foreground text-xs"
-						>
-							{busy === "update" ? (
-								<Loader2 className="size-3 animate-spin" />
-							) : (
-								<CloudDownload className="size-3" />
-							)}
-							Update
-						</Button>
+						{!isSidecar && (
+							<Button
+								size="sm"
+								variant="ghost"
+								disabled={busy !== null}
+								onClick={() =>
+									run(
+										"update",
+										() => client.scraper.update({ id: sc.id }),
+										"Update pulled",
+									)
+								}
+								className="h-7 gap-1.5 text-muted-foreground text-xs"
+							>
+								{busy === "update" ? (
+									<Loader2 className="size-3 animate-spin" />
+								) : (
+									<CloudDownload className="size-3" />
+								)}
+								Update
+							</Button>
+						)}
 						<Button
 							size="sm"
 							variant="ghost"

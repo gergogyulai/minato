@@ -12,7 +12,6 @@ export const QUEUES = {
 	ENRICH: "torrent_enrich",
 	HOUSEKEEPER: "housekeeper_queue",
 	AI_REPAIR: "ai_repair_queue",
-	SCRAPER_CONTROL: "scraper_control",
 	NOTIFICATIONS: "notifications_queue",
 } as const;
 
@@ -31,22 +30,6 @@ export const HOUSEKEEPER_JOBS = {
 	FORCE_REINDEX: "force_reindex",
 	EXPORT_SQLITE: "export_sqlite",
 } as const;
-
-export const SCRAPER_CONTROL_JOBS = {
-	RUN: "run",
-	KILL: "kill",
-	RELOAD: "reload",
-	ENABLE: "enable",
-	STOP: "stop",
-	PAUSE: "pause",
-	RESUME: "resume",
-} as const;
-
-export type ScraperControlJobData = {
-	scraperId: string;
-	/** Present on STOP/PAUSE/RESUME jobs so the worker can ack the audit row. */
-	commandId?: string;
-};
 
 export const NOTIFICATION_JOBS = {
 	DISPATCH: "dispatch",
@@ -71,10 +54,6 @@ export const ingestQueue = new Queue(QUEUES.INGEST, { connection });
 export const enrichQueue = new Queue(QUEUES.ENRICH, { connection });
 export const housekeeperQueue = new Queue(QUEUES.HOUSEKEEPER, { connection });
 export const aiRepairQueue = new Queue(QUEUES.AI_REPAIR, { connection });
-export const scraperControlQueue = new Queue<ScraperControlJobData>(
-	QUEUES.SCRAPER_CONTROL,
-	{ connection },
-);
 export const notificationsQueue = new Queue<NotificationDispatchJobData>(
 	QUEUES.NOTIFICATIONS,
 	{ connection },

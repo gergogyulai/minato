@@ -1,5 +1,6 @@
 import { ORPCError } from "@orpc/server";
 import { auth } from "@project-minato/auth";
+import { db, eq, scrapers } from "@project-minato/db";
 import {
 	apiKeyCreateContract,
 	apiKeyDeleteContract,
@@ -8,10 +9,28 @@ import {
 
 export const apiKeysRouter = {
 	create: apiKeyCreateContract.handler(async ({ input, context }) => {
+		if (input.type === "sidecar") {
+			// One key per sidecar identity, and never an id a managed scraper
+			// already owns — the key would write into the wrong row.
+			const [existing] = await db
+				.select({ id: scrapers.id })
+				.from(scrapers)
+				.where(eq(scrapers.id, input.scraperId as string))
+				.limit(1);
+			if (existing) {
+				throw new ORPCError("CONFLICT", {
+					message: `Scraper id "${input.scraperId}" is already in use — remove that scraper first`,
+				});
+			}
+		}
+
 		const result = await auth.api.createApiKey({
 			body: {
 				name: input.name,
-				metadata: { type: input.type },
+				metadata:
+					input.type === "sidecar"
+						? { type: input.type, scraperId: input.scraperId }
+						: { type: input.type },
 				expiresIn: input.expiresIn ?? null,
 			},
 			headers: context.honoContext.req.raw.headers,

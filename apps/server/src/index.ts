@@ -18,7 +18,11 @@ import { logger } from "hono/logger";
 import { createContext } from "@/api/context";
 import { appRouter } from "@/api/routers/index";
 import { feeds } from "@/feeds";
-import { handleEnsureKey } from "@/scraper/sse";
+import {
+	handleCommandAck,
+	handleCommandStream,
+	handleEnsureKey,
+} from "@/scraper/endpoints";
 import { startup } from "./startup";
 import { exportsDir, mediaRoot } from "@project-minato/env/paths";
 
@@ -79,6 +83,12 @@ app.all("/api/v1/auth/*", (c) => auth.handler(c.req.raw));
 // Supervisor-only endpoint for first-run key provisioning. Authenticates via
 // the internal supervisor secret, not a session or API key.
 app.post("/api/v1/internal/scraper/ensure-key", (c) => handleEnsureKey(c));
+
+// Sidecar command channel — long-lived SSE stream plus ack, authenticated by
+// a sidecar-bound API key. Registered before the oRPC catch-all so the
+// streaming route wins.
+app.get("/api/v1/scraper/commands", (c) => handleCommandStream(c));
+app.post("/api/v1/scraper/commands/ack", (c) => handleCommandAck(c));
 
 app.route("/api/v1/feeds", feeds);
 

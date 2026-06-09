@@ -30,6 +30,7 @@ export async function closeDb(): Promise<void> {
 }
 
 export * from "drizzle-orm";
+export * from "./commands";
 export type { MigrationResult } from "./migrate";
 export { runMigrations } from "./migrate";
 export * from "./schema";

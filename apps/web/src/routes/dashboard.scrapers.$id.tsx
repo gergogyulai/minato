@@ -210,7 +210,8 @@ function ScraperDetail({
 	const [configOpen, setConfigOpen] = useState(false);
 	const [removeOpen, setRemoveOpen] = useState(false);
 
-	const isRunning = sc.state === "running";
+	const isSidecar = sc.kind === "sidecar";
+	const isRunning = isSidecar ? sc.live : sc.state === "running";
 	const removable = sc.source.kind !== "first_party";
 	const effectiveSchedule = sc.schedule ?? sc.recommendedSchedule;
 
@@ -268,33 +269,43 @@ function ScraperDetail({
 							>
 								<Info className="size-4" /> About
 							</Button>
-							<span className="text-muted-foreground text-xs">
-								{sc.enabled ? "Enabled" : "Disabled"}
-							</span>
-							<Switch
-								checked={sc.enabled}
-								disabled={busy !== null}
-								onCheckedChange={(enabled) =>
-									run(
-										"enable",
-										() => client.scraper.setEnabled({ id: sc.id, enabled }),
-										enabled ? "Scraper enabled" : "Scraper disabled",
-									)
-								}
-							/>
+							{!isSidecar && (
+								<>
+									<span className="text-muted-foreground text-xs">
+										{sc.enabled ? "Enabled" : "Disabled"}
+									</span>
+									<Switch
+										checked={sc.enabled}
+										disabled={busy !== null}
+										onCheckedChange={(enabled) =>
+											run(
+												"enable",
+												() => client.scraper.setEnabled({ id: sc.id, enabled }),
+												enabled ? "Scraper enabled" : "Scraper disabled",
+											)
+										}
+									/>
+								</>
+							)}
 						</div>
 					}
 				/>
 
 				{/* Metadata row */}
 				<div className="mb-6 -mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-muted-foreground text-xs">
-					<StatusPill
-						tone={scraperStateTone(sc.state)}
-						dot
-						pulse={isRunning}
-					>
-						{scraperStateLabel(sc.state)}
-					</StatusPill>
+					{isSidecar ? (
+						<StatusPill tone={sc.live ? "success" : "neutral"} dot pulse={sc.live}>
+							{sc.live ? "Live" : "Offline"}
+						</StatusPill>
+					) : (
+						<StatusPill
+							tone={scraperStateTone(sc.state)}
+							dot
+							pulse={isRunning}
+						>
+							{scraperStateLabel(sc.state)}
+						</StatusPill>
+					)}
 					<span aria-hidden>·</span>
 					<span className="capitalize">{sc.source.kind.replace("_", " ")}</span>
 					{effectiveSchedule && (
@@ -453,7 +464,7 @@ function ScraperDetail({
 			{/* Controls */}
 			<Panel title="Controls" className="mt-4">
 				<div className="flex flex-wrap items-center gap-2">
-					{sc.state === "running" && (
+					{(isSidecar ? sc.live : sc.state === "running") && (
 						<Button
 							size="sm"
 							variant="outline"
@@ -470,7 +481,7 @@ function ScraperDetail({
 							<Pause className="size-3.5" /> Pause
 						</Button>
 					)}
-					{sc.state === "paused" && (
+					{(isSidecar ? sc.live : sc.state === "paused") && (
 						<Button
 							size="sm"
 							variant="outline"
@@ -487,7 +498,9 @@ function ScraperDetail({
 							<Play className="size-3.5" /> Resume
 						</Button>
 					)}
-					{(sc.state === "running" || sc.state === "paused") && (
+					{(isSidecar
+						? sc.live
+						: sc.state === "running" || sc.state === "paused") && (
 						<Button
 							size="sm"
 							variant="outline"
@@ -504,10 +517,11 @@ function ScraperDetail({
 							<Square className="size-3.5" /> Stop
 						</Button>
 					)}
-					{(sc.state === "ready" ||
-						sc.state === "scheduled" ||
-						sc.state === "stopped" ||
-						sc.state === "error") &&
+					{!isSidecar &&
+						(sc.state === "ready" ||
+							sc.state === "scheduled" ||
+							sc.state === "stopped" ||
+							sc.state === "error") &&
 						sc.enabled && (
 							<Button
 								size="sm"
@@ -531,14 +545,16 @@ function ScraperDetail({
 							</Button>
 						)}
 
-					<Button
-						size="sm"
-						variant="ghost"
-						onClick={() => setScheduleOpen(true)}
-						className="gap-1.5 text-muted-foreground"
-					>
-						<CalendarClock className="size-3.5" /> Schedule
-					</Button>
+					{!isSidecar && (
+						<Button
+							size="sm"
+							variant="ghost"
+							onClick={() => setScheduleOpen(true)}
+							className="gap-1.5 text-muted-foreground"
+						>
+							<CalendarClock className="size-3.5" /> Schedule
+						</Button>
+					)}
 					<Button
 						size="sm"
 						variant="ghost"
@@ -551,26 +567,28 @@ function ScraperDetail({
 					{removable && (
 						<>
 							<div className="flex-1" />
-							<Button
-								size="sm"
-								variant="ghost"
-								disabled={busy !== null}
-								onClick={() =>
-									run(
-										"update",
-										() => client.scraper.update({ id: sc.id }),
-										"Update pulled",
-									)
-								}
-								className="gap-1.5 text-muted-foreground"
-							>
-								{busy === "update" ? (
-									<Loader2 className="size-3.5 animate-spin" />
-								) : (
-									<CloudDownload className="size-3.5" />
-								)}
-								Update
-							</Button>
+							{!isSidecar && (
+								<Button
+									size="sm"
+									variant="ghost"
+									disabled={busy !== null}
+									onClick={() =>
+										run(
+											"update",
+											() => client.scraper.update({ id: sc.id }),
+											"Update pulled",
+										)
+									}
+									className="gap-1.5 text-muted-foreground"
+								>
+									{busy === "update" ? (
+										<Loader2 className="size-3.5 animate-spin" />
+									) : (
+										<CloudDownload className="size-3.5" />
+									)}
+									Update
+								</Button>
+							)}
 							<Button
 								size="sm"
 								variant="ghost"
@@ -633,7 +651,11 @@ function ScraperDetail({
 				open={removeOpen}
 				onOpenChange={setRemoveOpen}
 				title={`Remove ${sc.name}?`}
-				description="This stops the scraper, deletes its source code, and revokes its API key. This cannot be undone."
+				description={
+					isSidecar
+						? "This revokes the sidecar's API key and removes it from the dashboard. The container itself keeps running until you stop it."
+						: "This stops the scraper, deletes its source code, and revokes its API key. This cannot be undone."
+				}
 				confirmLabel="Remove"
 				destructive
 				loading={busy === "remove"}

@@ -31,6 +31,7 @@ const sourceSchema = z.discriminatedUnion("kind", [
 		slug: z.string(),
 		url: z.string().url(),
 	}),
+	z.object({ kind: z.literal("sidecar") }),
 ]);
 
 const manifestSnapshotSchema = z.object({
@@ -64,6 +65,8 @@ const scraperSchema = z.object({
 	name: z.string(),
 	apiKeyId: z.string(),
 	source: sourceSchema,
+	kind: z.enum(["managed", "sidecar"]),
+	live: z.boolean(),
 	installedVersion: z.string(),
 	manifest: manifestSnapshotSchema,
 	lifecycle: lifecycleSchema.nullable(),
@@ -104,6 +107,9 @@ export const scraperRegisterContract = scraperProcedure
 			capabilities: z.array(z.string()),
 			lifecycle: lifecycleSchema,
 			recommendedSchedule: z.string().optional(),
+			// Display name for sidecar scrapers, whose row is created here —
+			// managed scrapers already have one from their manifest.
+			name: z.string().min(1).max(64).optional(),
 		}),
 	)
 	.output(
@@ -269,7 +275,7 @@ export const scraperRunNowContract = adminProcedure
 		tags: ["scraper"],
 	})
 	.input(z.object({ id: z.string() }))
-	.output(z.object({ queued: z.boolean() }));
+	.output(z.object({ commandId: z.string() }));
 
 export const scraperStatsContract = adminProcedure
 	.route({

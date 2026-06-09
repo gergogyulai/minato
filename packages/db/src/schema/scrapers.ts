@@ -21,7 +21,8 @@ import {
 export type ScraperSource =
 	| { kind: "first_party" }
 	| { kind: "git"; url: string; ref?: string }
-	| { kind: "registry"; slug: string; url: string };
+	| { kind: "registry"; slug: string; url: string }
+	| { kind: "sidecar" };
 
 export type ScraperManifestSnapshot = {
 	id: string;
@@ -99,6 +100,30 @@ export const scraperStatus = pgTable("scraper_status", {
 	reportedAt: timestamp("reported_at").defaultNow().notNull(),
 });
 
+/**
+ * Every control action flows through this table — it is the single source of
+ * truth for commands to both supervisor-managed scrapers (claimed by the
+ * supervisor via LISTEN/NOTIFY) and sidecar scrapers (streamed over SSE).
+ *
+ * Lifecycle: pending → delivered → completed | failed; pending/delivered rows
+ * past expiresAt are swept to expired. Every command reaches a terminal state.
+ */
+export type ScraperCommandKind =
+	| "run"
+	| "stop"
+	| "pause"
+	| "resume"
+	| "reload"
+	| "sync"
+	| "remove";
+
+export type ScraperCommandStatus =
+	| "pending"
+	| "delivered"
+	| "completed"
+	| "failed"
+	| "expired";
+
 export const scraperCommands = pgTable(
 	"scraper_commands",
 	{
@@ -106,22 +131,28 @@ export const scraperCommands = pgTable(
 		scraperId: text("scraper_id")
 			.notNull()
 			.references(() => scrapers.id, { onDelete: "cascade" }),
-		command: text("command").$type<"pause" | "stop" | "resume">().notNull(),
+		command: text("command").$type<ScraperCommandKind>().notNull(),
+		payload: jsonb("payload").$type<Record<string, unknown>>(),
 		status: text("status")
-			.$type<"pending" | "delivered" | "acked">()
+			.$type<ScraperCommandStatus>()
 			.notNull()
 			.default("pending"),
 		issuedBy: text("issued_by"),
+		error: text("error"),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
+		expiresAt: timestamp("expires_at").notNull(),
 		deliveredAt: timestamp("delivered_at"),
-		ackedAt: timestamp("acked_at"),
+		finishedAt: timestamp("finished_at"),
 	},
 	(table) => [
-		index("scraper_commands_scraper_id_created_at_idx").on(
+		index("scraper_commands_scraper_status_idx").on(
 			table.scraperId,
-			table.createdAt,
+			table.status,
 		),
-		index("scraper_commands_status_idx").on(table.status),
+		index("scraper_commands_status_expires_idx").on(
+			table.status,
+			table.expiresAt,
+		),
 	],
 );
 

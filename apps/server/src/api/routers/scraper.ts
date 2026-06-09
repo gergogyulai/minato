@@ -9,6 +9,7 @@ import { getConfig } from "@project-minato/config";
 import {
 	db,
 	eq,
+	issueScraperCommand,
 	scraperCommands,
 	scraperStatus,
 	scrapers,
@@ -16,10 +17,6 @@ import {
 	torrents,
 } from "@project-minato/db";
 import { communityScrapersDir } from "@project-minato/env/paths";
-import {
-	SCRAPER_CONTROL_JOBS,
-	scraperControlQueue,
-} from "@project-minato/queue";
 import {
 	scraperGetContract,
 	scraperInstallFromRegistryContract,
@@ -45,6 +42,34 @@ const ALLOWED_GIT_HOSTS = new Set([
 ]);
 
 const REGISTRY_BASE_URL = "https://github.com/minato-registry";
+
+// A sidecar that hasn't been heard from (status post or SSE ping) within this
+// window is considered offline.
+const SIDECAR_LIVE_WINDOW_MS = 90_000;
+
+function isLive(lastSeenAt: Date | null): boolean {
+	return !!lastSeenAt && Date.now() - lastSeenAt.getTime() < SIDECAR_LIVE_WINDOW_MS;
+}
+
+// The remove flow hands the kill to the supervisor and waits for the command
+// to settle; the timeout covers the jobs app being down, in which case the
+// cleanup proceeds anyway (nothing is running that could be killed).
+const REMOVE_SETTLE_TIMEOUT_MS = 10_000;
+
+async function waitForCommandSettled(commandId: string): Promise<void> {
+	const deadline = Date.now() + REMOVE_SETTLE_TIMEOUT_MS;
+	while (Date.now() < deadline) {
+		const [row] = await db
+			.select({ status: scraperCommands.status })
+			.from(scraperCommands)
+			.where(eq(scraperCommands.id, commandId))
+			.limit(1);
+		if (!row || (row.status !== "pending" && row.status !== "delivered")) {
+			return;
+		}
+		await new Promise((r) => setTimeout(r, 250));
+	}
+}
 
 function repoDirFromUrl(url: string): string {
 	const parsed = new URL(url);
@@ -112,7 +137,38 @@ export const scraperRouter = {
 			.where(eq(scrapers.id, scraperId))
 			.limit(1);
 
-		if (current?.manifest?.scraperType && current.manifest.scraperType !== input.lifecycle) {
+		if (!current) {
+			// Supervisor-managed scrapers get their row from ensure-key before
+			// they ever run; a registration without a row is a sidecar announcing
+			// itself for the first time.
+			const keyMeta = context.apiKey?.metadata as { type?: string } | null;
+			if (keyMeta?.type !== "sidecar") {
+				throw new ORPCError("NOT_FOUND", {
+					message: `Unknown scraper: ${scraperId}`,
+				});
+			}
+			const name = input.name ?? scraperId;
+			await db.insert(scrapers).values({
+				id: scraperId,
+				name,
+				apiKeyId: context.apiKey?.id ?? "",
+				source: { kind: "sidecar" },
+				installedVersion: input.version,
+				manifest: {
+					id: scraperId,
+					name,
+					version: input.version,
+					entry: "",
+					capabilities: input.capabilities,
+					scraperType: input.lifecycle,
+				},
+				state: "running",
+				enabled: true,
+			});
+		} else if (
+			current.manifest?.scraperType &&
+			current.manifest.scraperType !== input.lifecycle
+		) {
 			throw new ORPCError("BAD_REQUEST", {
 				message: `Type mismatch: package.json declares minato.type "${current.manifest.scraperType}" but source exports lifecycle "${input.lifecycle}". Fix the factory function or the minato.type field.`,
 			});
@@ -125,6 +181,7 @@ export const scraperRouter = {
 				installedVersion: input.version,
 				lifecycle: input.lifecycle,
 				recommendedSchedule: input.recommendedSchedule ?? null,
+				...(input.name ? { name: input.name } : {}),
 				lastError: null,
 				lastSeenAt: new Date(),
 				updatedAt: new Date(),
@@ -191,6 +248,8 @@ export const scraperRouter = {
 				name: r.name,
 				apiKeyId: r.apiKeyId,
 				source: r.source,
+				kind: r.source.kind === "sidecar" ? ("sidecar" as const) : ("managed" as const),
+				live: isLive(r.lastSeenAt),
 				installedVersion: r.installedVersion,
 				manifest: r.manifest,
 				lifecycle: r.lifecycle,
@@ -234,6 +293,11 @@ export const scraperRouter = {
 			name: row.name,
 			apiKeyId: row.apiKeyId,
 			source: row.source,
+			kind:
+				row.source.kind === "sidecar"
+					? ("sidecar" as const)
+					: ("managed" as const),
+			live: isLive(row.lastSeenAt),
 			installedVersion: row.installedVersion,
 			manifest: row.manifest,
 			lifecycle: row.lifecycle,
@@ -298,35 +362,59 @@ export const scraperRouter = {
 		return { ok: true as const };
 	}),
 
-	updateSchedule: scraperUpdateScheduleContract.handler(async ({ input }) => {
-		await db
-			.update(scrapers)
-			.set({ schedule: input.schedule, updatedAt: new Date() })
-			.where(eq(scrapers.id, input.id));
-		return { ok: true as const };
-	}),
+	updateSchedule: scraperUpdateScheduleContract.handler(
+		async ({ input, context }) => {
+			const [row] = await db
+				.select({ source: scrapers.source })
+				.from(scrapers)
+				.where(eq(scrapers.id, input.id))
+				.limit(1);
+			if (!row) {
+				throw new ORPCError("NOT_FOUND", {
+					message: `Unknown scraper: ${input.id}`,
+				});
+			}
 
-	setEnabled: scraperSetEnabledContract.handler(async ({ input }) => {
+			await db
+				.update(scrapers)
+				.set({ schedule: input.schedule, updatedAt: new Date() })
+				.where(eq(scrapers.id, input.id));
+
+			if (row.source.kind !== "sidecar") {
+				await issueScraperCommand({
+					scraperId: input.id,
+					command: "sync",
+					issuedBy: context.session?.user?.id ?? null,
+				});
+			}
+			return { ok: true as const };
+		},
+	),
+
+	setEnabled: scraperSetEnabledContract.handler(async ({ input, context }) => {
+		const [row] = await db
+			.select({ source: scrapers.source })
+			.from(scrapers)
+			.where(eq(scrapers.id, input.id))
+			.limit(1);
+		if (!row) {
+			throw new ORPCError("NOT_FOUND", {
+				message: `Unknown scraper: ${input.id}`,
+			});
+		}
+
 		await db
 			.update(scrapers)
 			.set({ enabled: input.enabled, updatedAt: new Date() })
 			.where(eq(scrapers.id, input.id));
 
-		if (input.enabled) {
-			await scraperControlQueue.add(SCRAPER_CONTROL_JOBS.ENABLE, {
+		// The supervisor converges the runtime to the new desired state — kill
+		// and status cleanup on disable, schedule/spawn on enable.
+		if (row.source.kind !== "sidecar") {
+			await issueScraperCommand({
 				scraperId: input.id,
-			});
-		} else {
-			await db.delete(scraperStatus).where(eq(scraperStatus.scraperId, input.id));
-			await db
-				.update(scrapers)
-				.set({ nextRunAt: null, updatedAt: new Date() })
-				.where(eq(scrapers.id, input.id));
-
-			// Tell the supervisor to kill the process directly. The supervisor's
-			// onChildExit will see enabled=false and keep the state as stopped.
-			await scraperControlQueue.add(SCRAPER_CONTROL_JOBS.KILL, {
-				scraperId: input.id,
+				command: "sync",
+				issuedBy: context.session?.user?.id ?? null,
 			});
 		}
 
@@ -349,7 +437,7 @@ export const scraperRouter = {
 		},
 	),
 
-	update: scraperUpdateContract.handler(async ({ input }) => {
+	update: scraperUpdateContract.handler(async ({ input, context }) => {
 		const [row] = await db
 			.select({ source: scrapers.source })
 			.from(scrapers)
@@ -376,16 +464,16 @@ export const scraperRouter = {
 
 		await runGit(["pull", "--ff-only"], dir);
 
-		// Tell the supervisor to reload: kill the running process and immediately
-		// respawn it so the new code is picked up right away.
-		await scraperControlQueue.add(SCRAPER_CONTROL_JOBS.RELOAD, {
+		await issueScraperCommand({
 			scraperId: input.id,
+			command: "reload",
+			issuedBy: context.session?.user?.id ?? null,
 		});
 
 		return { ok: true as const };
 	}),
 
-	remove: scraperRemoveContract.handler(async ({ input }) => {
+	remove: scraperRemoveContract.handler(async ({ input, context }) => {
 		const [row] = await db
 			.select()
 			.from(scrapers)
@@ -403,18 +491,19 @@ export const scraperRouter = {
 			});
 		}
 
-		await db
-			.update(scrapers)
-			.set({ state: "uninstalling", updatedAt: new Date() })
-			.where(eq(scrapers.id, input.id));
+		// Managed scrapers: the supervisor kills the process and drops it from
+		// its registry before any files disappear under it.
+		if (row.source.kind !== "sidecar") {
+			const commandId = await issueScraperCommand({
+				scraperId: input.id,
+				command: "remove",
+				issuedBy: context.session?.user?.id ?? null,
+			});
+			await waitForCommandSettled(commandId);
 
-		// Delete the directory first. The supervisor's community-dir watcher fires
-		// handleHotRemove which kills the running process gracefully. Bun/Node
-		// processes keep their already-loaded modules in memory, so deleting the
-		// source tree mid-run is safe — the watcher's 300ms debounce gives enough
-		// time before the SIGTERM lands.
-		const dir = join(communityScrapersDir, input.id);
-		if (existsSync(dir)) await rm(dir, { recursive: true, force: true });
+			const dir = join(communityScrapersDir, input.id);
+			if (existsSync(dir)) await rm(dir, { recursive: true, force: true });
+		}
 
 		try {
 			await auth.api.deleteApiKey({
@@ -435,7 +524,12 @@ export const scraperRouter = {
 	issueCommand: scraperIssueCommandContract.handler(
 		async ({ input, context }) => {
 			const [target] = await db
-				.select({ id: scrapers.id, state: scrapers.state })
+				.select({
+					id: scrapers.id,
+					state: scrapers.state,
+					source: scrapers.source,
+					lastSeenAt: scrapers.lastSeenAt,
+				})
 				.from(scrapers)
 				.where(eq(scrapers.id, input.id))
 				.limit(1);
@@ -446,47 +540,45 @@ export const scraperRouter = {
 				});
 			}
 
-			const commandableStates = new Set(["running", "paused", "starting"]);
-			if (!commandableStates.has(target.state)) {
-				throw new ORPCError("BAD_REQUEST", {
-					message: `Scraper is ${target.state} — cannot issue commands in this state`,
-				});
+			if (target.source.kind === "sidecar") {
+				// The server doesn't own a sidecar's state — liveness of the
+				// command channel is the only meaningful precondition.
+				if (!isLive(target.lastSeenAt)) {
+					throw new ORPCError("BAD_REQUEST", {
+						message:
+							"Sidecar is not connected — the command would expire undelivered",
+					});
+				}
+			} else {
+				const commandableStates: Record<typeof input.command, Set<string>> = {
+					pause: new Set(["running", "starting", "scheduled"]),
+					stop: new Set(["running", "starting", "scheduled", "paused", "error"]),
+					resume: new Set(["paused"]),
+				};
+				if (!commandableStates[input.command].has(target.state)) {
+					throw new ORPCError("BAD_REQUEST", {
+						message: `Scraper is ${target.state} — cannot ${input.command} in this state`,
+					});
+				}
 			}
 
-			const [inserted] = await db
-				.insert(scraperCommands)
-				.values({
-					scraperId: input.id,
-					command: input.command,
-					issuedBy: context.session?.user?.id ?? null,
-				})
-				.returning({ id: scraperCommands.id });
-
-			if (!inserted) {
-				throw new ORPCError("INTERNAL_SERVER_ERROR", {
-					message: "Failed to insert command",
-				});
-			}
-
-			const jobName =
-				input.command === "stop"
-					? SCRAPER_CONTROL_JOBS.STOP
-					: input.command === "pause"
-						? SCRAPER_CONTROL_JOBS.PAUSE
-						: SCRAPER_CONTROL_JOBS.RESUME;
-
-			await scraperControlQueue.add(jobName, {
+			const commandId = await issueScraperCommand({
 				scraperId: input.id,
-				commandId: inserted.id,
+				command: input.command,
+				issuedBy: context.session?.user?.id ?? null,
 			});
 
-			return { commandId: inserted.id };
+			return { commandId };
 		},
 	),
 
-	runNow: scraperRunNowContract.handler(async ({ input }) => {
+	runNow: scraperRunNowContract.handler(async ({ input, context }) => {
 		const [row] = await db
-			.select({ enabled: scrapers.enabled, state: scrapers.state })
+			.select({
+				enabled: scrapers.enabled,
+				state: scrapers.state,
+				source: scrapers.source,
+			})
 			.from(scrapers)
 			.where(eq(scrapers.id, input.id))
 			.limit(1);
@@ -494,6 +586,11 @@ export const scraperRouter = {
 		if (!row) {
 			throw new ORPCError("NOT_FOUND", {
 				message: `Unknown scraper: ${input.id}`,
+			});
+		}
+		if (row.source.kind === "sidecar") {
+			throw new ORPCError("BAD_REQUEST", {
+				message: "Sidecar scrapers own their schedule and cannot be triggered",
 			});
 		}
 		if (!row.enabled) {
@@ -515,11 +612,13 @@ export const scraperRouter = {
 			});
 		}
 
-		await scraperControlQueue.add(SCRAPER_CONTROL_JOBS.RUN, {
+		const commandId = await issueScraperCommand({
 			scraperId: input.id,
+			command: "run",
+			issuedBy: context.session?.user?.id ?? null,
 		});
 
-		return { queued: true };
+		return { commandId };
 	}),
 
 	stats: scraperStatsContract.handler(async ({ input }) => {

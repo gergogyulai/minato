@@ -78,6 +78,13 @@
       "when": 1780863019206,
       "tag": "0010_dry_xavin",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1781047771402,
+      "tag": "0011_brave_proteus",
+      "breakpoints": true
     }
   ]
 }

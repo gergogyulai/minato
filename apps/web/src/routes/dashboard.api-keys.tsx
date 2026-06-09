@@ -207,6 +207,7 @@ function CreateDialog({
 }) {
 	const [name, setName] = useState("");
 	const [type, setType] = useState<"torznab" | "rss" | "custom" | "sidecar">("torznab");
+	const [scraperId, setScraperId] = useState("");
 	const [expiry, setExpiry] = useState("never");
 	const [saving, setSaving] = useState(false);
 
@@ -216,12 +217,14 @@ function CreateDialog({
 			const result = await client.apiKeys.create({
 				name: name.trim(),
 				type,
+				scraperId: type === "sidecar" ? scraperId.trim() : undefined,
 				expiresIn: expiry === "never" ? undefined : Number(expiry),
 			});
 			onCreated(result.key);
 			onOpenChange(false);
 			setName("");
 			setType("torznab");
+			setScraperId("");
 			setExpiry("never");
 		} catch (err) {
 			toast.error(err instanceof Error ? err.message : "Failed to create key");
@@ -283,6 +286,22 @@ function CreateDialog({
 							</Select>
 						</div>
 					</div>
+					{type === "sidecar" && (
+						<div className="space-y-1.5">
+							<Label htmlFor="key-scraper-id">Scraper id</Label>
+							<Input
+								id="key-scraper-id"
+								value={scraperId}
+								onChange={(e) => setScraperId(e.target.value)}
+								placeholder="my-dht-crawler"
+								className="font-mono text-sm"
+							/>
+							<p className="text-muted-foreground text-xs">
+								Binds the key to a scraper identity — the sidecar appears in
+								the dashboard under this id. Lowercase letters, digits, dashes.
+							</p>
+						</div>
+					)}
 				</div>
 				<DialogFooter className="gap-2 sm:gap-2">
 					<Button variant="ghost" onClick={() => onOpenChange(false)}>
@@ -290,7 +309,11 @@ function CreateDialog({
 					</Button>
 					<Button
 						onClick={create}
-						disabled={saving || name.trim() === ""}
+						disabled={
+							saving ||
+							name.trim() === "" ||
+							(type === "sidecar" && scraperId.trim() === "")
+						}
 						className="min-w-24"
 					>
 						{saving ? <Loader2 className="size-4 animate-spin" /> : "Create"}

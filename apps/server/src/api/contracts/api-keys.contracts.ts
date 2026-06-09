@@ -23,11 +23,23 @@ export const apiKeyCreateContract = adminProcedure
 		tags: ["api-keys"],
 	})
 	.input(
-		z.object({
-			name: z.string().min(1).max(64),
-			type: z.enum(["torznab", "rss", "custom", "sidecar"]),
-			expiresIn: z.number().int().positive().optional(),
-		}),
+		z
+			.object({
+				name: z.string().min(1).max(64),
+				type: z.enum(["torznab", "rss", "custom", "sidecar"]),
+				// Sidecar keys are bound to a scraper identity at creation — the key
+				// is how the server knows which scraper is talking to it.
+				scraperId: z
+					.string()
+					.regex(/^[a-z0-9][a-z0-9-]*$/, "lowercase letters, digits, dashes")
+					.max(64)
+					.optional(),
+				expiresIn: z.number().int().positive().optional(),
+			})
+			.refine((v) => v.type !== "sidecar" || !!v.scraperId, {
+				message: "scraperId is required for sidecar keys",
+				path: ["scraperId"],
+			}),
 	)
 	.output(
 		apiKeyMetaSchema.extend({
