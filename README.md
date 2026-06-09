@@ -107,8 +107,6 @@ docker compose up -d
 
 Open `http://localhost:7271`. You'll hit the setup wizard to create your admin account.
 
-[Architecture](./ARCHITECTURE.md) · [Roadmap](./ROADMAP.md) · [Audit](./AUDIT.md)
-
 ## Contribute
 
 This is a personal project, built in the open. Ideas, issues, and PRs are welcome — open an issue or dive into the [architecture doc](./ARCHITECTURE.md) to get oriented.
