@@ -1,3 +1,179 @@
 @import "tailwindcss";
 @import "fumadocs-ui/css/neutral.css";
 @import "fumadocs-ui/css/preset.css";
+
+/* Web app color tokens — light defaults, dark overrides below */
+:root {
+	--web-bg: oklch(0.977 0.003 286.35);
+	--web-card: oklch(1 0 0);
+	--web-elevated: oklch(0.94 0.004 286.32);
+	--web-fg: oklch(0.185 0.006 285.885);
+	--web-muted: oklch(0.49 0.016 285.938);
+	--web-primary: oklch(0.488 0.217 264.376);
+	--web-primary-fg: oklch(0.97 0.014 254.604);
+	/* hairlines / borders */
+	--web-line: oklch(0.185 0.006 285.885 / 0.09);
+	--web-line-strong: oklch(0.185 0.006 285.885 / 0.18);
+	/* big display gradient */
+	--web-heading-gradient: linear-gradient(
+		120deg,
+		oklch(0.21 0.04 265) 20%,
+		#2563eb 65%,
+		#1d4ed8 100%
+	);
+	/* landing code blocks — Tokyo Night Day */
+	--code-comment: #848cb5;
+	--code-string: #8f5e15;
+	--code-keyword: #2e7de9;
+	--code-builtin: #587539;
+}
+
+.dark {
+	--web-bg: oklch(0.141 0.005 285.823);
+	--web-card: oklch(0.21 0.006 285.885);
+	--web-elevated: oklch(0.274 0.006 286.033);
+	--web-fg: oklch(0.985 0 0);
+	--web-muted: oklch(0.705 0.015 286.067);
+	--web-primary: oklch(0.424 0.199 265.638);
+	--web-primary-fg: oklch(0.97 0.014 254.604);
+	--web-line: oklch(1 0 0 / 0.07);
+	--web-line-strong: oklch(1 0 0 / 0.15);
+	--web-heading-gradient: linear-gradient(
+		120deg,
+		#ffffff 20%,
+		#7ab2fa 65%,
+		#4a8cff 100%
+	);
+	/* landing code blocks — Tokyo Night */
+	--code-comment: #565f89;
+	--code-string: #e0af68;
+	--code-keyword: #7aa2f7;
+	--code-builtin: #9ece6a;
+}
+
+@theme inline {
+	--color-web-bg: var(--web-bg);
+	--color-web-card: var(--web-card);
+	--color-web-elevated: var(--web-elevated);
+	--color-web-fg: var(--web-fg);
+	--color-web-muted: var(--web-muted);
+	--color-web-primary: var(--web-primary);
+	--color-web-primary-fg: var(--web-primary-fg);
+	--color-web-line: var(--web-line);
+	--color-web-line-strong: var(--web-line-strong);
+	--font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
+	--font-display: var(--font-bricolage), system-ui, sans-serif;
+}
+
+/* Match Fumadocs page background to web app */
+.dark {
+	--color-fd-background: oklch(0.141 0.005 285.823);
+}
+
+::selection {
+	background: oklch(0.488 0.217 264.376 / 0.22);
+	color: inherit;
+}
+
+.dark ::selection {
+	background: oklch(0.424 0.199 265.638 / 0.45);
+	color: oklch(0.985 0 0);
+}
+
+@keyframes pipeline-flow {
+	to {
+		stroke-dashoffset: -18;
+	}
+}
+
+@keyframes fade-up {
+	from {
+		opacity: 0;
+		transform: translateY(16px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes marquee-scroll {
+	to {
+		transform: translateX(-50%);
+	}
+}
+
+@layer utilities {
+	.bg-grid {
+		background-image: linear-gradient(
+				to right,
+				color-mix(in srgb, currentColor 6%, transparent) 1px,
+				transparent 1px
+			),
+			linear-gradient(
+				to bottom,
+				color-mix(in srgb, currentColor 6%, transparent) 1px,
+				transparent 1px
+			);
+		background-size: 32px 32px;
+	}
+
+	.bg-grid-fade {
+		mask-image: radial-gradient(
+			ellipse 80% 60% at 50% 0%,
+			black 40%,
+			transparent 100%
+		);
+		-webkit-mask-image: radial-gradient(
+			ellipse 80% 60% at 50% 0%,
+			black 40%,
+			transparent 100%
+		);
+	}
+
+	/* Display headings: theme-aware blue sweep */
+	.heading-gradient {
+		background-image: var(--web-heading-gradient);
+		background-clip: text;
+		-webkit-background-clip: text;
+		color: transparent;
+	}
+
+	/* Staggered entrance — set --enter-delay inline per element */
+	.anim-enter {
+		opacity: 0;
+		animation: fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+		animation-delay: var(--enter-delay, 0s);
+	}
+
+	.marquee-track {
+		animation: marquee-scroll var(--marquee-duration, 40s) linear infinite;
+	}
+
+	.marquee-mask {
+		mask-image: linear-gradient(
+			to right,
+			transparent,
+			black 12%,
+			black 88%,
+			transparent
+		);
+		-webkit-mask-image: linear-gradient(
+			to right,
+			transparent,
+			black 12%,
+			black 88%,
+			transparent
+		);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.anim-enter {
+		animation: none;
+		opacity: 1;
+	}
+	.marquee-track {
+		animation: none;
+	}
+}

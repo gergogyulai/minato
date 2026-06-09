@@ -22,11 +22,14 @@
       "name": "@project-minato/docs",
       "version": "0.0.0",
       "dependencies": {
+        "@paper-design/shaders-react": "^0.0.76",
         "fumadocs-core": "16.4.9",
         "fumadocs-mdx": "14.2.6",
         "fumadocs-ui": "16.4.9",
         "lucide-react": "^0.563.0",
+        "motion": "^12.40.0",
         "next": "16.1.6",
+        "next-themes": "^0.4.6",
         "react": "^19.2.3",
         "react-dom": "^19.2.3",
         "tailwind-merge": "^3.4.0",
@@ -57,8 +60,8 @@
         "bullmq": "catalog:",
         "cron-parser": "^5.5.0",
         "discord-webhook-node": "^1.1.8",
-        "drizzle-orm": "catalog:",
         "diswhook": "github:gergogyulai/diswhook",
+        "drizzle-orm": "catalog:",
         "graphql": "^16.12.0",
         "graphql-request": "^7.4.0",
         "musicbrainz-api": "^1.2.1",
@@ -894,6 +897,10 @@
     "@orpc/zod": ["@orpc/zod@1.14.5", "", { "dependencies": { "@orpc/json-schema": "1.14.5", "@orpc/openapi": "1.14.5", "@orpc/shared": "1.14.5", "escape-string-regexp": "^5.0.0", "wildcard-match": "^5.1.4" }, "peerDependencies": { "@orpc/contract": "1.14.5", "@orpc/server": "1.14.5", "zod": ">=3.25.0" } }, "sha512-Al0Tim0CxO7o4UkZCmIPWJyNXnB0f0qL2YzB/MA0E65ss7qJydBmvyPUES9b3z8GeXgPQAmIOYl/Jq2jtx8DfQ=="],
 
     "@oxc-project/types": ["@oxc-project/types@0.99.0", "", {}, "sha512-LLDEhXB7g1m5J+woRSgfKsFPS3LhR9xRhTeIoEBm5WrkwMxn6eZ0Ld0c0K5eHB57ChZX6I3uSmmLjZ8pcjlRcw=="],
+
+    "@paper-design/shaders": ["@paper-design/shaders@0.0.76", "", {}, "sha512-AcNDY4J66YQHUfQYFInkCP7M9VOje0od7wLpOR7LtCmc532opJy6ll+h1W9zBovz8tt9U7OADUmJ/qKEXyOX/A=="],
+
+    "@paper-design/shaders-react": ["@paper-design/shaders-react@0.0.76", "", { "dependencies": { "@paper-design/shaders": "0.0.76" }, "peerDependencies": { "@types/react": "^18 || ^19", "react": "^18 || ^19" }, "optionalPeers": ["@types/react"] }, "sha512-uPJWrYRf6cJdO2H+fuXlahaqz0QjYglNAyUTaRfIInpzCa/d6guxBIK003soAZQFuQ035yg9FhtfFzKNWm+a5A=="],
 
     "@peculiar/asn1-android": ["@peculiar/asn1-android@2.7.0", "", { "dependencies": { "@peculiar/asn1-schema": "^2.7.0", "asn1js": "^3.0.6", "tslib": "^2.8.1" } }, "sha512-iD3VskhVQnM4nE3PN9cBdPTR7JrqZy3FYk+uD2CeG6DUqKoANqaEfx0f7izPmW+Qm5JBM35ek+viLCmjy18ByQ=="],
 
