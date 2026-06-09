@@ -6,6 +6,7 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import {
 	createRootRouteWithContext,
 	HeadContent,
+	isRedirect,
 	Outlet,
 	redirect,
 } from "@tanstack/react-router";
@@ -37,15 +38,11 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
 			);
 
 			if (!setupStatus.setupCompleted) {
-				// Redirect to setup if not completed
-				redirect({
-					to: "/setup",
-					throw: true,
-				});
+				throw redirect({ to: "/setup" });
 			}
 		} catch (error) {
-			// If there's an error checking setup status, allow access
-			// This prevents blocking the app if the API is down
+			if (isRedirect(error)) throw error;
+			// Allow access if the API is unreachable so the app doesn't hard-block.
 			console.error("Failed to check setup status:", error);
 		}
 	},

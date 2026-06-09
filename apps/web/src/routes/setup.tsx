@@ -3,15 +3,12 @@ import { orpc } from "@/utils/orpc";
 
 export const Route = createFileRoute("/setup")({
 	beforeLoad: async ({ context }) => {
-		const setupStatus = await context.queryClient.ensureQueryData(
+		const setupStatus = await context.queryClient.fetchQuery(
 			context.orpc.setup.getStatus.queryOptions(),
 		);
 
 		if (setupStatus.setupCompleted) {
-			redirect({
-				to: "/",
-				throw: true,
-			});
+			throw redirect({ to: "/dashboard" });
 		}
 	},
 });

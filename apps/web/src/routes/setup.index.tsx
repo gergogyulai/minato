@@ -163,7 +163,7 @@ function SetupComponent() {
 		},
 		onSuccess: () => {
 			toast.success("Setup completed successfully!");
-			navigate({ to: "/" });
+			navigate({ to: "/dashboard" });
 		},
 		onError: (error) => {
 			toast.error(error.message || "Failed to complete setup");

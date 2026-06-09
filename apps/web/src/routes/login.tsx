@@ -1,10 +1,17 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Boxes, Database, ShieldCheck, SlidersHorizontal } from "lucide-react";
 
 import SignInForm from "@/components/sign-in-form";
+import { authClient } from "@/lib/auth-client";
 
 export const Route = createFileRoute("/login")({
 	component: LoginPage,
+	beforeLoad: async () => {
+		const session = await authClient.getSession();
+		if (session.data) {
+			throw redirect({ to: "/dashboard" });
+		}
+	},
 });
 
 const HIGHLIGHTS = [
