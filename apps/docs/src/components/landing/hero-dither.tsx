@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "motion/react";
 import dynamic from "next/dynamic";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
@@ -17,25 +16,19 @@ const Dithering = dynamic(
 
 export function HeroDither() {
 	const { resolvedTheme } = useTheme();
-	const [show, setShow] = useState(false);
+	const [visible, setVisible] = useState(false);
 
 	useEffect(() => {
-		const t = setTimeout(() => setShow(true), 300);
+		const t = setTimeout(() => setVisible(true), 300);
 		return () => clearTimeout(t);
 	}, []);
-
-	if (!show) return null;
 
 	const isDark = resolvedTheme !== "light";
 
 	return (
-		// Shaders load late (dynamic import + mount delay), so ease them in
-		// instead of letting the canvas pop into an already-visible hero.
-		<motion.div
-			className="absolute inset-0"
-			initial={{ opacity: 0 }}
-			animate={{ opacity: 1 }}
-			transition={{ duration: 1.4, ease: "easeOut" }}
+		<div
+			className="absolute inset-0 transition-opacity duration-[1.4s] ease-out"
+			style={{ opacity: visible ? 1 : 0 }}
 		>
 			<GrainGradient
 				className="absolute inset-0"
@@ -67,6 +60,6 @@ export function HeroDither() {
 				className="absolute top-[-10%] right-[-4%] opacity-70"
 				minPixelRatio={1}
 			/>
-		</motion.div>
+		</div>
 	);
 }
