@@ -1,6 +1,5 @@
-import { generate as DefaultImage } from "fumadocs-ui/og";
+import { generateOGImage } from "fumadocs-ui/og";
 import { notFound } from "next/navigation";
-import { ImageResponse } from "next/og";
 
 import { getPageImage, source } from "@/lib/source";
 
@@ -14,17 +13,13 @@ export async function GET(
 	const page = source.getPage(slug.slice(0, -1));
 	if (!page) notFound();
 
-	return new ImageResponse(
-		<DefaultImage
-			title={page.data.title}
-			description={page.data.description}
-			site="My App"
-		/>,
-		{
-			width: 1200,
-			height: 630,
-		},
-	);
+	return generateOGImage({
+		title: page.data.title,
+		description: page.data.description,
+		site: "Minato",
+		primaryColor: "rgba(37, 99, 235, 0.3)",
+		primaryTextColor: "#2563eb",
+	});
 }
 
 export function generateStaticParams() {
