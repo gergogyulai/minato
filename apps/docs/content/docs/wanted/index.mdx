@@ -1,0 +1,92 @@
+---
+title: Wanted
+description: Monitor for specific content with the Wanted system — match by title, TMDB ID, media type, resolution, release group, and flags.
+---
+
+The Wanted system monitors every incoming torrent and alerts you when something you're looking for appears. Create items in **Dashboard → Watchlist** and Minato checks each newly enriched torrent against your criteria.
+
+When a match is found, a [notification](/docs/notifications) fires on the **Wanted torrent found** event — configure your channels to receive it however you prefer.
+
+---
+
+## How matching works
+
+Every time an enrichment job completes (TMDB or AniList metadata is resolved for a torrent), the matcher runs through all active wanted items. If all criteria match, the item and torrent are recorded as a pair and a notification is dispatched.
+
+A unique constraint prevents duplicate matches — each (wanted item, torrent) pair fires at most once, even if the torrent is re-ingested.
+
+---
+
+## Behaviour modes
+
+| Mode | Behaviour |
+|---|---|
+| **Ongoing** (default) | Matches every qualifying torrent that enters the library. Keeps running indefinitely. |
+| **One-time** | Stops matching after the first hit. The item stays in your list with a "Found" badge so you know it triggered. |
+
+Use **Ongoing** for things you want every release of (a group's encodes for a show). Use **One-time** for hunting a specific release.
+
+---
+
+## Content matchers
+
+These narrow *what* the torrent is about. At least one must match — usually the TMDB ID or title.
+
+| Matcher | Description |
+|---|---|
+| **TMDB ID** | Exact TMDB ID. Populated from the [TMDB search](#tmdb-search) — the most reliable way to match. |
+| **Title** | Normalised, case-insensitive match against the enriched title. Use as a fallback when TMDB isn't available. |
+| **Year** | Exact release year from enrichment data. |
+| **Media type** | `Movie`, `TV`, or `Anime`. Acts as a pre-filter — items with a set type are only checked against torrents of that type. |
+
+When a TMDB ID is set, it takes priority as the sole content identifier — the title field is ignored entirely. When TMDB ID is empty, the title is used as the fallback.
+
+---
+
+## Quality / release matchers
+
+Refine which version of the content you want.
+
+| Matcher | Description |
+|---|---|
+| **Resolution** | Exact match: `2160p`, `1080p`, `720p`, or `480p`. |
+| **Release group** | Case-insensitive match against the parsed group name (e.g. `FLUX`, `YTS`). |
+| **Required flags** | All selected flags must be present on the torrent. |
+| **Excluded flags** | None of the selected flags may be present. |
+
+### Available flags
+
+`Dolby Vision`, `HDR10+`, `HDR10`, `HDR`, `HLG`, `DDP`, `DTS-HD MA`, `DTS-X`, `TrueHD`, `Atmos`, `REMUX`, `IMAX`, `Proper`, `Repack`
+
+Flags use a tri-state toggle in the UI: unset (don't care) → required → excluded → unset.
+
+---
+
+## TV-specific matchers
+
+These only appear when the media type is set to `TV`. They check against the enriched series episode data.
+
+| Matcher | Description |
+|---|---|
+| **Season** | Exact season number. |
+| **Episode** | Exact episode number. |
+| **Season pack** | Tri-state: **Pack only** (matches full-season releases), **Episodes only** (matches individual episodes), or **Any** (either). |
+
+---
+
+## TMDB search
+
+The "Add to watchlist" dialog includes a TMDB search combobox that queries the TMDB API in real time as you type. Select a result and the title, year, media type, and TMDB ID are populated automatically.
+
+The search respects the selected media type:
+- `Movie` — searches `/search/movie`
+- `TV` — searches `/search/tv`
+- `Any` — searches `/search/multi` (filtered to movie and TV results)
+
+For **Anime**, TMDB search is hidden — anime uses AniList for enrichment, not TMDB. Use the title field instead.
+
+---
+
+## Match history
+
+Every match is recorded in a match history table. The UI shows when each wanted item was last matched, and for one-shot items, displays a "Found" badge once triggered.

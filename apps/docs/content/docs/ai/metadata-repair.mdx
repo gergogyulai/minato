@@ -1,0 +1,85 @@
+---
+title: Metadata repair
+description: Use an LLM to fix low-confidence release parsing. Supports OpenRouter (cloud) and Ollama (local).
+---
+
+When a torrent's tracker title contains unusual formatting, non-standard naming, or non-Latin characters, the built-in release parser may produce low-quality metadata. The AI metadata repair feature sends these uncertain parses to a language model for re-interpretation and merges the corrected fields back.
+
+---
+
+## When repair is triggered
+
+Every torrent goes through the release parser during ingest. After parsing, a confidence heuristic checks the result:
+
+- Title is too short, too long, or contains non-Latin characters → low confidence
+- Title ends with the release group name (likely duplicated) → low confidence
+- Type is missing or `Unknown` → low confidence
+- Movie type but no plausible year → low confidence
+- TV type but no season, episode, or date → low confidence
+
+If confidence is **low**, the torrent is queued on the AI Repair worker. If it's **ok**, the parsed data is accepted as-is and the pipeline continues.
+
+---
+
+## How repair works
+
+1. The low-confidence release data is stripped of null or empty fields and sent as JSON to the LLM.
+2. The LLM returns a corrected JSON payload matching the release schema (title, group, year, season, episode, resolution, flags, type, etc.).
+3. The original and repaired data are merged — the AI's output overrides the original for any populated field.
+4. The torrent is updated (`isDirty: false`, `repairedAt` timestamp set) and re-indexed in Meilisearch.
+5. The torrent is re-queued for enrichment so metadata providers see the corrected title.
+
+---
+
+## Providers
+
+| Provider | Description |
+|---|---|
+| **OpenRouter** | Cloud-hosted LLM proxy. Requires `OPENROUTER_API_KEY` in your `.env`. |
+| **Ollama** | Local inference via a self-hosted Ollama instance. No API key needed. |
+
+Configure the provider, model, and other settings in **Dashboard → Settings** under the **AI Repair** section.
+
+---
+
+## Configuration
+
+### OpenRouter
+
+Set `OPENROUTER_API_KEY` in your `.env` file, then choose a model from the settings page:
+
+```bash
+OPENROUTER_API_KEY=sk-or-v1-xxxx
+```
+
+Suggested models: `deepseek/deepseek-v4-flash`, `google/gemini-2.5-flash`, `qwen/qwen3.5-flash-02-23`, `anthropic/claude-3.5-haiku`.
+
+### Ollama
+
+Point Minato at your Ollama instance:
+
+```bash
+# Default URL (Ollama in the same Docker network)
+http://ollama:11434
+```
+
+Make sure the model you select is pulled on your Ollama instance first. Use the **Test** button in settings to verify connectivity and check the Ollama version.
+
+Suggested models: `qwen3.5:4b`, `qwen3.5:9b`, `ministral-3:8b`, `gemma3:4b`.
+
+### Reasoning mode
+
+A toggle in the AI Repair settings controls whether the model uses extended reasoning (thinking tokens):
+
+- **Ollama** — passes `think: true` to the Ollama API when enabled
+- **OpenRouter** — explicitly sets `reasoning: { effort: "none" }` when disabled, uses model defaults when enabled
+
+Reasoning can improve accuracy on heavily mangled titles at the cost of slower response times.
+
+---
+
+## Worker
+
+The AI Repair worker runs with a concurrency of **5** parallel jobs. Repaired torrents are re-queued for enrichment with a 1-second delay to avoid overwhelming upstream metadata providers.
+
+The AI Repair queue is visible in **Dashboard → Queues** alongside Ingest, Enrich, and Housekeeper.

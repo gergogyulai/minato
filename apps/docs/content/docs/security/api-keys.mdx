@@ -1,0 +1,75 @@
+---
+title: API Keys
+description: Create and manage API keys for RSS feeds, Torznab clients, sidecar scrapers, and custom integrations.
+---
+
+API keys authenticate machine-to-machine access to Minato: feed readers, *arr apps, scraper containers, and custom integrations. Create and manage them from **Dashboard → API Keys**.
+
+---
+
+## Key types
+
+Each key has a type that determines which endpoints it can access.
+
+| Type | RSS feed | Torznab feed | Notes |
+|---|---|---|---|
+| **RSS** | ✓ | — | Scoped to the RSS feed only |
+| **Torznab** | — | ✓ | Scoped to the Torznab feed only |
+| **Custom** | ✓ | ✓ | Unrestricted — works on both feeds |
+| **Sidecar** | — | — | Reserved for sidecar scraper containers |
+
+Using a key on an endpoint it is not scoped for returns a `403` response. The `sidecar` type is for Docker-based scrapers — they authenticate with the key to submit torrents via the ingest API.
+
+---
+
+## Creating a key
+
+1. Go to **Dashboard → API Keys** and click **New key**.
+2. Give the key a **name** (e.g. "Sonarr", "My RSS reader").
+3. Select the **type** that matches your use case.
+4. Choose an optional **expiry** — Never, 30 days, 90 days, or 1 year.
+
+The full key is displayed once in a reveal dialog. Copy it immediately — it cannot be retrieved later. All keys use the `mk_` prefix.
+
+---
+
+## Using a key
+
+Pass the key in requests either as a query parameter or an HTTP header:
+
+```
+# Query parameter (feeds)
+/api/v1/feeds/rss?apikey=mk_live_xxxx
+/api/v1/feeds/torznab?apikey=mk_live_xxxx
+
+# Header (scraper ingest)
+X-Minato-Key: mk_live_xxxx
+```
+
+Query parameters are primarily for RSS and Torznab feeds. Scrapers use the `X-Minato-Key` header.
+
+For sidecar scrapers, also set the `MINATO_API_KEY` environment variable in your Docker Compose — the Minato runtime passes this to the container and handles authentication automatically.
+
+---
+
+## Rotating a key
+
+To rotate a key, create a new one with the same type, update your clients, then revoke the old key. There is no built-in rotation — you manage the cutover yourself.
+
+Click the delete button on any key in the list to revoke it. Revocation is immediate and irreversible.
+
+---
+
+## Scraper keys
+
+Scraper API keys are managed automatically by the supervisor. You'll never see them in the API Keys UI — they're created, rotated, and revoked internally.
+
+On server startup, orphan scraper keys (keys not referenced by any installed scraper) are cleaned up automatically.
+
+---
+
+## Rate limiting
+
+API key rate limiting (token bucket + fixed window) is defined in the database schema but currently **disabled** at the plugin level. Machine-to-machine keys used by scrapers and *arr apps would be throttled immediately under default limits.
+
+If throttling is needed in the future, it will be applied at the Hono middleware layer so scrape and feed traffic can be shaped independently.

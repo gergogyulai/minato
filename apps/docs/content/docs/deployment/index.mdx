@@ -3,12 +3,12 @@ title: Getting Started
 description: Deploy Minato on your homelab or server in a few minutes with Docker Compose.
 ---
 
-Minato ships as a single Docker image. It runs the API server, background workers, and the web frontend all together, managed internally by supervisord and proxied by nginx. The only external services you need are PostgreSQL, Redis, and Meilisearch — all included in the compose file below.
+Minato ships as a single Docker image. It runs the API server, background workers, and the web frontend all together, managed internally by supervisord and proxied by nginx. The only external services you need are PostgreSQL, Redis, and Meilisearch, all included in the compose file below.
 
 ## Prerequisites
 
-- **Docker 24+** and **Docker Compose v2** (`docker compose`, not `docker-compose`)
-- A **TMDB Read Access Token** — free, get one at [themoviedb.org](https://developer.themoviedb.org/docs/getting-started)
+- **Docker 24+** and **Docker Compose v2**
+- A **TMDB Read Access Token:** free, get one at [themoviedb.org](https://developer.themoviedb.org/docs/getting-started)
 
 ## 1. Get the compose file
 
@@ -102,7 +102,7 @@ volumes:
 
 ## 2. Create the .env file
 
-In the same directory, create a `.env` file with your secrets. These are the only values you need to set — everything else is wired up automatically within the Docker network.
+In the same directory, create a `.env` file with your secrets. These are the only values you need to set, everything else is wired up automatically within the Docker network.
 
 ```bash
 # Generate with: openssl rand -base64 32
@@ -121,7 +121,7 @@ TMDB_READ_ACCESS_TOKEN=
 # OPENROUTER_API_KEY=
 ```
 
-`BETTER_AUTH_SECRET` and `MEILISEARCH_MASTER_KEY` are security secrets — generate them with the commands shown, don't reuse passwords.
+`BETTER_AUTH_SECRET` and `MEILISEARCH_MASTER_KEY` are security secrets! Generate them with the commands shown, don't reuse passwords.
 
 ## 3. Start
 
@@ -130,12 +130,6 @@ docker compose up -d
 ```
 
 On first boot, Minato runs database migrations automatically. Once the `minato` container is healthy, the UI is available at **http://localhost:7271**.
-
-Watch the logs while it starts:
-
-```bash
-docker compose logs -f minato
-```
 
 ## Updating
 
@@ -146,17 +140,15 @@ docker compose up -d
 
 Migrations run automatically on startup — no manual steps after a version bump.
 
-## Stopping and removing
-
-```bash
-# Stop without removing data
-docker compose down
-
-# Stop and remove all data (irreversible)
-docker compose down -v
-```
-
 <Cards>
-  <Card title="Configuration reference" href="/docs/deployment/configuration" />
-  <Card title="Reverse proxy setup" href="/docs/deployment/reverse-proxy" />
+  <Card 
+    title="Configuration reference" 
+    href="/docs/deployment/configuration" 
+    description="All available environment variables and their defaults"  
+  />
+  <Card 
+    title="Reverse proxy setup" 
+    href="/docs/deployment/reverse-proxy" 
+    description="Configure a reverse proxy for Minato"  
+  />
 </Cards>

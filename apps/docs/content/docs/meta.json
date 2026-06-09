@@ -1,4 +1,15 @@
 {
 	"title": "Minato Docs",
-	"pages": ["index", "deployment", "scrapers", "search", "feeds", "notifications"]
+	"pages": [
+		"index",
+		"deployment",
+		"scrapers",
+		"search",
+		"wanted",
+		"feeds",
+		"notifications",
+		"security",
+		"ai",
+		"administration"
+	]
 }

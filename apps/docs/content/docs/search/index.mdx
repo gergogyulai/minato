@@ -113,15 +113,17 @@ The filter panel provides additional controls that aren't part of the inline que
 
 | Filter | Description |
 |---|---|
-| **Type** | One or more content types (multi-select) |
-| **Resolution** | One or more resolutions (multi-select) |
-| **Genre** | One or more genres from enrichment metadata (multi-select) |
-| **Group** | One or more release groups (multi-select) |
-| **Year** | Release year range — min and/or max |
-| **Size** | File size range in GB — min and/or max |
-| **Min seeders** | Lower bound on the seeder count |
+| **Type** | One or more content types (multi-select) — `movie`, `tv`, `anime`, `music`, `book`, `game`, `software` |
+| **Resolution** | One or more resolutions (multi-select) — `360p`, `480p`, `720p`, `1080p`, `2160p`, `4320p` |
+| **Genre** | One or more genres from enrichment metadata (multi-select). Genres come from TMDB and AniList after enrichment. |
+| **Group** | One or more release groups (multi-select). Populated from parsed release data. |
+| **Year** | Release year range — min and/or max. Matches the enriched year field. |
+| **Size** | File size range in GB — min and/or max. Filters on the torrent's total size in bytes. |
+| **Min seeders** | Lower bound on the seeder count. Filters out torrents with fewer than the specified number of seeders. |
 
 Genre, size, and seeder filters are only available through the panel — there are no inline equivalents.
+
+The filter panel works in combination with inline query filters. Both apply simultaneously with AND semantics — a `res:1080p` in the search box combined with `Genre: Action` in the panel returns only action movies in 1080p.
 
 ---
 

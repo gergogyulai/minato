@@ -1,0 +1,41 @@
+---
+title: Blacklist
+description: Block torrents by info hash and trackers by URL pattern. Blacklisted items are filtered at ingest time.
+---
+
+Minato provides two blacklist mechanisms to keep unwanted content out of your library. Both are managed from **Dashboard → Blacklist** (admin only).
+
+---
+
+## Torrent blacklist
+
+Block specific torrents by their 40-character hex info hash. Blacklisted hashes are rejected during ingestion and never enter the pipeline.
+
+| Field | Description |
+|---|---|
+| **Info hash** | One or more 40-character hex strings identifying the torrent. |
+| **Reason** | A note explaining why it was blacklisted (visible in the admin table). |
+| **Delete from database** | When enabled (default), blacklisted torrents already in the library are purged immediately. |
+
+The info hash blacklist is enforced as an exact-match lookup. Every incoming batch is checked against the full set before any torrent enters the pipeline.
+
+---
+
+## Tracker blacklist
+
+Block entire trackers by URL substring. Any torrent whose source URL contains a blacklisted keyword is rejected.
+
+| Field | Description |
+|---|---|
+| **URL** | One or more URL substrings to block (e.g. `example-tracker.com`). |
+| **Reason** | A note explaining the block. |
+
+Tracker blacklisting matches by substring — `tracker.com` also blocks `api.tracker.com`, `tracker.com/rss`, etc. Be specific enough to avoid false positives.
+
+---
+
+## Purging
+
+The housekeeper queue includes a `purge_blacklisted` job (registered, to be activated in a future release) that periodically cleans up any blacklisted torrents that may have been ingested before a blacklist entry was created or added via direct database manipulation.
+
+For now, blacklisted items are filtered exclusively at ingest time — the `Delete from database` toggle handles already-ingested torrents when you add a new blacklist entry.

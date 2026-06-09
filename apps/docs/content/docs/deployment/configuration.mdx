@@ -20,8 +20,8 @@ The compose file handles all internal service connectivity automatically. The on
 
 | Variable | Description |
 |---|---|
-| `PASSKEY_RP_ID` | Your deployment's public hostname, e.g. `minato.example.com`. Required to enable passkey (WebAuthn) support. Passkeys are disabled when this is not set. |
-| `OPENROUTER_API_KEY` | OpenRouter API key. Only needed if you enable AI-powered metadata repair in Settings. |
+| `PASSKEY_RP_ID` | Your deployment's public hostname, e.g. `minato.example.com`. Required to enable passkey (WebAuthn) support. Passkeys are disabled when this is not set. See [Passkeys](/docs/security/passkeys). |
+| `OPENROUTER_API_KEY` | OpenRouter API key. Only needed if you enable AI-powered metadata repair in Settings. See [AI Metadata repair](/docs/ai/metadata-repair). |
 
 ### Generating secrets
 
@@ -102,3 +102,44 @@ services:
 ```
 
 Drop scraper directories into `./scrapers/` on your host. Minato picks them up automatically without a restart.
+
+---
+
+## Runtime settings
+
+Several instance-wide settings are configured through the admin dashboard (**Settings**) rather than environment variables. They are stored in the database and applied at runtime without a restart.
+
+### Search ranking
+
+| Profile | Behaviour |
+|---|---|
+| **Quality** | Prefers well-seeded torrents with high-resolution quality indicators. |
+| **Health** | Prioritises torrents with the most seeders and fewest leechers. |
+| **Freshness** | Surfaces recently ingested content first. |
+
+Set the profile under **Settings → Search → Ranking profile**.
+
+### Worker concurrency
+
+| Setting | Range | Default | Description |
+|---|---|---|---|
+| Ingest concurrency | 1–50 | 5 | Parallel jobs parsing release titles and indexing in Meilisearch. |
+| Enrichment concurrency | 1–20 | 5 | Parallel jobs fetching metadata from TMDB and AniList. |
+
+Higher values increase throughput but also load on external APIs (TMDB rate limits). Adjust these under **Settings → Workers**.
+
+### Proxy URL
+
+Configure an HTTP proxy for scrapers to route outbound requests through. Useful for avoiding IP bans or auditing traffic. Format: `http://user:pass@proxy:8080`. Leave blank to connect directly.
+
+Configure under **Settings → Scraping → Proxy URL**.
+
+### FlareSolverr URL
+
+If scrapers encounter Cloudflare-protected sites, point Minato at a [FlareSolverr](https://github.com/FlareSolverr/FlareSolverr) instance to bypass the challenge. Format: `http://localhost:8191`.
+
+Configure under **Settings → Scraping → FlareSolverr URL**. The URL is passed to scrapers at runtime — they must implement FlareSolverr support to use it.
+
+### AI repair
+
+See [AI Metadata repair](/docs/ai/metadata-repair) for the full configuration reference — provider selection, model, Ollama URL, and reasoning toggle.

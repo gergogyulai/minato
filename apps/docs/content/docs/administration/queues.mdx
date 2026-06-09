@@ -1,0 +1,70 @@
+---
+title: Queues
+description: Monitor job queues, inspect failed jobs, and trigger maintenance tasks like SQLite exports and reindexing.
+---
+
+Go to **Dashboard → Queues** to see the state of every background job queue. This page helps you diagnose stuck jobs, investigate failures, and run maintenance operations.
+
+---
+
+## Queue types
+
+Four process queues are monitored:
+
+| Queue | Purpose |
+|---|---|
+| **Ingest** | Parses release titles from raw torrents and indexes them in Meilisearch. |
+| **Enrich** | Fetches metadata from TMDB and AniList, downloads poster/backdrop images. |
+| **Housekeeper** | Runs scheduled maintenance — asset cleanup, metadata refresh, reindexing, SQLite exports. |
+| **AI Repair** | Sends low-confidence release data to an LLM for re-interpretation. |
+
+Two additional queues (Scraper Control, Notifications) run behind the scenes but are not shown in the monitoring UI.
+
+---
+
+## Monitoring
+
+Each queue tab shows counts for:
+
+| Status | Meaning |
+|---|---|
+| **Waiting** | Jobs queued but not yet started. |
+| **Active** | Jobs currently being processed. |
+| **Completed** | Successfully finished jobs. |
+| **Failed** | Jobs that exhausted all retry attempts. |
+| **Delayed** | Jobs scheduled to run later. |
+| **Paused** | Queue is paused — no new jobs are picked up. |
+
+Counts refresh every 2 seconds. Failed job counts are highlighted with a red badge on each queue tab.
+
+---
+
+## Inspecting jobs
+
+Click any queue tab and select a status filter (**Waiting**, **Failed**, **Active**, **Delayed**) to browse individual jobs. Click a job row to open a detail panel showing:
+
+- **Timestamps** — when the job was added, picked up, and finished (or failed)
+- **Attempts** — how many times the job was tried
+- **Failure reason** — the error message, highlighted in red
+- **Stack trace** — full stack trace in a code block for debugging
+- **Payload** — the job's JSON data, pretty-printed
+
+Failed jobs persist in the queue for inspection. Successful jobs are automatically removed after completing.
+
+---
+
+## Triggering maintenance
+
+From the **Housekeeper** queue tab, you can manually trigger two operations:
+
+### SQLite export
+
+Dumps the entire `torrents` table into a portable SQLite file. Click **Export SQLite** — if no export is already running, a job is queued. Once completed, you can [download the file](/docs/administration/exports).
+
+Only one export can be active at a time. Attempting to trigger another while one is queued or running returns a conflict error.
+
+### Force reindex
+
+Wipes the Meilisearch index and rebuilds it from PostgreSQL. Use this if search results are stale or the index is corrupted.
+
+Reindexing is also triggered automatically when the search schema version changes (detected at server startup).

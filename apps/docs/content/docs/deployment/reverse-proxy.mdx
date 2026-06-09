@@ -18,7 +18,7 @@ The most common setup for homelab Docker environments.
 - A `letsencrypt` certificate resolver is configured
 - You have a DNS A record pointing `minato.example.com` at your server
 
-Add a `networks` block to your `docker-compose.yaml` and update the `minato` service to join Traefik's network. The backing services (postgres, redis, meilisearch) stay on the default network and are never reachable from outside.
+Add a `networks` block to your `docker-compose.yaml` and update the `minato` service to join Traefik's network. The services (postgres, redis, meilisearch) stay on the default network and are never reachable from outside.
 
 ```yaml
 services:
@@ -101,4 +101,4 @@ Make sure the `minato` container and the NPM container are on the same Docker ne
 
 ## Path-based proxying
 
-Minato is not designed to run on a subpath (e.g. `example.com/minato/`). Use a subdomain instead.
+Minato is NOT designed to run on a subpath (e.g. `example.com/minato/`). Use a subdomain instead.

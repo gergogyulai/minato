@@ -51,11 +51,27 @@ From **Settings → Scrapers** you can send commands to any running scraper:
 
 | Command | Effect |
 |---|---|
-| **Pause** | Signals the scraper to stop mid-run and wait |
-| **Stop** | Signals the scraper to finish and exit cleanly |
-| **Resume** | Restarts a paused or stopped scraper |
+| **Run now** | Triggers the scraper immediately, bypassing its schedule. |
+| **Pause** | Signals the scraper to stop mid-run and wait. |
+| **Stop** | Signals the scraper to finish and exit cleanly. |
+| **Resume** | Restarts a paused or stopped scraper. |
 
-Scrapers that support commands respond immediately. Scrapers that don't declare command support finish their current run first.
+**Run now** is useful for testing a scraper or forcing a refresh outside its cron schedule. The other commands are for runtime control — scrapers that support them respond immediately; scrapers that don't declare command support finish their current run first.
+
+---
+
+## Yield statistics
+
+Each scraper row shows yield counts that indicate how much content it has produced:
+
+| Period | Description |
+|---|---|
+| **Total** | All torrents ever ingested from this scraper. |
+| **24h** | Torrents ingested in the last 24 hours. |
+| **48h** | Torrents ingested in the last 48 hours. |
+| **7d** | Torrents ingested in the last 7 days. |
+
+These stats help identify high-volume scrapers, spot dead sources, and track scraping health over time.
 
 ## Adding a sidecar scraper
 

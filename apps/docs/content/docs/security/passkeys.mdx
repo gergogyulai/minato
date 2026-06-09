@@ -1,0 +1,56 @@
+---
+title: Passkeys
+description: Sign in with Face ID, Touch ID, or a hardware security key. Requires the PASSKEY_RP_ID environment variable.
+---
+
+Passkeys let you sign in to Minato without typing a password. Use your device's built-in biometrics (Face ID, Touch ID) or a hardware security key (YubiKey) instead.
+
+---
+
+## Requirements
+
+Passkey support requires the `PASSKEY_RP_ID` environment variable to be set to your deployment's public hostname.
+
+```bash
+# .env
+PASSKEY_RP_ID=minato.example.com
+```
+
+Without this variable, the passkey plugin is disabled entirely and the sign-in form falls back to email and password only. Set it and restart the stack to enable passkey support.
+
+The value must match the domain your browser sees — `localhost` won't work for a remote deployment, and a bare IP address is not valid.
+
+---
+
+## Registering a passkey
+
+1. Go to **Dashboard → Security**.
+2. Click **Register passkey**.
+3. Your browser prompts you to authenticate with your device — allow it.
+4. Give the passkey a name so you can identify it later.
+
+Each passkey stores a unique key pair. The private key never leaves your device; Minato only stores the public key, credential ID, and metadata (device type, whether it's backed up).
+
+---
+
+## Managing passkeys
+
+The **Dashboard → Security** page lists all registered passkeys:
+
+- **Name** — the label you gave it during registration
+- **Device type** — `Device-bound` (tied to one device) or `Synced` (available across devices via iCloud/Google)
+- **Created** — when the passkey was added
+
+Click the delete button on any passkey to revoke it. The key pair on your device is unaffected — it simply can't be used to sign in to Minato anymore.
+
+---
+
+## Signing in
+
+The sign-in page shows both email/password and passkey options side by side. Click **Sign in with passkey** — your browser handles the WebAuthn ceremony. If passkeys are disabled server-side, only the email/password form appears.
+
+---
+
+## Setup wizard
+
+During the first-run setup wizard, there's an optional passkey step after creating the admin account. You can register a passkey immediately or skip and add one later from **Dashboard → Security**.

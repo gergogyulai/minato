@@ -1,0 +1,48 @@
+---
+title: Users
+description: Manage user accounts — roles, banning, impersonation, and email verification tracking.
+---
+
+Go to **Dashboard → Users** to see every registered account. Admin users can manage roles, ban or unban accounts, and track email verification status.
+
+---
+
+## Roles
+
+Every account has one of two roles:
+
+| Role | Capabilities |
+|---|---|
+| **Admin** | Full access to settings, scrapers, user management, queues, and exports. |
+| **User** | Standard access — browse the library, manage their own watchlist, notifications, and API keys. |
+
+The first admin account is created during the [setup wizard](/docs/deployment). Additional admins can be promoted from the Users page by an existing admin.
+
+Admins cannot demote themselves — the UI prevents self-demotion to avoid locking everyone out.
+
+---
+
+## Banning
+
+Ban an account to block it from signing in. Open the dropdown on any user row and choose **Ban**.
+
+| Field | Description |
+|---|---|
+| **Reason** | A short explanation displayed on the user's row in the admin table. |
+| **Expiration** | Optional. When set, the ban lifts automatically at the specified time. Leave unset for permanent. |
+
+A banned user is signed out immediately and cannot authenticate again until unbanned. Admins cannot ban themselves.
+
+---
+
+## Email verification
+
+The user table shows whether each account has verified their email address (`email_verified`). Verification is handled by the auth system and displayed as a status indicator in the admin view.
+
+---
+
+## Impersonation
+
+Admins can impersonate other user accounts to troubleshoot issues or verify behaviour. When impersonating, the admin's session records who initiated it via the `impersonatedBy` column — providing a full audit trail.
+
+Impersonation is an internal admin tool. No dedicated UI docs are needed beyond this reference.

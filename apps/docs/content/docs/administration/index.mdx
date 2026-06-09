@@ -1,0 +1,19 @@
+---
+title: Administration
+description: Overview of Minato's admin-only features — user management, blacklists, job queue monitoring, and data exports.
+---
+
+The admin dashboard provides tools for managing your Minato instance beyond the scraper and notification configuration visible to all users. These features are restricted to accounts with the `admin` role.
+
+---
+
+## Available tools
+
+<Cards>
+  <Card title="Users" href="/docs/administration/users" description="Roles, banning, and account management" />
+  <Card title="Blacklist" href="/docs/administration/blacklist" description="Block torrents by info hash or tracker URL" />
+  <Card title="Queues" href="/docs/administration/queues" description="Inspect job queues, retry failures, and trigger maintenance tasks" />
+  <Card title="Exports" href="/docs/administration/exports" description="Export the torrent database as a portable SQLite file" />
+</Cards>
+
+All admin pages live under `/dashboard/` in the web UI. Non-admin users are redirected away if they attempt to access them.

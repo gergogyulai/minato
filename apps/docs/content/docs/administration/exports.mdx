@@ -1,0 +1,50 @@
+---
+title: Exports
+description: Export the torrent database as a portable SQLite file for backup, analysis, or migration.
+---
+
+Minato can dump your entire torrent library to a portable SQLite database. This is useful for offline analysis, backup snapshots, or migrating to another system.
+
+---
+
+## Triggering an export
+
+1. Go to **Dashboard → Queues**.
+2. Select the **Housekeeper** tab.
+3. Click **Export SQLite**.
+
+A job is queued on the housekeeper queue. The export reads torrents from PostgreSQL in batches of 1,000, writes them to a local SQLite file, and reports progress. Only one export can run at a time.
+
+---
+
+## Downloading
+
+Exported files are available at `/api/v1/exports/`. The endpoint is restricted to admin users and requires an active session.
+
+Files are named `torrents-{timestamp}.sqlite` with an ISO 8601 timestamp (e.g. `torrents-2025-06-09T14-30-00Z.sqlite`). Only valid filenames matching `/^[a-zA-Z0-9_-]+\.sqlite$/` are served — path traversal is prevented.
+
+---
+
+## What's included
+
+The exported SQLite database contains every row from the `torrents` table, including:
+
+- Info hash, tracker title, size, seeders, leechers
+- File list (JSON array of filenames and sizes)
+- Source metadata (scraper name, URL, ingested timestamp)
+- Release data (parsed title, resolution, group, flags, type)
+- Enrichment status and timestamps
+
+Enrichment metadata (TMDB titles, posters, overviews) is **not** included — only the torrent-level data is exported.
+
+---
+
+## Use cases
+
+| Use case | How |
+|---|---|
+| **Backup** | Periodically trigger an export and download the file. Smaller and more portable than a full PostgreSQL dump. |
+| **Analysis** | Open the SQLite file in any SQLite-compatible tool (DB Browser, Datasette, `sqlite3` CLI) to run ad-hoc queries. |
+| **Migration** | Export from one instance and import the relevant columns into another system's database. |
+
+For full disaster recovery, prefer [PostgreSQL backups](/docs/deployment/configuration#backing-up) — the SQLite export is a convenience snapshot, not a replacement for proper database backups.
