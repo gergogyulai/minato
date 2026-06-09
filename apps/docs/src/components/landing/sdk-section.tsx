@@ -30,24 +30,23 @@ export function SdkSection() {
 						>
 							Write a scraper
 							<br />
-							in minutes.
+							in a few minutes.
 							<br />
 							<span className="text-web-muted">Ship it to anyone.</span>
 						</h2>
 						<p className="mb-5 text-sm leading-relaxed text-web-muted">
 							Community scrapers are plain TypeScript modules built with{" "}
 							<code className="rounded bg-web-elevated px-1.5 py-0.5 font-mono text-xs text-web-fg">
-								@minato/skit
+								@project-minato/skit
 							</code>
-							. Scaffold one in seconds with{" "}
+							. Scaffold one in seconds with the{" "}
 							<code className="rounded bg-web-elevated px-1.5 py-0.5 font-mono text-xs text-web-fg">
 								create-minato-scraper
-							</code>
-							, install from the registry, or paste a GitHub repo URL directly
+							</code> CLI, install from the registry, or paste a GitHub repo URL directly
 							from the dashboard. Minato pulls and mounts it automatically.
 						</p>
 						<p className="mb-8 text-sm leading-relaxed text-web-muted">
-							For heavier workloads, sidecar scrapers run as isolated containers
+							For heavier workloads, sidecar scrapers can run isolated containers
 							and connect over the network. Resource-intensive sources stay off
 							the main stack entirely.
 						</p>
@@ -57,18 +56,7 @@ export function SdkSection() {
 								className="group inline-flex items-center gap-1 text-sm text-web-muted/60 transition-colors hover:text-web-fg"
 							>
 								<span className="underline decoration-web-muted/30 underline-offset-4">
-									@minato/skit SDK reference
-								</span>
-								<span className="transition-transform group-hover:translate-x-0.5">
-									→
-								</span>
-							</Link>
-							<Link
-								href="/docs/scrapers"
-								className="group inline-flex items-center gap-1 text-sm text-web-muted/60 transition-colors hover:text-web-fg"
-							>
-								<span className="underline decoration-web-muted/30 underline-offset-4">
-									Building your first scraper
+									Building your first Minato scraper
 								</span>
 								<span className="transition-transform group-hover:translate-x-0.5">
 									→

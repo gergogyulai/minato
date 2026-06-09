@@ -4,18 +4,18 @@ import { PipelineGraph } from "./pipeline-graph";
 const FEATURES = [
 	{
 		title: "Zero-overhead runtime",
-		body: "Scrapers and the API layer both run on Bun. Cold start in milliseconds, not seconds.",
+		body: "Workers, the API layer, and even scrapers both run on Bun. Cold starts measured in milliseconds, not seconds.",
 		stat: "< 300ms",
 	},
 	{
 		title: "Concurrent, non-blocking ingestion",
-		body: "BullMQ distributes parsing, metadata enrichment, and deduplication across isolated workers. One slow source never stalls the rest.",
+		body: "BullMQ distributes parsing, metadata enrichment, and deduplication across isolated workers. One slow process never stalls the rest.",
 		stat: "parallel",
 	},
 	{
-		title: "Sub-millisecond search",
+		title: "Blazingly-fast search",
 		body: "Meilisearch with custom ranking profiles tuned for release quality, seed health, and freshness. Results before your finger leaves the key.",
-		stat: "< 3ms",
+		stat: "miliseconds",
 	},
 ];
 

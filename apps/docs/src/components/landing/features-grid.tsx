@@ -6,7 +6,7 @@ const CARDS = [
 		icon: Archive,
 		number: "01",
 		title: "Permanent local storage",
-		body: "Not a proxy. Not a router. Every magnet link and infohash Minato captures is written to your own Postgres instance: indexed, deduplicated, and available long after the original source disappears.",
+		body: "Not a proxy. Not a router. Every infohash Minato captures is stored in your own Postgres instance: indexed, deduped, available long after the original source disappears.",
 		color: "#22d3ee",
 		metric: "∞ retention",
 	},
@@ -14,17 +14,17 @@ const CARDS = [
 		icon: Network,
 		number: "02",
 		title: "Aggregation without lock-in",
-		body: "Pull from EZTV, Knaben, and a growing list of built-in providers, or mount your own community scrapers via a volume. Minato doesn't care where the data comes from, as long as it gets saved.",
+		body: "Pull from EZTV, Knaben, and a growing list of built-in scraper, or write your own. Minato doesn't care where the data comes from, as long as it gets saved.",
 		color: "#a78bfa",
-		metric: "15+ sources",
+		metric: "5+ sources",
 	},
 	{
 		icon: Rss,
 		number: "03",
 		title: "Native Torznab compatibility",
-		body: "Your existing stack works on day one. Minato serves a spec-compliant Torznab XML and RSS API so Sonarr and Radarr can query your local cache exactly like any remote indexer.",
+		body: "Your existing stack works on day one. Minato serves a Torznab XML and RSS API so Sonarr and Radarr can query your local cache exactly like any remote indexer.",
 		color: "#fb923c",
-		metric: "100% spec",
+		metric: "Sonarr/Radarr ready",
 	},
 ];
 
@@ -41,7 +41,7 @@ export function FeaturesGrid() {
 					>
 						The web is volatile.
 						<br />
-						<span className="text-web-muted">Your library shouldn't be.</span>
+						<span className="text-web-muted">Your torrent library shouldn't be.</span>
 					</h2>
 				</Reveal>
 

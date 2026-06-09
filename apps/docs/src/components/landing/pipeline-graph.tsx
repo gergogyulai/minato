@@ -12,8 +12,8 @@ const LC = NW / 2; // left sink center x = 90
 const RC = FW - NW / 2; // right sink center x = 290
 
 const NODES = {
-	scrapers: { icon: Zap, label: "Scrapers", sub: "bun runtime", color: "#f59e0b" },
-	api: { icon: Globe, label: "Hono API", sub: "http / websocket", color: "#60a5fa" },
+	scrapers: { icon: Zap, label: "Scrapers", sub: "bun runtime", color: "#ff73a8" },
+	api: { icon: Globe, label: "Hono API", sub: "http / websocket", color: "#e36002" },
 	workers: { icon: Layers, label: "BullMQ Workers", sub: "concurrent jobs", color: "#f87171" },
 	postgres: { icon: Database, label: "Postgres", sub: "persistent store", color: "#22d3ee" },
 	meilisearch: { icon: Search, label: "Meilisearch", sub: "search index", color: "#a78bfa" },

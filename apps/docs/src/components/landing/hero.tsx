@@ -41,10 +41,10 @@ export function HeroSection() {
               style={{ "--enter-delay": "0.16s" } as React.CSSProperties}
             >
               <p className="mb-7 text-base leading-relaxed text-web-muted">
-                Project Minato is a self-hosted aggregation and archival platform
-                for the torrent ecosystem. It captures magnets, infohashes, and
-                release metadata from trackers and keeps them locally,
-                forever, regardless of what goes dark upstream.
+                Project Minato is a self-hosted vault platform
+                for the torrent ecosystem. It captures infohashes, and
+                metadata from trackers and keeps them locally,
+                forever.
               </p>
               <div className="flex flex-wrap gap-3">
                 <Link

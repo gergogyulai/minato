@@ -1,4 +1,4 @@
-import { Boxes, DatabaseZap, Server } from "lucide-react";
+import { Boxes, DatabaseZap, Network, Server } from "lucide-react";
 import type { ElementType } from "react";
 import { Reveal, SectionRule, Stagger, StaggerItem } from "./motion";
 
@@ -91,9 +91,8 @@ export function DeploymentCards() {
 									One entry point
 								</h3>
 								<p className="text-sm leading-relaxed text-web-muted">
-									API, dashboard, Torznab feeds, and background workers all run
-									through a single docker-compose.yaml on one port: 7271. Postgres,
-									Redis, and Meilisearch come bundled.
+									API, dashboard, Scrapers, Torznab feeds, and background workers all run
+									through inside a single container on one port: <b>7271</b>.
 								</p>
 							</div>
 							<p
@@ -107,12 +106,12 @@ export function DeploymentCards() {
 
 					{/* Top right */}
 					<StaggerItem className="md:col-span-2">
-						<BentoCard
-							icon={DatabaseZap}
-							title="Migrations on boot"
-							body="Migrations live in the repo and run automatically at startup. No manual psql sessions, no scripts to remember."
-							color="#34d399"
-						/>
+					  <BentoCard
+					    icon={Network}
+					    title="Reverse proxy friendly"
+							body="Designed to sit behind Traefik, Nginx, or Caddy. Just point it at your domain and go. Automatic HTTPS with zero config."
+					    color="#34d399"
+					  />
 					</StaggerItem>
 
 					{/* Bottom right */}
