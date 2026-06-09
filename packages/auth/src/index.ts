@@ -16,14 +16,14 @@ export const auth = betterAuth({
 		schema: schema,
 	}),
 	secret: env.BETTER_AUTH_SECRET,
-	baseURL: env.BETTER_AUTH_URL,
 	basePath: "/api/v1/auth",
 	trustedOrigins: async (request) => {
-		const configuredOrigin = env.CORS_ORIGIN ?? env.BETTER_AUTH_URL;
+		if (env.NODE_ENV === "development") {
+			const origin = request?.headers.get("origin");
+			return origin ? [origin] : [];
+		}
 		const inferredOrigin = request ? inferOriginFromRequest(request) : null;
-		return [configuredOrigin, inferredOrigin].filter(
-			(origin): origin is string => Boolean(origin),
-		);
+		return inferredOrigin ? [inferredOrigin] : [];
 	},
 	emailAndPassword: {
 		enabled: true,
@@ -46,6 +46,6 @@ export const auth = betterAuth({
 			rateLimit: { enabled: false },
 		}),
 		admin(),
-		passkey(),
+		...(env.PASSKEY_RP_ID ? [passkey({ rpID: env.PASSKEY_RP_ID })] : []),
 	],
 });

@@ -358,9 +358,54 @@ Refer to the [project roadmap](ROADMAP.md) for comprehensive implementation stat
 
 ## 5. Deployment
 
-### Current Development Setup
+### Production Deployment
 
-For local development, the project uses Docker Compose for infrastructure:
+Production uses a single Docker image (`gergogyulai/minato:latest`) with all components managed by supervisord — one container handles the API, workers, scrapers, and the frontend.
+
+**Quick start:**
+
+```bash
+# 1. Download the compose file
+curl -O https://raw.githubusercontent.com/gergogyulai/minato/main/docker-compose.yaml
+curl -O https://raw.githubusercontent.com/gergogyulai/minato/main/.env.production.example
+
+# 2. Create your .env from the production template
+cp .env.production.example .env
+# Edit .env and fill in the 4 required values (see below)
+
+# 3. Start the stack
+docker compose up -d
+```
+
+**Required environment variables** — these are the only values you must set:
+
+| Variable | How to generate |
+| :--- | :--- |
+| `BETTER_AUTH_SECRET` | `openssl rand -base64 32` |
+| `POSTGRES_PASSWORD` | choose a strong password |
+| `MEILISEARCH_MASTER_KEY` | `openssl rand -hex 32` |
+| `TMDB_READ_ACCESS_TOKEN` | [developer.themoviedb.org](https://developer.themoviedb.org/docs/getting-started) |
+
+**Optional variables:**
+
+| Variable | Purpose |
+| :--- | :--- |
+| `OPENROUTER_API_KEY` | Enables AI-powered metadata repair (configurable in Settings) |
+
+Everything else — database URL, Redis, Meilisearch host — is wired up automatically within the Docker network and does not need to be configured.
+
+**What the production image runs:**
+- Nginx (port 7271) — serves the frontend SPA and proxies `/api/*` to the backend
+- Hono API server (Bun, internal port 3000)
+- BullMQ workers (Bun)
+- Scraper supervisor (Bun)
+- Auto-migration on first boot
+
+**Persistent data** is stored in named Docker volumes (`minato_config`, `postgres_data`, `redis_data`, `meilisearch_data`).
+
+### Development Setup
+
+For local development, use `docker-compose.dev.yaml` to start the backing services:
 
 ```bash
 # Start infrastructure (PostgreSQL, Redis, Meilisearch, FlareSolverr)
@@ -370,38 +415,7 @@ bun run infra:up
 bun dev
 ```
 
-**docker-compose.dev.yaml** includes:
-- PostgreSQL (port 5432)
-- Redis (port 6379)
-- Meilisearch (port 7700)
-- FlareSolverr (port 8191)
-
-### Production Deployment
-
-Production uses a single Docker image with all components managed by supervisord:
-
-```bash
-# Build and start the full stack
-docker compose up -d
-
-# Or pull the pre-built image
-docker pull gergogyulai/minato:latest
-```
-
-**Production image includes**:
-- Vite static frontend assets served by nginx
-- Hono API server (Bun)
-- BullMQ workers (Bun)
-- Scraper supervisor (Bun)
-- Nginx reverse proxy (consolidating services on port 7271)
-- Supervisord for process management
-- Auto-migration on first boot
-
-**Architecture**:
-- Nginx serves static frontend assets at `/` with SPA fallback
-- API requests (`/api/*`) proxied to Bun backend on port 3000
-- Media assets (`/assets/*`) proxied to backend with disk fallback
-- Persistent config at `/config` volume (media, community scrapers)
+`docker-compose.dev.yaml` starts: PostgreSQL (5432), Redis (6379), Meilisearch (7700), FlareSolverr (8191).
 
 ---
 
@@ -432,8 +446,10 @@ docker pull gergogyulai/minato:latest
    This starts PostgreSQL, Redis, Meilisearch, and FlareSolverr via Docker Compose.
 
 4. **Set up environment variables**:
-   - Copy `.env.example` to `.env`
-   - Configure database URLs, TMDB API key, etc.
+   ```bash
+   cp .env.example .env
+   ```
+   Fill in `BETTER_AUTH_SECRET`, `TMDB_READ_ACCESS_TOKEN`, and `MEILISEARCH_MASTER_KEY`. The database/Redis/Meilisearch URLs default to the values used by `infra:up` and don't need to be changed.
 
 5. **Run database migrations**:
    ```bash

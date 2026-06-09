@@ -9,11 +9,10 @@ export const sharedSchema = {
 		.default("development"),
 	REDIS_URL: z
 		.string()
-		.min(1, "REDIS_URL is required")
 		.regex(redisUrlRegex, "Invalid Redis connection string format")
-		.default("redis://localhost:6379"),
+		.default("redis://redis:6379"),
 	DATABASE_URL: z.string().url(),
-	MEILISEARCH_HOST: z.string().min(1),
+	MEILISEARCH_HOST: z.string().min(1).default("http://meilisearch:7700"),
 	MEILISEARCH_MASTER_KEY: z.string().min(1),
 };
 

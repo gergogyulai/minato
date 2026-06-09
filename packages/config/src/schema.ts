@@ -87,14 +87,8 @@ export function getEnvConfig() {
   return {
     scraper: {
       flareSolverrUrl: process.env.MINATO_FLARESOLVERR_URL,
-      proxyUrl: process.env.MINATO_PROXY_URL,
-      enabledScrapers: process.env.MINATO_ENABLED_SCRAPERS,
     },
     workers: {
-      ingest: { concurrency: process.env.MINATO_WORKERS_INGEST_CONCURRENCY },
-      enrichment: {
-        concurrency: process.env.MINATO_WORKERS_ENRICHMENT_CONCURRENCY,
-      },
       aiRepair: {
         provider: process.env.MINATO_AI_REPAIR_PROVIDER,
         model: process.env.MINATO_AI_REPAIR_MODEL,

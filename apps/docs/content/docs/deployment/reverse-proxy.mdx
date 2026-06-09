@@ -5,14 +5,7 @@ description: Put Minato behind Traefik, Caddy, or nginx Proxy Manager for HTTPS 
 
 Minato listens on port `7271`. To serve it on a domain with HTTPS, put it behind a reverse proxy. The proxy handles TLS termination and forwards traffic to the container.
 
-When deploying behind a domain, set these two env vars on the `minato` service:
-
-```bash
-BETTER_AUTH_URL=https://minato.example.com
-CORS_ORIGIN=https://minato.example.com
-```
-
-Without these, authentication cookies and CORS won't work correctly.
+Minato infers its public URL from `X-Forwarded-Host` and `X-Forwarded-Proto` headers automatically, so no extra environment variables are needed to put it behind a reverse proxy.
 
 ---
 
@@ -25,7 +18,7 @@ The most common setup for homelab Docker environments.
 - A `letsencrypt` certificate resolver is configured
 - You have a DNS A record pointing `minato.example.com` at your server
 
-Add Minato to your `docker-compose.yaml`:
+Add a `networks` block to your `docker-compose.yaml` and update the `minato` service to join Traefik's network. The backing services (postgres, redis, meilisearch) stay on the default network and are never reachable from outside.
 
 ```yaml
 services:
@@ -33,20 +26,16 @@ services:
     image: gergogyulai/minato:latest
     container_name: minato
     restart: unless-stopped
+    # No ports: block — Traefik connects directly to the container
     networks:
-      - internal
-      - web-public          # join Traefik's network
+      - default
+      - web-public
     environment:
-      - NODE_ENV=production
-      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
-      - BETTER_AUTH_URL=https://minato.example.com
-      - CORS_ORIGIN=https://minato.example.com
-      - DATABASE_URL=postgresql://minato_user:minato_password@postgres:5432/minato
-      - REDIS_URL=redis://redis:6379
-      - MEILISEARCH_HOST=http://meilisearch:7700
-      - MEILISEARCH_MASTER_KEY=${MEILISEARCH_MASTER_KEY}
-      - TMDB_READ_ACCESS_TOKEN=${TMDB_READ_ACCESS_TOKEN}
-      - MEDIA_ROOT=/data/media
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      DATABASE_URL: postgresql://minato:${POSTGRES_PASSWORD}@postgres:5432/minato
+      MEILISEARCH_MASTER_KEY: ${MEILISEARCH_MASTER_KEY}
+      TMDB_READ_ACCESS_TOKEN: ${TMDB_READ_ACCESS_TOKEN}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:7271/api/v1/health"]
       interval: 10s
@@ -54,7 +43,7 @@ services:
       retries: 5
       start_period: 10s
     volumes:
-      - minato_assets:/data
+      - minato_config:/config
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.minato.rule=Host(`minato.example.com`)"
@@ -69,16 +58,14 @@ services:
       meilisearch:
         condition: service_healthy
 
-  # ... postgres, redis, meilisearch stay on `internal` network only
+  # postgres, redis, meilisearch — unchanged from the base compose file
 
 networks:
-  internal:
-    driver: bridge
   web-public:
     external: true
 ```
 
-Remove the `ports` block — Traefik connects directly to the container on the shared network. Port `7271` doesn't need to be published to the host.
+The `default` network entry keeps connectivity to the backing services. Remove the `ports` block so port `7271` is not published to the host — Traefik routes directly to the container over the shared network.
 
 ---
 
@@ -104,11 +91,11 @@ If you're using nginx Proxy Manager (NPM):
 
 1. Add a new **Proxy Host** in the NPM UI
 2. **Domain**: `minato.example.com`
-3. **Forward Hostname/IP**: `minato` (the container name, if NPM is on the same Docker network) or your server's local IP
+3. **Forward Hostname/IP**: `minato` (if NPM shares a Docker network with the container) or your server's local IP
 4. **Forward Port**: `7271`
 5. Enable **SSL** and request a Let's Encrypt certificate
 
-Make sure the `minato` container and the NPM container are on the same Docker network, or use the host IP with port `7271` exposed.
+Make sure the `minato` container and the NPM container are on the same Docker network, or expose port `7271` to the host and use the host IP.
 
 ---
 

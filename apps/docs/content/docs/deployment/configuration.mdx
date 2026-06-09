@@ -5,18 +5,23 @@ description: Environment variables, volumes, and ports reference for Minato.
 
 ## Environment variables
 
-| Variable | Required | Description |
-|---|---|---|
-| `BETTER_AUTH_SECRET` | ✅ | Secret key used to sign sessions and tokens. Minimum 32 characters. Generate with `openssl rand -base64 32`. |
-| `MEILISEARCH_MASTER_KEY` | ✅ | Meilisearch master key. Generate with `openssl rand -hex 32`. Must match `MEILI_MASTER_KEY` on the Meilisearch container. |
-| `TMDB_READ_ACCESS_TOKEN` | ✅ | TMDB v4 Read Access Token for movie and TV metadata enrichment. Get one free at [themoviedb.org](https://developer.themoviedb.org/docs/getting-started). |
-| `DATABASE_URL` | ✅ | PostgreSQL connection string, e.g. `postgresql://user:password@postgres:5432/minato`. |
-| `REDIS_URL` | ✅ | Redis connection string. Defaults to `redis://localhost:6379` if not set. |
-| `MEILISEARCH_HOST` | ✅ | Meilisearch base URL, e.g. `http://meilisearch:7700`. |
-| `MEDIA_ROOT` | ✅ | Path inside the container where poster and backdrop images are stored. Use `/data/media`. |
-| `BETTER_AUTH_URL` | | Public URL of your deployment, e.g. `https://minato.example.com`. Required when accessing Minato from a domain other than localhost. |
-| `CORS_ORIGIN` | | Allowed CORS origin. Set this to your public URL when the frontend is accessed over a domain. |
-| `NODE_ENV` | | Set to `production`. The Docker image sets this by default. |
+The compose file handles all internal service connectivity automatically. The only variables you configure in your `.env` are the ones below. `REDIS_URL` and `MEILISEARCH_HOST` default to the correct Docker-internal hostnames and never need to be set in production.
+
+### Required
+
+| Variable | Description |
+|---|---|
+| `BETTER_AUTH_SECRET` | Secret key used to sign sessions and tokens. Generate with `openssl rand -base64 32`. |
+| `POSTGRES_PASSWORD` | Password for the internal PostgreSQL database. Choose a strong password. |
+| `MEILISEARCH_MASTER_KEY` | Meilisearch master key. Generate with `openssl rand -hex 32`. |
+| `TMDB_READ_ACCESS_TOKEN` | TMDB v4 Read Access Token for movie and TV metadata enrichment. Get one free at [themoviedb.org](https://developer.themoviedb.org/docs/getting-started). |
+
+### Optional
+
+| Variable | Description |
+|---|---|
+| `PASSKEY_RP_ID` | Your deployment's public hostname, e.g. `minato.example.com`. Required to enable passkey (WebAuthn) support. Passkeys are disabled when this is not set. |
+| `OPENROUTER_API_KEY` | OpenRouter API key. Only needed if you enable AI-powered metadata repair in Settings. |
 
 ### Generating secrets
 
@@ -34,7 +39,7 @@ Don't use passwords you've used elsewhere. These values are security-sensitive �
 
 To rotate `BETTER_AUTH_SECRET`, update it in your `.env` file and restart the stack. Existing user sessions will be invalidated and users will need to log in again.
 
-To rotate `MEILISEARCH_MASTER_KEY`, update it in your `.env` file, update `MEILI_MASTER_KEY` on the Meilisearch container, and restart the stack.
+To rotate `MEILISEARCH_MASTER_KEY`, update it in your `.env` file and restart the stack.
 
 ---
 
@@ -44,7 +49,7 @@ All state lives in Docker named volumes. Back these up to avoid data loss.
 
 | Volume | What it holds |
 |---|---|
-| `minato_assets` | Poster and backdrop images, stored under `/data/media` inside the container |
+| `minato_config` | Poster and backdrop images (`/config/media`) and community scrapers (`/config/scrapers`) |
 | `postgres_data` | The PostgreSQL data directory — your entire torrent database |
 | `redis_data` | Redis persistence for the BullMQ job queue |
 | `meilisearch_data` | Meilisearch index data |
@@ -55,19 +60,19 @@ The Meilisearch index can be rebuilt from PostgreSQL if lost — it's not the so
 
 ```bash
 # Postgres — take a logical dump
-docker exec minato-postgres pg_dump -U minato_user minato > minato_$(date +%Y%m%d).sql
+docker compose exec postgres pg_dump -U minato minato > minato_$(date +%Y%m%d).sql
 
 # Full volume backup (works for any volume)
 docker run --rm \
-  -v minato_assets:/data \
+  -v minato_config:/data \
   -v $(pwd):/backup \
-  alpine tar czf /backup/minato_assets_$(date +%Y%m%d).tar.gz -C /data .
+  alpine tar czf /backup/minato_config_$(date +%Y%m%d).tar.gz -C /data .
 ```
 
 ### Restoring Postgres
 
 ```bash
-cat minato_backup.sql | docker exec -i minato-postgres psql -U minato_user minato
+cat minato_backup.sql | docker compose exec -T postgres psql -U minato minato
 ```
 
 ---
@@ -84,16 +89,16 @@ All other services (PostgreSQL, Redis, Meilisearch) communicate on the internal 
 
 ---
 
-## Community scraper volume
+## Community scrapers
 
-If you plan to use community scrapers, mount a host directory into the container at `/app/scrapers`:
+Community scrapers are loaded from `/config/scrapers` inside the container, which is part of the `minato_config` volume. To use a host directory instead (so you can drop in scraper packages without touching Docker volumes), bind-mount it:
 
 ```yaml
 services:
   minato:
     volumes:
-      - minato_assets:/data
-      - ./scrapers:/app/scrapers   # add this line
+      - minato_config:/config
+      - ./scrapers:/config/scrapers   # add this line
 ```
 
 Drop scraper directories into `./scrapers/` on your host. Minato picks them up automatically without a restart.

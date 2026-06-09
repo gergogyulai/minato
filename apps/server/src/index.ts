@@ -29,18 +29,12 @@ app.use(
 	"/*",
 	cors({
 		origin: (origin, c) => {
-			if (origin === "null") {
-				return origin;
-			}
-			if (env.CORS_ORIGIN) {
-				return origin === env.CORS_ORIGIN ? origin : env.CORS_ORIGIN;
-			}
-
+			if (origin === "null") return origin;
+			// In development the Vite dev server runs on a different port — allow any origin.
+			if (env.NODE_ENV === "development") return origin;
+			// In production nginx serves everything from one origin, so only echo
+			// back the inferred same-origin (cross-origin requests shouldn't arrive).
 			const inferredOrigin = inferOriginFromRequest(c.req.raw);
-			if (!inferredOrigin) {
-				return null;
-			}
-
 			return origin === inferredOrigin ? origin : null;
 		},
 		allowMethods: ["GET", "POST", "OPTIONS"],

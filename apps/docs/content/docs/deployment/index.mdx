@@ -10,9 +10,15 @@ Minato ships as a single Docker image. It runs the API server, background worker
 - **Docker 24+** and **Docker Compose v2** (`docker compose`, not `docker-compose`)
 - A **TMDB Read Access Token** — free, get one at [themoviedb.org](https://developer.themoviedb.org/docs/getting-started)
 
-## 1. Create the compose file
+## 1. Get the compose file
 
-Create a `docker-compose.yaml` in an empty directory:
+Download the latest `docker-compose.yaml` directly:
+
+```bash
+curl -O https://raw.githubusercontent.com/gergogyulai/minato/main/docker-compose.yaml
+```
+
+Or create it manually:
 
 ```yaml
 name: minato
@@ -24,19 +30,12 @@ services:
     restart: unless-stopped
     ports:
       - "7271:7271"
-    networks:
-      - internal
     environment:
-      - NODE_ENV=production
-      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
-      - BETTER_AUTH_URL=${BETTER_AUTH_URL:-}
-      - CORS_ORIGIN=${CORS_ORIGIN:-}
-      - DATABASE_URL=postgresql://minato_user:minato_password@postgres:5432/minato
-      - REDIS_URL=redis://redis:6379
-      - MEILISEARCH_HOST=http://meilisearch:7700
-      - MEILISEARCH_MASTER_KEY=${MEILISEARCH_MASTER_KEY}
-      - TMDB_READ_ACCESS_TOKEN=${TMDB_READ_ACCESS_TOKEN}
-      - MEDIA_ROOT=/data/media
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      DATABASE_URL: postgresql://minato:${POSTGRES_PASSWORD}@postgres:5432/minato
+      MEILISEARCH_MASTER_KEY: ${MEILISEARCH_MASTER_KEY}
+      TMDB_READ_ACCESS_TOKEN: ${TMDB_READ_ACCESS_TOKEN}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:7271/api/v1/health"]
       interval: 10s
@@ -44,7 +43,7 @@ services:
       retries: 5
       start_period: 10s
     volumes:
-      - minato_assets:/data
+      - minato_config:/config
     depends_on:
       postgres:
         condition: service_healthy
@@ -55,28 +54,22 @@ services:
 
   postgres:
     image: postgres:16-alpine
-    container_name: minato-postgres
     restart: unless-stopped
-    networks:
-      - internal
     environment:
-      - POSTGRES_DB=minato
-      - POSTGRES_USER=minato_user
-      - POSTGRES_PASSWORD=minato_password
+      POSTGRES_DB: minato
+      POSTGRES_USER: minato
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U minato_user -d minato"]
+      test: ["CMD-SHELL", "pg_isready -U minato -d minato"]
       interval: 5s
       timeout: 5s
       retries: 10
 
   redis:
     image: redis:7-alpine
-    container_name: minato-redis
     restart: unless-stopped
-    networks:
-      - internal
     command: redis-server --save 60 1 --loglevel warning
     volumes:
       - redis_data:/data
@@ -88,13 +81,10 @@ services:
 
   meilisearch:
     image: getmeili/meilisearch:v1.12
-    container_name: minato-meilisearch
     restart: unless-stopped
-    networks:
-      - internal
     environment:
-      - MEILI_MASTER_KEY=${MEILISEARCH_MASTER_KEY}
-      - MEILI_NO_ANALYTICS=true
+      MEILI_MASTER_KEY: ${MEILISEARCH_MASTER_KEY}
+      MEILI_NO_ANALYTICS: "true"
     volumes:
       - meilisearch_data:/meili_data
     healthcheck:
@@ -103,12 +93,8 @@ services:
       timeout: 5s
       retries: 10
 
-networks:
-  internal:
-    driver: bridge
-
 volumes:
-  minato_assets:
+  minato_config:
   postgres_data:
   redis_data:
   meilisearch_data:
@@ -116,26 +102,26 @@ volumes:
 
 ## 2. Create the .env file
 
-In the same directory, create a `.env` file with your secrets:
+In the same directory, create a `.env` file with your secrets. These are the only values you need to set — everything else is wired up automatically within the Docker network.
 
 ```bash
 # Generate with: openssl rand -base64 32
 BETTER_AUTH_SECRET=
 
-# Meilisearch master key — generate with: openssl rand -hex 32
+# Choose a strong password for the internal Postgres database
+POSTGRES_PASSWORD=
+
+# Generate with: openssl rand -hex 32
 MEILISEARCH_MASTER_KEY=
 
 # TMDB Read Access Token — https://developer.themoviedb.org
 TMDB_READ_ACCESS_TOKEN=
 
-# Only needed if you're putting Minato behind a domain (see Reverse Proxy)
-# BETTER_AUTH_URL=https://minato.example.com
-# CORS_ORIGIN=https://minato.example.com
+# Only needed if you enable AI repair features in Settings
+# OPENROUTER_API_KEY=
 ```
 
-`BETTER_AUTH_SECRET` and `MEILISEARCH_MASTER_KEY` are secrets — generate them with the commands shown, don't reuse passwords.
-
-The Postgres password in the compose file (`minato_password`) is fine for a local homelab setup where the database is not exposed to the network. If you want to change it, update it in both the `DATABASE_URL` environment variable on the `minato` service and the `POSTGRES_PASSWORD` environment variable on the `postgres` service.
+`BETTER_AUTH_SECRET` and `MEILISEARCH_MASTER_KEY` are security secrets — generate them with the commands shown, don't reuse passwords.
 
 ## 3. Start
 
@@ -145,7 +131,7 @@ docker compose up -d
 
 On first boot, Minato runs database migrations automatically. Once the `minato` container is healthy, the UI is available at **http://localhost:7271**.
 
-Logs while it's starting:
+Watch the logs while it starts:
 
 ```bash
 docker compose logs -f minato
