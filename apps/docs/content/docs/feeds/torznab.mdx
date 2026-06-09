@@ -1,21 +1,34 @@
 ---
 title: Torznab Feed
-description: Torznab feed for Sonarr, Radarr, Prowlarr, and other arr applications.
+description: Torznab feed for Sonarr, Radarr, Prowlarr, and other *arr applications.
 ---
 
-The Torznab feed implements the [Torznab specification](https://torznab.github.io/spec-1.3-draft/), making Minato compatible with Sonarr, Radarr, Prowlarr, and similar applications.
+The Torznab feed makes Minato compatible with Sonarr, Radarr, Prowlarr, and similar applications. It returns results in standard Torznab XML format following the [Torznab specification](https://torznab.github.io/spec-1.3-draft/).
 
 **Endpoint:** `GET /api/v1/feeds/torznab`
 
 **Required key type:** `torznab` or `custom`
 
-Full Torznab support is under active development. Refer to this page once the implementation is complete.
-
-## Connecting to Sonarr / Radarr
+## Connecting to Sonarr or Radarr
 
 1. In Sonarr or Radarr, go to **Settings → Indexers → Add → Torznab**.
 2. Set the URL to `https://your-minato/api/v1/feeds/torznab`.
 3. Enter your API key in the **API Key** field — it must be a `torznab` or `custom` type key.
+4. Save and test the connection.
+
+The same steps apply to Prowlarr and other Torznab-compatible clients.
+
+## Creating a key
+
+Go to **Admin → API Keys**, click **New key**, set the type to `torznab`, and copy the key. See the [Feeds overview](/docs/feeds) for key type details.
+
+---
+
+## Current limitations
+
+The caps (`?t=caps`) endpoint is not yet implemented. Some clients use caps to auto-configure category mapping — if yours does, you may need to set categories manually.
+
+---
 
 ## Error responses
 

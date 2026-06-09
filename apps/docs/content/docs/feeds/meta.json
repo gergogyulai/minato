@@ -1,4 +1,4 @@
 {
 	"title": "Feeds",
-	"pages": ["index", "rss", "torznab"]
+	"pages": ["index", "torznab", "rss"]
 }

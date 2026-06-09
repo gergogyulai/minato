@@ -1,13 +1,21 @@
 ---
-title: Hello World
-description: Your first document
+title: Introduction
+description: Minato is a self-hosted torrent indexer with full-text search, a Torznab-compatible feed, and a plugin-based scraper system.
 ---
 
-Welcome to the docs! You can start writing documents in `/content/docs`.
+Minato is a self-hosted torrent indexer. Scrapers pull torrents from external sources into a searchable library — browse them in the web UI, pipe them into Sonarr or Radarr via the Torznab feed, or subscribe to new content via RSS.
 
-## What is Next?
+## How it works
+
+Scrapers submit torrents to the ingestion API. A worker pipeline parses release titles, enriches them with metadata from TMDB and AniList, and indexes everything in Meilisearch. The result is a fast, filterable library of everything your scrapers have found.
+
+Minato ships as a single Docker image. One container runs the API, background workers, and the web frontend — the only external services you need are PostgreSQL, Redis, and Meilisearch, all included in the default compose file.
+
+## Quick navigation
 
 <Cards>
-  <Card title="Learn more about Next.js" href="https://nextjs.org/docs" />
-  <Card title="Learn more about Fumadocs" href="https://fumadocs.dev" />
+  <Card title="Deploy with Docker" href="/docs/deployment" description="Get Minato running in a few minutes with Docker Compose" />
+  <Card title="Add scrapers" href="/docs/scrapers" description="Connect sources to start filling your library" />
+  <Card title="Connect Sonarr / Radarr" href="/docs/feeds/torznab" description="Use Minato as a Torznab indexer in your *arr stack" />
+  <Card title="Search syntax" href="/docs/search" description="Inline filters, source directives, and ID lookup" />
 </Cards>
