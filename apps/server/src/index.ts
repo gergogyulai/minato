@@ -1,4 +1,3 @@
-import path from "node:path";
 import { OpenAPIHandler } from "@orpc/openapi/fetch";
 import { OpenAPIReferencePlugin } from "@orpc/openapi/plugins";
 import { ORPCError, onError } from "@orpc/server";
@@ -6,10 +5,10 @@ import { RPCHandler } from "@orpc/server/fetch";
 import { ZodToJsonSchemaConverter } from "@orpc/zod/zod4";
 import { auth } from "@project-minato/auth";
 import { closePubSub } from "@project-minato/config";
-import { closeDb, db, sql } from "@project-minato/db";
+import { closeDb } from "@project-minato/db";
 import { inferOriginFromRequest } from "@project-minato/env/origin";
 import { env } from "@project-minato/env/server";
-import { meiliClient } from "@project-minato/meilisearch";
+import { mediaRoot } from "@project-minato/env/paths";
 import { connection as redis } from "@project-minato/queue";
 import { Hono } from "hono";
 import { serveStatic } from "hono/bun";
@@ -17,15 +16,17 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { createContext } from "@/api/context";
 import { appRouter } from "@/api/routers/index";
-import { feeds } from "@/feeds";
+import { handleExports } from "@/api/routes/exports";
+import { handleTorznab } from "@/api/routes/torznab";
+import { handleRss } from "@/api/routes/rss";
+import { handleHealth } from "@/api/routes/health";
+import { proxy } from "@/api/routes/proxy";
 import {
 	handleCommandAck,
 	handleCommandStream,
 	handleEnsureKey,
-} from "@/scraper/endpoints";
+} from "@/api/routes/scraper";
 import { startup } from "./startup";
-import { exportsDir, mediaRoot } from "@project-minato/env/paths";
-import { proxy } from "./lib/proxy";
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 const app = new Hono();
@@ -58,29 +59,7 @@ app.get(
 	}),
 );
 
-
-
-app.get("/api/v1/exports/:filename", async (c) => {
-	const session = await auth.api.getSession({ headers: c.req.raw.headers });
-	if (!session?.user) return c.text("Unauthorized", 401);
-	if ((session.user as { role?: string }).role !== "admin")
-		return c.text("Forbidden", 403);
-
-	const filename = c.req.param("filename");
-	if (!/^[a-zA-Z0-9_-]+\.sqlite$/.test(filename))
-		return c.text("Invalid filename", 400);
-
-	const file = Bun.file(path.join(exportsDir, filename));
-	if (!(await file.exists())) return c.text("Not Found", 404);
-
-	return new Response(file, {
-		headers: {
-			"Content-Type": "application/x-sqlite3",
-			"Content-Disposition": `attachment; filename="${filename}"`,
-			"Content-Length": String(file.size),
-		},
-	});
-});
+app.get("/api/v1/exports/:filename", (c) => handleExports(c));
 
 app.all("/api/v1/auth/*", (c) => auth.handler(c.req.raw));
 
@@ -94,75 +73,12 @@ app.post("/api/v1/internal/scraper/ensure-key", (c) => handleEnsureKey(c));
 app.get("/api/v1/scraper/commands", (c) => handleCommandStream(c));
 app.post("/api/v1/scraper/commands/ack", (c) => handleCommandAck(c));
 
-app.route("/api/v1/feeds", feeds);
+app.get("/api/v1/feeds/torznab", (c) => handleTorznab(c));
+app.get("/api/v1/feeds/rss", (c) => handleRss(c));
 
 app.route("/api/v1/proxy", proxy)
 
-app.get("/api/v1/health", async (c) => {
-	const pretty = c.req.query("pretty") !== undefined;
-
-	const uptime = process.uptime();
-	const uptimeStr = `${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m ${Math.floor(uptime % 60)}s`;
-	const memoryUsage = process.memoryUsage();
-
-	let dbStatus = "connected";
-	try {
-		await db.execute(sql`SELECT 1`);
-	} catch (e) {
-		dbStatus = "disconnected";
-	}
-
-	const redisStatus = redis.status === "ready" ? "connected" : "disconnected";
-
-	let meiliSearchStatus = "disconnected";
-	try {
-		const health = await meiliClient.health();
-		if (health.status === "available") {
-			meiliSearchStatus = "connected";
-		}
-	} catch (e) {
-		meiliSearchStatus = "disconnected";
-	}
-
-	const serverTime = new Date().toISOString();
-
-	const isHealthy =
-		dbStatus === "connected" &&
-		redisStatus === "connected" &&
-		meiliSearchStatus === "connected";
-
-	const status = isHealthy ? 200 : 503;
-
-	if (pretty) {
-		const text = [
-			"◢ PROJECT MINATO",
-			"ℹ [server] System Status Check",
-			"",
-			`↳ ${"Uptime".padEnd(18)} → ${uptimeStr}`,
-			`↳ ${"Database".padEnd(18)} → ${dbStatus.toUpperCase()}`,
-			`↳ ${"Redis".padEnd(18)} → ${redisStatus.toUpperCase()}`,
-			`↳ ${"MeiliSearch".padEnd(18)} → ${meiliSearchStatus.toUpperCase()}`,
-			`↳ ${"Server Time".padEnd(18)} → ${serverTime}`,
-			`↳ ${"Memory".padEnd(18)} → ${Math.round(memoryUsage.rss / 1024 / 1024)}MB`,
-			"",
-			`${isHealthy ? "✔ System heartbeat stable" : "✖ System issues detected"}`,
-		].join("\n");
-		return c.text(text, status);
-	}
-
-	return c.json(
-		{
-			status: isHealthy ? "ok" : "error",
-			uptime,
-			dbStatus,
-			redisStatus,
-			meiliSearchStatus,
-			serverTime,
-			memoryUsage,
-		},
-		status,
-	);
-});
+app.get("/api/v1/health", (c) => handleHealth(c));
 
 export const apiHandler = new OpenAPIHandler(appRouter, {
 	plugins: [
