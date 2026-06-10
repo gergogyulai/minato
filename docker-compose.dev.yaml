@@ -63,12 +63,38 @@ services:
       - TZ=Europe/London
     ports:
       - "8191:8191"
+    restart: unless-stopped
+
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: project-minato-dev-prowlarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
     volumes:
-      - project-minato-dev_flaresolverr_data:/config
+      - project-minato-dev_prowlarr_config:/config
+    ports:
+      - "9696:9696"
+    restart: unless-stopped
+
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: project-minato-dev-radarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+    volumes:
+      - project-minato-dev_radarr_config:/config
+    ports:
+      - "7878:7878"
     restart: unless-stopped
 
 volumes:
   project-minato-dev_meili_data:
   project-minato-dev_redis_data:
   project-minato-dev_postgres_data:
-  project-minato-dev_flaresolverr_data:
+  project-minato-dev_prowlarr_config:
+  project-minato-dev_radarr_config:
+  project-minato-dev_media:

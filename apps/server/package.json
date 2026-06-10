@@ -30,6 +30,7 @@
 		"cron-parser": "^5.5.0",
 		"dotenv": "catalog:",
 		"drizzle-orm": "catalog:",
+		"fast-xml-parser": "^5.8.0",
 		"hono": "^4.8.2",
 		"xmlbuilder2": "^4.0.3",
 		"zod": "catalog:"

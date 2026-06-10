@@ -25,7 +25,9 @@ import {
 } from "@/scraper/endpoints";
 import { startup } from "./startup";
 import { exportsDir, mediaRoot } from "@project-minato/env/paths";
+import { proxy } from "./lib/proxy";
 
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 const app = new Hono();
 
 app.use(logger());
@@ -55,6 +57,8 @@ app.get(
 		rewriteRequestPath: (path) => path.replace(/^\/assets/, ""),
 	}),
 );
+
+
 
 app.get("/api/v1/exports/:filename", async (c) => {
 	const session = await auth.api.getSession({ headers: c.req.raw.headers });
@@ -91,6 +95,8 @@ app.get("/api/v1/scraper/commands", (c) => handleCommandStream(c));
 app.post("/api/v1/scraper/commands/ack", (c) => handleCommandAck(c));
 
 app.route("/api/v1/feeds", feeds);
+
+app.route("/api/v1/proxy", proxy)
 
 app.get("/api/v1/health", async (c) => {
 	const pretty = c.req.query("pretty") !== undefined;
