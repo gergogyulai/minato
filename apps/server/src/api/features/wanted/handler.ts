@@ -16,7 +16,7 @@ import {
 	wantedMatchesContract,
 	wantedTmdbSearchContract,
 	wantedUpdateContract,
-} from "@/api/contracts/wanted.contracts";
+} from "@/api/features/wanted/contracts";
 
 const TMDB_BASE = "https://api.themoviedb.org/3";
 const TMDB_IMG = "https://image.tmdb.org/t/p/w92";

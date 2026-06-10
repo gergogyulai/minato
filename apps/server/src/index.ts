@@ -15,17 +15,17 @@ import { serveStatic } from "hono/bun";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { createContext } from "@/api/context";
-import { appRouter } from "@/api/routers/index";
-import { handleExports } from "@/api/routes/exports";
-import { handleTorznab } from "@/api/routes/torznab";
-import { handleRss } from "@/api/routes/rss";
-import { handleHealth } from "@/api/routes/health";
-import { proxy } from "@/api/routes/proxy";
+import { appRouter } from "@/api/app";
+import { handleExports } from "@/api/endpoints/exports";
+import { handleTorznab } from "@/api/endpoints/torznab";
+import { handleRss } from "@/api/endpoints/rss";
+import { handleHealth } from "@/api/endpoints/health";
+import { proxy } from "@/api/endpoints/proxy";
 import {
 	handleCommandAck,
 	handleCommandStream,
 	handleEnsureKey,
-} from "@/api/routes/scraper";
+} from "@/api/features/scraper/routes";
 import { startup } from "./startup";
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";

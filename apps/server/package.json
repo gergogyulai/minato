@@ -10,7 +10,7 @@
 		"start": "bun run dist/index.mjs"
 	},
 	"exports": {
-		"./routers": "./src/api/routers/index.ts"
+		"./routers": "./src/api/app.ts"
 	},
 	"dependencies": {
 		"@hono/zod-validator": "^0.7.6",

@@ -1,6 +1,6 @@
 import type { MeiliTorrentDocument } from "@project-minato/meilisearch";
 import { meiliClient } from "@project-minato/meilisearch";
-import { searchTorrentsContract } from "@/api/contracts/search.contracts";
+import { searchTorrentsContract } from "@/api/features/search/contracts";
 import { parseMinatoQuery } from "@/lib/search/parser";
 
 export const searchRouter = {

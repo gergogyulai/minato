@@ -4,15 +4,11 @@ import { publicProcedure } from "@/api";
 import {
 	DeleteTorrentsResponseSchema,
 	DeleteTorrentsSchema,
-} from "@/schemas/delete-torrents.schema";
-import {
 	IngestTorrentsResponseSchema,
 	IngestTorrentsSchema,
-} from "@/schemas/ingest-torrents.schema";
-import {
 	UpdateTorrentResponseSchema,
 	UpdateTorrentSchema,
-} from "@/schemas/update-torrents.schema";
+} from "@/api/features/torrents/schemas";
 
 /**
  * Contract-first API definitions for torrent operations

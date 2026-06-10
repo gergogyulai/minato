@@ -13,7 +13,7 @@ import {
 	updateFlareSolverrContract,
 	updateScrapersContract,
 	updateSetupProgressContract,
-} from "@/api/contracts/setup.contracts";
+} from "@/api/features/setup/contracts";
 
 // ---------------------------------------------------------------------------
 // Static catalogue – never changes at runtime

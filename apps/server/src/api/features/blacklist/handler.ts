@@ -6,7 +6,7 @@ import {
 	torrents,
 } from "@project-minato/db";
 import { requireAdmin } from "@/api";
-import { blacklistContracts } from "@/api/contracts/blacklist.contracts";
+import { blacklistContracts } from "@/api/features/blacklist/contracts";
 
 const torrent = {
 	// Block an infoHash and remove existing records.

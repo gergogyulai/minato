@@ -1,18 +1,16 @@
 import { publicProcedure } from "@/api";
 import {
+	AddBlacklistedTrackerResponseSchema,
+	AddBlacklistedTrackerSchema,
 	BlacklistTorrentsResponseSchema,
 	BlacklistTorrentsSchema,
 	ListBlacklistedTorrentsResponseSchema,
+	ListBlacklistedTrackersResponseSchema,
 	RemoveBlacklistedTorrentsResponseSchema,
 	RemoveBlacklistedTorrentsSchema,
-} from "@/schemas/blacklist-torrents.schema";
-import {
-	AddBlacklistedTrackerResponseSchema,
-	AddBlacklistedTrackerSchema,
-	ListBlacklistedTrackersResponseSchema,
 	RemoveBlacklistedTrackerResponseSchema,
 	RemoveBlacklistedTrackerSchema,
-} from "@/schemas/blacklist-trackers.schema";
+} from "@/api/features/blacklist/schemas";
 
 export const blacklistTorrentContracts = {
 	add: publicProcedure

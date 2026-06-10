@@ -14,7 +14,7 @@ import {
 	UpdateScrapersSchema,
 	UpdateSetupProgressResponseSchema,
 	UpdateSetupProgressSchema,
-} from "@/schemas/setup.schema";
+} from "@/api/features/setup/schemas";
 
 export const getStatusContract = publicProcedure
 	.route({

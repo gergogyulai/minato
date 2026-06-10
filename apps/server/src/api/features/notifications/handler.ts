@@ -13,7 +13,7 @@ import {
 	notificationsListContract,
 	notificationsTestContract,
 	notificationsUpdateContract,
-} from "@/api/contracts/notifications.contracts";
+} from "@/api/features/notifications/contracts";
 
 function ownedChannel(id: string, userId: string) {
 	return db

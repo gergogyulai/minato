@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { XMLParser } from "fast-xml-parser";
 import { processTorrents } from "@/lib/ingest/process-torrents";
-import type { IngestInput } from "@/schemas/ingest-torrents.schema";
+import type { IngestInput } from "@/api/features/torrents/schemas";
 
 const REAL_PROWLARR_URL = process.env.PROWLARR_URL || "http://localhost:9696/";
 

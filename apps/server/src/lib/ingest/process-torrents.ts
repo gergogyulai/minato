@@ -6,7 +6,7 @@ import {
 	torrents,
 } from "@project-minato/db";
 import { ingestQueue } from "@project-minato/queue";
-import type { IngestInput } from "@/schemas/ingest-torrents.schema";
+import type { IngestInput } from "@/api/features/torrents/schemas";
 
 export async function processTorrents(
 	inputs: IngestInput[],
