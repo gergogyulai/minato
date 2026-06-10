@@ -17,11 +17,6 @@ export const BlacklistTorrentsResponseSchema = z.object({
 	message: z.string(),
 });
 
-export type BlacklistTorrentsInput = z.infer<typeof BlacklistTorrentsSchema>;
-export type BlacklistTorrentsResponse = z.infer<
-	typeof BlacklistTorrentsResponseSchema
->;
-
 export const RemoveBlacklistedTorrentsSchema = z.object({
 	infoHashes: z
 		.array(z.string().length(40))
@@ -38,6 +33,42 @@ export const ListBlacklistedTorrentsResponseSchema = z.object({
 	torrents: z.array(
 		z.object({
 			infoHash: z.string().length(40),
+			reason: z.string(),
+			createdAt: z.date(),
+		}),
+	),
+});
+
+export const AddBlacklistedTrackerSchema = z.object({
+	urls: z
+		.array(z.string())
+		.min(1)
+		.describe("Array of tracker URLs or patterns to blacklist"),
+	reason: z.string().min(1).describe("Reason for blacklisting these trackers"),
+});
+
+export const AddBlacklistedTrackerResponseSchema = z.object({
+	success: z.boolean(),
+	message: z.string(),
+});
+
+export const RemoveBlacklistedTrackerSchema = z.object({
+	ids: z
+		.array(z.string().uuid())
+		.min(1)
+		.describe("Array of blacklist entry IDs to remove"),
+});
+
+export const RemoveBlacklistedTrackerResponseSchema = z.object({
+	success: z.boolean(),
+	message: z.string(),
+});
+
+export const ListBlacklistedTrackersResponseSchema = z.object({
+	trackers: z.array(
+		z.object({
+			id: z.string().uuid(),
+			urls: z.array(z.string()),
 			reason: z.string(),
 			createdAt: z.date(),
 		}),

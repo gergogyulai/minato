@@ -14,7 +14,7 @@ import {
 	getCountContract,
 	ingestContract,
 	updateContract,
-} from "@/api/contracts/torrent.contracts";
+} from "@/api/features/torrents/contracts";
 import { processTorrents } from "@/lib/ingest/process-torrents";
 
 export const torrentRouter = {

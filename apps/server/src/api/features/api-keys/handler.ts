@@ -5,7 +5,7 @@ import {
 	apiKeyCreateContract,
 	apiKeyDeleteContract,
 	apiKeyListContract,
-} from "@/api/contracts/api-keys.contracts";
+} from "@/api/features/api-keys/contracts";
 
 export const apiKeysRouter = {
 	create: apiKeyCreateContract.handler(async ({ input, context }) => {

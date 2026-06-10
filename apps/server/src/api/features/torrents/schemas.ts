@@ -59,3 +59,53 @@ export type IngestTorrentsResponse = z.infer<
 	typeof IngestTorrentsResponseSchema
 >;
 export type IngestInput = z.infer<typeof IngestTorrentsSchema>;
+
+export const UpdateTorrentSchema = z.object({
+	infoHash: z
+		.string()
+		.length(40)
+		.describe("The 40-character info hash of the torrent"),
+	trackerTitle: z.string().optional().describe("Title from the tracker"),
+	seeders: z.number().int().min(0).optional().describe("Number of seeders"),
+	leechers: z.number().int().min(0).optional().describe("Number of leechers"),
+	trackerCategory: z.string().optional().describe("Category from the tracker"),
+	standardCategory: z
+		.number()
+		.int()
+		.optional()
+		.describe("Standardized category ID"),
+	files: z
+		.array(
+			z.object({
+				filename: z.string(),
+				size: z.number().int(),
+			}),
+		)
+		.optional()
+		.describe("Array of file information"),
+	magnet: z.string().optional().describe("Magnet link"),
+	type: z
+		.string()
+		.optional()
+		.describe("Content type override (movie, tv, anime, etc.)"),
+});
+
+export const UpdateTorrentResponseSchema = z.object({
+	success: z.boolean(),
+	updatedFields: z.array(z.string()),
+	message: z.string(),
+});
+
+export const DeleteTorrentsSchema = z.object({
+	infoHashes: z
+		.array(z.string().length(40))
+		.min(1)
+		.describe("Array of 40-character info hashes to delete"),
+});
+
+export const DeleteTorrentsResponseSchema = z.object({
+	success: z.boolean(),
+	count: z.number(),
+	message: z.string(),
+	deletedHashes: z.array(z.string()),
+});

@@ -32,7 +32,7 @@ import {
 	scraperUpdateConfigContract,
 	scraperUpdateContract,
 	scraperUpdateScheduleContract,
-} from "@/api/contracts/scraper.contracts";
+} from "@/api/features/scraper/contracts";
 
 const ALLOWED_GIT_HOSTS = new Set([
 	"github.com",
