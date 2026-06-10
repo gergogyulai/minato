@@ -1,7 +1,5 @@
 import { ORPCError } from "@orpc/server";
 import {
-	blacklistedTorrents,
-	blacklistedTrackers,
 	db,
 	eq,
 	inArray,
@@ -9,7 +7,6 @@ import {
 	torrents,
 } from "@project-minato/db";
 import { meiliClient } from "@project-minato/meilisearch";
-import { ingestQueue } from "@project-minato/queue";
 import { requireAdmin, requireScraperKey } from "@/api";
 import {
 	deleteContract,
@@ -18,7 +15,7 @@ import {
 	ingestContract,
 	updateContract,
 } from "@/api/contracts/torrent.contracts";
-import type { IngestInput } from "@/schemas/ingest-torrents.schema";
+import { processTorrents } from "@/lib/ingest/process-torrents";
 
 export const torrentRouter = {
 	ingest: ingestContract
@@ -31,117 +28,8 @@ export const torrentRouter = {
 				JSON.stringify(input[0], null, 2),
 			);
 
-			const validatedData = input;
-
-			if (validatedData.length === 0) {
-				throw new ORPCError("BAD_REQUEST", {
-					message: "No torrents provided",
-				});
-			}
-
-			const uniqueInputs = Array.from(
-				validatedData
-					.reduce(
-						(map, item) => map.set(item.infoHash, item),
-						new Map<string, IngestInput>(),
-					)
-					.values(),
-			);
-
 			try {
-				const results = await db.transaction(async (tx) => {
-					// Fetch Blacklists (Cache these in Redis in production!)
-					const rawBlacklistedHashes = await tx
-						.select({ hash: blacklistedTorrents.infoHash })
-						.from(blacklistedTorrents);
-
-					const rawBlacklistedTrackers = await tx
-						.select({ url: blacklistedTrackers.url })
-						.from(blacklistedTrackers);
-
-					const blacklistedHashSet = new Set(
-						rawBlacklistedHashes.map((entry) => entry.hash),
-					);
-					const blacklistedTrackerUrls = rawBlacklistedTrackers.flatMap(
-						(tracker) => tracker.url,
-					);
-
-					const validTorrents = uniqueInputs.filter((torrent) => {
-						const isHashBlacklisted = blacklistedHashSet.has(torrent.infoHash);
-						if (isHashBlacklisted) return false;
-
-						const torrentSourceUrl = torrent.source.url;
-						if (!torrentSourceUrl) return true;
-
-						const containsBlacklistedTracker = blacklistedTrackerUrls.some(
-							(keyword) => keyword && torrentSourceUrl.includes(keyword),
-						);
-
-						return !containsBlacklistedTracker;
-					});
-
-					if (validTorrents.length === 0) return [];
-
-					const values = validTorrents.map((item) => ({
-						infoHash: item.infoHash,
-						trackerTitle: item.title,
-						trackerCategory: item.category,
-						size: Number(item.size),
-						seeders: item.seeders,
-						leechers: item.leechers,
-						magnet: item.magnet,
-						files: item.files,
-						isDirty: true,
-						sources: [
-							{
-								name: item.source.name,
-								url: item.source.url ?? null,
-								origin: item.source.origin ?? null,
-								originUrl: item.source.originUrl ?? null,
-								scraper: scraperId,
-							},
-						],
-					}));
-
-					return tx
-						.insert(torrents)
-						.values(values)
-						.onConflictDoUpdate({
-							target: torrents.infoHash,
-							set: {
-								seeders: sql`excluded.seeders`,
-								leechers: sql`excluded.leechers`,
-								isDirty: true,
-								lastSeenAt: sql`now()`,
-								sources: sql`
-                  (SELECT jsonb_agg(DISTINCT e) 
-                   FROM jsonb_array_elements(${torrents.sources} || excluded.sources) AS e)
-                `,
-							},
-						})
-						.returning({ infoHash: torrents.infoHash });
-				});
-
-				if (results.length === 0) {
-					return {
-						count: 0,
-						message: "No new torrents added (all blacklisted or empty)",
-					};
-				}
-
-				// Instead of awaiting each, use Promise.all for speed
-				await Promise.all(
-					results.map((t) =>
-						ingestQueue.add("index", {
-							infoHash: t.infoHash,
-						}),
-					),
-				);
-
-				return {
-					count: results.length,
-					message: `Successfully ingested and queued ${results.length} torrents`,
-				};
+				return await processTorrents(input, scraperId);
 			} catch (error) {
 				console.error("Ingestion Error:", error);
 				throw new ORPCError("INTERNAL_SERVER_ERROR", {
