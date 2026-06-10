@@ -78,6 +78,17 @@ export function HeroSection() {
               style={{ "--enter-delay": "0.24s" } as React.CSSProperties}
             >
               <InstallTerminal />
+              <p className="mt-3 text-xs text-web-muted/60">
+                Environment variables must be configured before running —
+                see the{" "}
+                <Link
+                  href="/docs/deployment"
+                  className="underline underline-offset-2 transition-colors hover:text-web-fg"
+                >
+                  docs
+                </Link>
+                .
+              </p>
             </div>
           </div>
         </div>

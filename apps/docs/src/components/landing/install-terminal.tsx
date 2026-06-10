@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 
 const COMMANDS = [
-	"curl -O https://minato.run",
+	"curl -O https://get.minato.run",
 	"docker compose up -d",
 ];
 
