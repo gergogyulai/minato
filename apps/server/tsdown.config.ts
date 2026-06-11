@@ -7,8 +7,7 @@ export default defineConfig({
 	clean: true,
 	treeshake: true,
 	minify: true,
-	noExternal: [/.*/],
-	// better-auth uses dynamic require() for its plugin system at runtime —
-	// use regex to cover all subpaths (better-auth/plugins, better-auth/client, etc.)
-	external: [/^better-auth/, /^@better-auth\//],
+	// Bundle workspace packages (our own code), leave npm dependencies external
+	// so they can be simply installed in the Docker image with bun install.
+	noExternal: [/^@project-minato\//],
 });

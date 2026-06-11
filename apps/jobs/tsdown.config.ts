@@ -7,8 +7,9 @@ export default defineConfig({
 	clean: true,
 	treeshake: true,
 	minify: true,
-	// Bundle everything except native addons and packages with dynamic require()
-	// that bundlers cannot statically inline. These must be installed in the final image.
-	noExternal: [/.*/],
-	external: ["sharp"],
+	// Bundle workspace packages (our own code), leave npm dependencies external
+	// so they can be simply installed in the Docker image with bun install.
+	// skit and utils are excluded because they are dynamically resolved at runtime
+	// (import.meta.resolve + child bun run) by the scraper supervisor.
+	noExternal: [/^@project-minato\/(?!skit\b|utils\b)/],
 });

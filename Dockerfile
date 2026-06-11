@@ -43,42 +43,42 @@ WORKDIR /app
 # supervisor, nginx, curl (for healthcheck)
 RUN apk add --no-cache supervisor nginx curl
 
+## Copy workspace manifests — bun install --production resolves the full dependency
+## graph across all workspace members and installs everything in one command.
+COPY --from=builder /app/package.json /app/bun.lock ./
+COPY --from=builder /app/patches ./patches/
+COPY --from=builder /app/apps/jobs/package.json ./apps/jobs/
+COPY --from=builder /app/apps/server/package.json ./apps/server/
+COPY --from=builder /app/packages/auth/package.json ./packages/auth/
+COPY --from=builder /app/packages/config/package.json ./packages/config/
+COPY --from=builder /app/packages/db/package.json ./packages/db/
+COPY --from=builder /app/packages/env/package.json ./packages/env/
+COPY --from=builder /app/packages/meilisearch/package.json ./packages/meilisearch/
+COPY --from=builder /app/packages/queue/package.json ./packages/queue/
+COPY --from=builder /app/packages/skit/package.json ./packages/skit/
+COPY --from=builder /app/packages/utils/package.json ./packages/utils/
+
+## Install ALL production dependencies in one simple step.
+## Patches (e.g. release-parser) are resolved from the lockfile.
+RUN bun install --production
+
 ## copy frontend static assets — served by nginx
 COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
 
-## copy server bundle
+## copy server and jobs bundles (includes migrations next to each bundle)
 COPY --from=builder /app/apps/server/dist ./apps/server/dist
-
-## copy jobs bundle
 COPY --from=builder /app/apps/jobs/dist ./apps/jobs/dist
 
-## copy first-party scrapers (source + pre-installed node_modules baked in builder)
+## copy first-party scrapers (source + pre-installed node_modules from builder)
 COPY --from=builder /app/apps/scraper ./apps/scraper
 
-## Install external packages fresh:
-##   - better-auth + @better-auth/* adapters: left external due to dynamic require()
-##   - drizzle-orm: required at runtime by @better-auth/drizzle-adapter (dynamic require)
-##   - sharp: native addon, needs Alpine/musl prebuilt (not the glibc one from builder)
-##   - pino + pino-pretty: runtime deps of @project-minato/utils (used by skit runner)
-COPY apps/jobs/package.json /tmp/jobs-pkg.json
-RUN bun -e "const {readFileSync,writeFileSync}=require('fs'); \
-  const jobs=JSON.parse(readFileSync('/tmp/jobs-pkg.json','utf8')); \
-  writeFileSync('package.json',JSON.stringify({dependencies:{ \
-    sharp:jobs.dependencies.sharp, \
-    'better-auth':'^1.5.3', \
-    '@better-auth/api-key':'^1.5.3', \
-    '@better-auth/passkey':'^1.5.3', \
-    '@better-auth/drizzle-adapter':'^1.5.3', \
-    'drizzle-orm':'^0.45.1', \
-    'pino':'^9.6.0', \
-    'pino-pretty':'^13.0.0' \
-  }}));" \
-  && bun install --production \
-  && rm package.json
-
-## Copy workspace packages the supervisor resolves at runtime via import.meta.resolve()
+## Copy workspace source for packages that are resolved at runtime by the
+## scraper supervisor (import.meta.resolve + child bun run).
 COPY --from=builder /app/packages/skit ./packages/skit
 COPY --from=builder /app/packages/utils ./packages/utils
+
+## Bun already created symlinks for skit/utils above, but we overwrite with
+## source-inclusive copies. Recreate symlinks to point to the full source dirs.
 RUN mkdir -p node_modules/@project-minato \
   && ln -sf ../../packages/skit node_modules/@project-minato/skit \
   && ln -sf ../../packages/utils node_modules/@project-minato/utils
@@ -98,7 +98,7 @@ VOLUME /config
 
 EXPOSE 7271
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period5s --retries=3 \
   CMD curl -f http://localhost:7271/api/v1/health || exit 1
 
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
