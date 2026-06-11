@@ -1,4 +1,5 @@
-import { MessageBuilder } from "discord-webhook-node";
+import { Embed } from "diswhook";
+import type { ExecuteWebhookData } from "diswhook";
 import type { NotificationEvent } from "@project-minato/queue";
 
 export type PlainMessage = { title: string; body: string };
@@ -59,10 +60,10 @@ function toStateColor(toState: unknown): number {
 export function buildDiscordMessage(
 	event: NotificationEvent,
 	payload: Record<string, unknown>,
-): MessageBuilder {
+): ExecuteWebhookData {
 	switch (event) {
 		case "wanted_torrent_found": {
-			const msg = new MessageBuilder()
+			const embed = new Embed()
 				.setColor(0x10b981)
 				.setAuthor("🎯  Wanted match — Minato")
 				.setTitle(String(payload.title ?? payload.infoHash ?? "Unknown release"))
@@ -70,30 +71,35 @@ export function buildDiscordMessage(
 				.setFooter("Minato")
 				.setTimestamp();
 
-			if (payload.scraperName) msg.addField("📡  Source",     String(payload.scraperName),                        true);
-			if (payload.type)        msg.addField("🎞️  Type",       String(payload.type),                              true);
-			if (payload.resolution)  msg.addField("🖥️  Resolution", String(payload.resolution),                        true);
-			if (payload.size)        msg.addField("💾  Size",        String(payload.size),                              true);
-			if (payload.seeders != null) msg.addField("🌱  Seeders", Number(payload.seeders).toLocaleString(),          true);
-			if (payload.group)       msg.addField("👥  Group",       `\`${String(payload.group)}\``,                    true);
-			if (payload.posterUrl)   msg.setThumbnail(String(payload.posterUrl));
+			if (payload.scraperName) embed.addField("📡  Source",     String(payload.scraperName),                        true);
+			if (payload.type)        embed.addField("🎞️  Type",       String(payload.type),                              true);
+			if (payload.resolution)  embed.addField("🖥️  Resolution", String(payload.resolution),                        true);
+			if (payload.size)        embed.addField("💾  Size",        String(payload.size),                              true);
+			if (payload.seeders != null) embed.addField("🌱  Seeders", Number(payload.seeders).toLocaleString(),          true);
+			if (payload.group)       embed.addField("👥  Group",       `\`${String(payload.group)}\``,                    true);
+			if (payload.posterUrl)   embed.setThumbnail(String(payload.posterUrl));
 
-			return msg;
+			return { embeds: [embed.toJSON()] };
 		}
 
 		case "scraper_completed": {
-			return new MessageBuilder()
-				.setColor(0x22c55e)
-				.setAuthor("✅  Scraper — Minato")
-				.setTitle(String(payload.scraperName ?? payload.scraperId ?? "Scraper"))
-				.setDescription("Run finished without errors.")
-				.setFooter("Minato")
-				.setTimestamp();
+			return {
+				embeds: [
+					new Embed()
+						.setColor(0x22c55e)
+						.setAuthor("✅  Scraper — Minato")
+						.setTitle(String(payload.scraperName ?? payload.scraperId ?? "Scraper"))
+						.setDescription("Run finished without errors.")
+						.setFooter("Minato")
+						.setTimestamp()
+						.toJSON(),
+				],
+			};
 		}
 
 		case "scraper_failed": {
 			const restarts = Number(payload.restarts ?? 0);
-			const msg = new MessageBuilder()
+			const embed = new Embed()
 				.setColor(0xef4444)
 				.setAuthor("🚨  Scraper error — Minato")
 				.setTitle(String(payload.scraperName ?? payload.scraperId ?? "Scraper"))
@@ -106,19 +112,24 @@ export function buildDiscordMessage(
 				.addField("🔁  Restart #", String(restarts), true)
 				.setFooter("Minato")
 				.setTimestamp();
-			return msg;
+			return { embeds: [embed.toJSON()] };
 		}
 
 		case "scraper_state_changed": {
 			const from = String(payload.fromState ?? "?");
 			const to   = String(payload.toState   ?? "?");
-			return new MessageBuilder()
-				.setColor(toStateColor(payload.toState))
-				.setAuthor("🔄  Scraper status — Minato")
-				.setTitle(String(payload.scraperName ?? payload.scraperId ?? "Scraper"))
-				.setDescription(`${stateEmoji(from)}  **${from}**  →  ${stateEmoji(to)}  **${to}**`)
-				.setFooter("Minato")
-				.setTimestamp();
+			return {
+				embeds: [
+					new Embed()
+						.setColor(toStateColor(payload.toState))
+						.setAuthor("🔄  Scraper status — Minato")
+						.setTitle(String(payload.scraperName ?? payload.scraperId ?? "Scraper"))
+						.setDescription(`${stateEmoji(from)}  **${from}**  →  ${stateEmoji(to)}  **${to}**`)
+						.setFooter("Minato")
+						.setTimestamp()
+						.toJSON(),
+				],
+			};
 		}
 
 	}

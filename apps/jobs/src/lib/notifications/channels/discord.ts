@@ -1,9 +1,10 @@
-import { Webhook, type MessageBuilder } from "discord-webhook-node";
+import { Webhook } from "diswhook";
+import type { ExecuteWebhookData } from "diswhook";
 
 export async function sendDiscord(
 	config: { webhookUrl: string },
-	message: MessageBuilder,
+	message: ExecuteWebhookData,
 ): Promise<void> {
-	const webhook = new Webhook({ url: config.webhookUrl, throwErrors: true });
-	await webhook.send(message);
+	const webhook = new Webhook({ url: config.webhookUrl });
+	await webhook.execute(message);
 }
