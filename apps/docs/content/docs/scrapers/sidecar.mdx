@@ -36,7 +36,10 @@ services:
       - minato
 ```
 
-Get `MINATO_API_KEY` from **Settings → API Keys** in the dashboard.
+Get `MINATO_API_KEY` from **Settings → API Keys** in the dashboard. Create it
+with type **Sidecar scraper** and pick a scraper id — the key is bound to that
+identity, and your sidecar shows up in the dashboard under it. One key per
+sidecar; to rotate, remove the scraper and create a new key.
 
 ---
 
@@ -105,7 +108,8 @@ Four endpoints. Call them on startup, then hold the command stream open for the 
 
 ### 1. Register
 
-Call once on startup to announce yourself and receive your config.
+Call once on startup to announce yourself and receive your config. The first
+registration creates your scraper's dashboard entry.
 
 ```
 POST /api/v1/scraper/register
@@ -114,7 +118,9 @@ X-Minato-Key: <your key>
 {
   "version": "1.0.0",
   "pid": 12345,
-  "capabilities": ["ingest", "status", "commands"]
+  "name": "My DHT Crawler",
+  "capabilities": ["ingest", "status", "commands"],
+  "lifecycle": "daemon"
 }
 ```
 
@@ -127,7 +133,10 @@ The `config` object contains values the user has set in the dashboard, merged ov
 
 ### 2. Status
 
-Send whenever your progress changes. All fields optional. Fire-and-forget — don't retry on failure.
+Send whenever your progress changes, and at least every minute or so — the
+dashboard's Live/Offline indicator is driven by when Minato last heard from
+you (status posts and the open command stream both count). All fields
+optional. Fire-and-forget — don't retry on failure.
 
 ```
 POST /api/v1/scraper/status
@@ -144,10 +153,10 @@ Valid phases: `"idle"`, `"running"`, `"paused"`, `"error"`.
 
 ### 3. Commands (SSE stream)
 
-Open a persistent GET connection and keep reading. Minato pushes an event each time the user triggers a command from the dashboard.
+Open a persistent GET connection and keep reading. Minato pushes an event each time the user triggers a command from the dashboard. The key identifies your scraper — there's no id in the path.
 
 ```
-GET /api/v1/scraper/commands/<scraper-id>
+GET /api/v1/scraper/commands
 X-Minato-Key: <your key>
 Accept: text/event-stream
 ```
@@ -157,12 +166,22 @@ Events arrive in SSE format:
 ```
 id: 550e8400-e29b-41d4-a716-446655440000
 event: command
-data: {"id":"550e8400-e29b-41d4-a716-446655440000","command":"pause"}
+data: {"id":"550e8400-...","command":"pause","payload":null,"issuedAt":"2026-06-10T12:00:00Z"}
 ```
 
 Commands: `"pause"`, `"stop"`, `"resume"`.
 
-When the connection drops, reconnect after a few seconds and send `Last-Event-ID` set to the last event ID you received — Minato will replay any commands you missed while disconnected.
+Acknowledge each command after you've acted on it, so the dashboard shows it
+as completed:
+
+```
+POST /api/v1/scraper/commands/ack
+X-Minato-Key: <your key>
+
+{ "id": "550e8400-..." }
+```
+
+When the connection drops, reconnect after a few seconds and send `Last-Event-ID` set to the last event ID you received — Minato will replay any commands you missed while disconnected. Commands expire five minutes after they're issued; a command that was never delivered or acked by then is marked expired and won't be replayed.
 
 ### 4. Ingest
 
