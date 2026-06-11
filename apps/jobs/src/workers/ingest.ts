@@ -1,26 +1,36 @@
-import { db, eq, torrents } from "@project-minato/db";
+import {
+	db,
+	getTableColumns,
+	inArray,
+	sql,
+	torrents,
+} from "@project-minato/db";
 import {
 	formatTorrentForMeilisearch,
 	meiliClient,
 } from "@project-minato/meilisearch";
-import { aiRepairQueue, connection, enrichQueue, QUEUES } from "@project-minato/queue";
+import {
+	aiRepairQueue,
+	connection,
+	enrichQueue,
+	type IngestJobData,
+	QUEUES,
+} from "@project-minato/queue";
 import { Batcher } from "@project-minato/utils/batcher";
+import { logger } from "@project-minato/utils/logger";
 import { type Job, Worker } from "bullmq";
 import ReleaseParser from "release-parser";
 import { getReleaseConfidence } from "@/lib/repair/confidence";
-import { logger } from "@project-minato/utils/logger";
 
 const log = logger.child({ worker: "ingest" });
-
-interface IngestJobData {
-	infoHash: string;
-}
 
 const INGEST_BATCH_SIZE = 500;
 const INGEST_BATCH_TIMEOUT = 5000;
 
 export function startIngestWorker() {
-	const meiliBatcher = new Batcher<ReturnType<typeof formatTorrentForMeilisearch>>({
+	const meiliBatcher = new Batcher<
+		ReturnType<typeof formatTorrentForMeilisearch>
+	>({
 		maxSize: INGEST_BATCH_SIZE,
 		maxWaitMs: INGEST_BATCH_TIMEOUT,
 		onFlush: async (batch) => {
@@ -50,71 +60,105 @@ export function startIngestWorker() {
 	const worker = new Worker<IngestJobData>(
 		QUEUES.INGEST,
 		async (job: Job<IngestJobData>) => {
-			const { infoHash } = job.data;
-			log.debug({ jobId: job.id, infoHash }, "Processing job");
+			const { infoHashes } = job.data;
+			log.debug({ jobId: job.id, count: infoHashes.length }, "Processing job");
 
-			const [torrent] = await db
-				.select()
+			if (infoHashes.length === 0) return;
+
+			const rows = await db
+				.select({
+					infoHash: torrents.infoHash,
+					trackerTitle: torrents.trackerTitle,
+				})
 				.from(torrents)
-				.where(eq(torrents.infoHash, infoHash))
-				.limit(1);
+				.where(inArray(torrents.infoHash, infoHashes));
 
-			if (!torrent) {
-				log.warn({ infoHash }, "Torrent not found");
-				return;
+			if (rows.length < infoHashes.length) {
+				log.warn(
+					{ missing: infoHashes.length - rows.length },
+					"Some torrents not found",
+				);
 			}
 
-			let release;
-			try {
-				release = ReleaseParser(torrent.trackerTitle);
-			} catch (err) {
-				log.error({ err, infoHash }, "Release parsing failed");
-				return;
+			const parsed: {
+				infoHash: string;
+				release: ReturnType<typeof ReleaseParser>;
+			}[] = [];
+			for (const row of rows) {
+				try {
+					parsed.push({
+						infoHash: row.infoHash,
+						release: ReleaseParser(row.trackerTitle),
+					});
+				} catch (err) {
+					log.error({ err, infoHash: row.infoHash }, "Release parsing failed");
+				}
 			}
 
-			const [updatedTorrent] = await db
+			if (parsed.length === 0) return;
+
+			const valuesSql = sql.join(
+				parsed.map(
+					(p) =>
+						sql`(${p.infoHash}, ${JSON.stringify(p.release.data)}::jsonb, ${p.release.data.type ?? null}::text)`,
+				),
+				sql`, `,
+			);
+
+			const updated = await db
 				.update(torrents)
 				.set({
-					releaseData: release.data,
-					type: release.data.type ?? null,
+					releaseData: sql`v.release_data`,
+					type: sql`v.type`,
 					indexedAt: new Date(),
 					isDirty: false,
 				})
-				.where(eq(torrents.infoHash, infoHash))
-				.returning();
+				.from(sql`(values ${valuesSql}) as v(info_hash, release_data, type)`)
+				.where(sql`${torrents.infoHash} = v.info_hash`)
+				// explicit columns: with a raw SQL `from`, drizzle cannot infer the
+				// all-columns returning type and collapses it to `never`
+				.returning(getTableColumns(torrents));
 
-			if (!updatedTorrent) {
-				log.warn({ infoHash }, "Updated torrent not found");
-				return;
+			const releaseByHash = new Map(parsed.map((p) => [p.infoHash, p.release]));
+			const repairs: string[] = [];
+
+			for (const torrent of updated) {
+				meiliBatcher.add(formatTorrentForMeilisearch(torrent));
+
+				const release = releaseByHash.get(torrent.infoHash);
+				if (!release) continue;
+
+				if (getReleaseConfidence(release.data) === "low") {
+					repairs.push(torrent.infoHash);
+				} else if (
+					(torrent.releaseData?.type === "Movie" ||
+						torrent.releaseData?.type === "TV" ||
+						torrent.releaseData?.type === "Anime") &&
+					!torrent.enrichedAt
+				) {
+					enrichBatcher.add(torrent.infoHash);
+				}
 			}
 
-			await meiliBatcher.add(formatTorrentForMeilisearch(updatedTorrent));
+			if (repairs.length > 0) {
+				log.debug(
+					{ count: repairs.length },
+					"Low confidence — queuing for AI repair",
+				);
+				await aiRepairQueue.addBulk(
+					repairs.map((infoHash) => ({
+						name: "repair",
+						data: { infoHash },
+					})),
+				);
+			}
 
 			log.debug(
-				{
-					infoHash,
-					title:
-						updatedTorrent.releaseData?.title ?? updatedTorrent.trackerTitle,
-				},
-				"Document queued",
+				{ jobId: job.id, updated: updated.length, repairs: repairs.length },
+				"Batch processed",
 			);
-
-			const confidence = getReleaseConfidence(release.data);
-
-			if (confidence === "low") {
-				log.debug({ infoHash }, "Low confidence — queuing for AI repair");
-				await aiRepairQueue.add("repair", { infoHash });
-			} else if (
-				(updatedTorrent.releaseData?.type === "Movie" ||
-					updatedTorrent.releaseData?.type === "TV" ||
-					updatedTorrent.releaseData?.type === "Anime") &&
-				!updatedTorrent.enrichedAt
-			) {
-				log.debug({ infoHash }, "Queuing for enrichment");
-				await enrichBatcher.add(infoHash);
-			}
 		},
-		{ connection, concurrency: 128 },
+		{ connection, concurrency: 12 },
 	);
 
 	worker.on("completed", (job) => {

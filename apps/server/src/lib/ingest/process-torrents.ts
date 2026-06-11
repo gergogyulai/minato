@@ -5,8 +5,10 @@ import {
 	sql,
 	torrents,
 } from "@project-minato/db";
-import { ingestQueue } from "@project-minato/queue";
+import { INGEST_JOBS, ingestQueue } from "@project-minato/queue";
 import type { IngestInput } from "@/api/features/torrents/schemas";
+
+const INGEST_CHUNK_SIZE = 250;
 
 export async function processTorrents(
 	inputs: IngestInput[],
@@ -104,12 +106,16 @@ export async function processTorrents(
 		};
 	}
 
-	await Promise.all(
-		results.map((t) =>
-			ingestQueue.add("index", {
-				infoHash: t.infoHash,
-			}),
-		),
+	const chunks: string[][] = [];
+	for (let i = 0; i < results.length; i += INGEST_CHUNK_SIZE) {
+		chunks.push(results.slice(i, i + INGEST_CHUNK_SIZE).map((t) => t.infoHash));
+	}
+
+	await ingestQueue.addBulk(
+		chunks.map((infoHashes) => ({
+			name: INGEST_JOBS.INDEX,
+			data: { infoHashes },
+		})),
 	);
 
 	return {

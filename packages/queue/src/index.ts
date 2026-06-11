@@ -15,6 +15,14 @@ export const QUEUES = {
 	NOTIFICATIONS: "notifications_queue",
 } as const;
 
+export const INGEST_JOBS = {
+	INDEX: "index",
+} as const;
+
+export type IngestJobData = {
+	infoHashes: string[];
+};
+
 export const ENRICH_JOBS = {
 	ENRICH: "enrich",
 	REFRESH: "refresh",
@@ -49,7 +57,9 @@ export type NotificationDispatchJobData = {
 	userId?: string;
 };
 
-export const ingestQueue = new Queue(QUEUES.INGEST, { connection });
+export const ingestQueue = new Queue<IngestJobData>(QUEUES.INGEST, {
+	connection,
+});
 export const enrichQueue = new Queue(QUEUES.ENRICH, { connection });
 export const housekeeperQueue = new Queue(QUEUES.HOUSEKEEPER, { connection });
 export const aiRepairQueue = new Queue(QUEUES.AI_REPAIR, { connection });
