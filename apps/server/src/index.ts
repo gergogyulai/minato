@@ -27,8 +27,6 @@ import {
 	handleEnsureKey,
 } from "@/api/features/scraper/routes";
 import { startup } from "./startup";
-
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 const app = new Hono();
 
 app.use(logger());

@@ -24,6 +24,7 @@ proxy.all("/prowlarr/*", async (c) => {
 		const proxyResponse = await fetch(targetUrl, {
 			method: c.req.method,
 			headers: proxyHeaders,
+			tls: { rejectUnauthorized: false },
 			body:
 				["GET", "HEAD"].includes(c.req.method)
 					? undefined
