@@ -2,7 +2,7 @@ name: project-minato-dev
 
 services:
   meilisearch:
-    image: getmeili/meilisearch:v1.6
+    image: getmeili/meilisearch:v1.46.1
     container_name: project-minato-dev-meilisearch
     environment:
       - MEILI_HOST=0.0.0.0
