@@ -1,6 +1,10 @@
 {
 	"name": "@project-minato/web",
-	"portless": { "name": "minato", "script": "dev:app", "appPort": 3001 },
+	"portless": {
+		"name": "minato",
+		"script": "dev:app",
+		"appPort": 3001
+	},
 	"version": "0.0.0",
 	"private": true,
 	"type": "module",
@@ -46,6 +50,7 @@
 		"react": "19.2.3",
 		"react-day-picker": "^10.0.1",
 		"react-dom": "19.2.3",
+		"react-error-boundary": "^6.1.2",
 		"react-resizable-panels": "^4.11.2",
 		"recharts": "3.8.0",
 		"shadcn": "^4.10.0",

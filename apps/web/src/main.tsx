@@ -2,6 +2,11 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import ReactDOM from "react-dom/client";
 
+import {
+	AppErrorFallback,
+	ErrorBoundary,
+	RouteErrorBoundary,
+} from "./components/error-boundary";
 import Loader from "./components/loader";
 import { routeTree } from "./routeTree.gen";
 import { orpc, queryClient } from "./utils/orpc";
@@ -10,6 +15,7 @@ const router = createRouter({
 	routeTree,
 	defaultPreload: "intent",
 	defaultPendingComponent: () => <Loader />,
+	defaultErrorComponent: ({ error }) => <RouteErrorBoundary error={error} />,
 	context: { orpc, queryClient },
 	Wrap: function WrapComponent({ children }: { children: React.ReactNode }) {
 		return (
@@ -32,5 +38,9 @@ if (!rootElement) {
 
 if (!rootElement.innerHTML) {
 	const root = ReactDOM.createRoot(rootElement);
-	root.render(<RouterProvider router={router} />);
+	root.render(
+		<ErrorBoundary FallbackComponent={AppErrorFallback}>
+			<RouterProvider router={router} />
+		</ErrorBoundary>,
+	);
 }
