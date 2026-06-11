@@ -16,11 +16,12 @@ CREATE TABLE "account" (
 --> statement-breakpoint
 CREATE TABLE "apikey" (
 	"id" text PRIMARY KEY NOT NULL,
+	"config_id" text DEFAULT 'default' NOT NULL,
 	"name" text,
 	"start" text,
+	"reference_id" text NOT NULL,
 	"prefix" text,
 	"key" text NOT NULL,
-	"user_id" text NOT NULL,
 	"refill_interval" integer,
 	"refill_amount" integer,
 	"last_refill_at" timestamp,
@@ -89,6 +90,75 @@ CREATE TABLE "verification" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "notification_channels" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"user_id" text NOT NULL,
+	"name" text NOT NULL,
+	"type" text NOT NULL,
+	"config" jsonb NOT NULL,
+	"events" text[] DEFAULT '{}' NOT NULL,
+	"enabled" boolean DEFAULT true NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "scraper_commands" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"scraper_id" text NOT NULL,
+	"command" text NOT NULL,
+	"payload" jsonb,
+	"status" text DEFAULT 'pending' NOT NULL,
+	"issued_by" text,
+	"error" text,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"expires_at" timestamp NOT NULL,
+	"delivered_at" timestamp,
+	"finished_at" timestamp
+);
+--> statement-breakpoint
+CREATE TABLE "scraper_status" (
+	"scraper_id" text PRIMARY KEY NOT NULL,
+	"phase" text,
+	"progress_current" integer,
+	"progress_total" integer,
+	"message" text,
+	"reported_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "scrapers" (
+	"id" text PRIMARY KEY NOT NULL,
+	"name" text NOT NULL,
+	"api_key_id" text NOT NULL,
+	"source" jsonb NOT NULL,
+	"installed_version" text NOT NULL,
+	"manifest" jsonb NOT NULL,
+	"lifecycle" text,
+	"recommended_schedule" text,
+	"schedule" text,
+	"next_run_at" timestamp,
+	"config" jsonb DEFAULT '{}'::jsonb NOT NULL,
+	"enabled" boolean DEFAULT true NOT NULL,
+	"state" text DEFAULT 'installing' NOT NULL,
+	"pid" integer,
+	"last_error" text,
+	"installed_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	"last_seen_at" timestamp,
+	CONSTRAINT "scrapers_api_key_id_unique" UNIQUE("api_key_id")
+);
+--> statement-breakpoint
+CREATE TABLE "settings" (
+	"key" text PRIMARY KEY NOT NULL,
+	"value" jsonb NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "settings_meta" (
+	"id" integer PRIMARY KEY DEFAULT 1 NOT NULL,
+	"version" integer NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "blacklisted_torrents" (
 	"info_hash" text PRIMARY KEY NOT NULL,
 	"reason" text NOT NULL,
@@ -121,6 +191,10 @@ CREATE TABLE "enrichments" (
 	"tvdb_id" integer,
 	"anilist_id" integer,
 	"mal_id" integer,
+	"mb_id" varchar(40),
+	"discogs_id" integer,
+	"spotify_id" varchar(30),
+	"music_details" jsonb,
 	"provider" text,
 	"content_rating" varchar(10),
 	"series_details" jsonb,
@@ -148,40 +222,74 @@ CREATE TABLE "torrents" (
 	"published_at" timestamp,
 	"last_seen_at" timestamp DEFAULT now() NOT NULL,
 	"indexed_at" timestamp,
-	"enriched_at" timestamp
+	"enriched_at" timestamp,
+	"repaired_at" timestamp
 );
 --> statement-breakpoint
-CREATE TABLE "settings" (
-	"key" text PRIMARY KEY NOT NULL,
-	"value" jsonb NOT NULL,
+CREATE TABLE "wanted_items" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"user_id" text NOT NULL,
+	"name" text NOT NULL,
+	"enabled" boolean DEFAULT true NOT NULL,
+	"one_shot" boolean DEFAULT false NOT NULL,
+	"media_type" text,
+	"tmdb_id" integer,
+	"title" text,
+	"year" integer,
+	"season" integer,
+	"episode" integer,
+	"season_pack" boolean,
+	"resolution" text,
+	"group" text,
+	"required_flags" text[] DEFAULT '{}',
+	"excluded_flags" text[] DEFAULT '{}',
+	"last_match_at" timestamp,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "settings_meta" (
-	"id" integer PRIMARY KEY DEFAULT 1 NOT NULL,
-	"version" integer NOT NULL
+CREATE TABLE "wanted_matches" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"wanted_item_id" uuid NOT NULL,
+	"torrent_info_hash" text NOT NULL,
+	"matched_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "wanted_matches_unique" UNIQUE("wanted_item_id","torrent_info_hash")
 );
 --> statement-breakpoint
 ALTER TABLE "account" ADD CONSTRAINT "account_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "apikey" ADD CONSTRAINT "apikey_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "passkey" ADD CONSTRAINT "passkey_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "session" ADD CONSTRAINT "session_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "notification_channels" ADD CONSTRAINT "notification_channels_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "scraper_commands" ADD CONSTRAINT "scraper_commands_scraper_id_scrapers_id_fk" FOREIGN KEY ("scraper_id") REFERENCES "public"."scrapers"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "scraper_status" ADD CONSTRAINT "scraper_status_scraper_id_scrapers_id_fk" FOREIGN KEY ("scraper_id") REFERENCES "public"."scrapers"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "enrichments" ADD CONSTRAINT "enrichments_torrent_info_hash_torrents_info_hash_fk" FOREIGN KEY ("torrent_info_hash") REFERENCES "public"."torrents"("info_hash") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "wanted_items" ADD CONSTRAINT "wanted_items_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "wanted_matches" ADD CONSTRAINT "wanted_matches_wanted_item_id_wanted_items_id_fk" FOREIGN KEY ("wanted_item_id") REFERENCES "public"."wanted_items"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "wanted_matches" ADD CONSTRAINT "wanted_matches_torrent_info_hash_torrents_info_hash_fk" FOREIGN KEY ("torrent_info_hash") REFERENCES "public"."torrents"("info_hash") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "account_userId_idx" ON "account" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "apikey_configId_idx" ON "apikey" USING btree ("config_id");--> statement-breakpoint
+CREATE INDEX "apikey_referenceId_idx" ON "apikey" USING btree ("reference_id");--> statement-breakpoint
 CREATE INDEX "apikey_key_idx" ON "apikey" USING btree ("key");--> statement-breakpoint
-CREATE INDEX "apikey_userId_idx" ON "apikey" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "passkey_userId_idx" ON "passkey" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "passkey_credentialID_idx" ON "passkey" USING btree ("credential_id");--> statement-breakpoint
 CREATE INDEX "session_userId_idx" ON "session" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "verification_identifier_idx" ON "verification" USING btree ("identifier");--> statement-breakpoint
+CREATE INDEX "notification_channels_user_id_idx" ON "notification_channels" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "scraper_commands_scraper_status_idx" ON "scraper_commands" USING btree ("scraper_id","status");--> statement-breakpoint
+CREATE INDEX "scraper_commands_status_expires_idx" ON "scraper_commands" USING btree ("status","expires_at");--> statement-breakpoint
 CREATE INDEX "tmdb_id_idx" ON "enrichments" USING btree ("tmdb_id");--> statement-breakpoint
 CREATE INDEX "imdb_id_idx" ON "enrichments" USING btree ("imdb_id");--> statement-breakpoint
 CREATE INDEX "tvdb_id_idx" ON "enrichments" USING btree ("tvdb_id");--> statement-breakpoint
 CREATE INDEX "anilist_id_idx" ON "enrichments" USING btree ("anilist_id");--> statement-breakpoint
 CREATE INDEX "mal_id_idx" ON "enrichments" USING btree ("mal_id");--> statement-breakpoint
+CREATE INDEX "mb_id_idx" ON "enrichments" USING btree ("mb_id");--> statement-breakpoint
+CREATE INDEX "discogs_id_idx" ON "enrichments" USING btree ("discogs_id");--> statement-breakpoint
+CREATE INDEX "spotify_id_idx" ON "enrichments" USING btree ("spotify_id");--> statement-breakpoint
 CREATE INDEX "info_hash_idx" ON "enrichments" USING btree ("torrent_info_hash");--> statement-breakpoint
 CREATE INDEX "is_dirty_partial_idx" ON "torrents" USING btree ("is_dirty") WHERE is_dirty IS TRUE;--> statement-breakpoint
 CREATE INDEX "sources_gin_idx" ON "torrents" USING gin ("sources");--> statement-breakpoint
 CREATE INDEX "created_at_idx" ON "torrents" USING btree ("created_at");--> statement-breakpoint
-CREATE INDEX "type_idx" ON "torrents" USING btree ("type");
+CREATE INDEX "type_idx" ON "torrents" USING btree ("type");--> statement-breakpoint
+CREATE INDEX "wanted_items_user_id_idx" ON "wanted_items" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "wanted_matches_item_id_idx" ON "wanted_matches" USING btree ("wanted_item_id");--> statement-breakpoint
+CREATE INDEX "wanted_matches_torrent_idx" ON "wanted_matches" USING btree ("torrent_info_hash");

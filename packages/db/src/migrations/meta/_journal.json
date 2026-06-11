@@ -5,85 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1773053255192,
-      "tag": "0000_previous_shockwave",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1779909804850,
-      "tag": "0001_sad_obadiah_stane",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1779986968988,
-      "tag": "0002_lame_scream",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1780090389060,
-      "tag": "0003_abnormal_supernaut",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1780091498140,
-      "tag": "0004_left_franklin_richards",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1780247928904,
-      "tag": "0005_stiff_mordo",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1780488155344,
-      "tag": "0006_clammy_deathbird",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "7",
-      "when": 1780633523410,
-      "tag": "0007_simple_ego",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "7",
-      "when": 1780695983685,
-      "tag": "0008_chubby_giant_girl",
-      "breakpoints": true
-    },
-    {
-      "idx": 9,
-      "version": "7",
-      "when": 1780861062594,
-      "tag": "0009_flimsy_chat",
-      "breakpoints": true
-    },
-    {
-      "idx": 10,
-      "version": "7",
-      "when": 1780863019206,
-      "tag": "0010_dry_xavin",
-      "breakpoints": true
-    },
-    {
-      "idx": 11,
-      "version": "7",
-      "when": 1781047771402,
-      "tag": "0011_brave_proteus",
+      "when": 1781189945595,
+      "tag": "0000_lovely_captain_universe",
       "breakpoints": true
     }
   ]

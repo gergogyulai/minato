@@ -1,1 +1,0 @@
-ALTER TABLE "wanted_items" ADD COLUMN "group" text;

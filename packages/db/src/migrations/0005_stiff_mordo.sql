@@ -1,1 +1,0 @@
-ALTER TABLE "scrapers" ADD COLUMN "next_run_at" timestamp;
