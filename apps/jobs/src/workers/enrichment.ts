@@ -9,6 +9,7 @@ import { Batcher } from "@project-minato/utils/batcher";
 import { logger } from "@project-minato/utils/logger";
 import { type Job, Worker } from "bullmq";
 import { downloadAssets } from "@/lib/metadata/assets";
+import { MetadataCache } from "@/lib/metadata/cache";
 import { type MapperContext, mapMetadata } from "@/lib/metadata/mappers/index";
 import { AniListProvider } from "@/lib/metadata/providers/anilist";
 import { TMDBProvider } from "@/lib/metadata/providers/tmdb";
@@ -21,13 +22,16 @@ import { withTimeout } from "@/utils/with-timeout";
 
 const log = logger.child({ worker: "enrichment" });
 
-const resolver = new MetadataResolver([
-	{
-		provider: new TMDBProvider({ apiKey: env.TMDB_READ_ACCESS_TOKEN }),
-		priority: 1,
-	},
-	{ provider: new AniListProvider(), priority: 2 },
-]);
+const resolver = new MetadataResolver(
+	[
+		{
+			provider: new TMDBProvider({ apiKey: env.TMDB_READ_ACCESS_TOKEN }),
+			priority: 1,
+		},
+		{ provider: new AniListProvider(), priority: 2 },
+	],
+	new MetadataCache(connection),
+);
 
 const ENRICH_BATCH_SIZE = 50;
 const ENRICH_BATCH_TIMEOUT = 30_000;
@@ -132,6 +136,7 @@ async function processEnrichJob(
 		year ?? null,
 		type,
 		preferredProvider,
+		isRefresh,
 	);
 
 	if (!result) {

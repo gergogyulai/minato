@@ -1,4 +1,5 @@
 import type { MetadataProvider } from "@/lib/metadata/provider";
+import type { MetadataCache } from "@/lib/metadata/cache";
 import type { EnrichmentMetadata, MediaType } from "@/lib/metadata/types";
 import { logger } from "@project-minato/utils/logger";
 
@@ -16,12 +17,38 @@ export interface MetadataResult {
 
 export class MetadataResolver {
 	private providers: ProviderEntry[];
+	private cache?: MetadataCache;
 
-	constructor(providers: ProviderEntry[]) {
+	constructor(providers: ProviderEntry[], cache?: MetadataCache) {
 		this.providers = [...providers].sort((a, b) => a.priority - b.priority);
+		this.cache = cache;
 	}
 
 	async find(
+		title: string,
+		year: number | null,
+		type: MediaType,
+		preferredProviderName?: string | null,
+		forceRefresh = false,
+	): Promise<MetadataResult | null> {
+		if (!forceRefresh && this.cache) {
+			const cached = await this.cache.get(title, type, year);
+			if (cached) {
+				log.debug({ title, type, year }, "Cache hit");
+				return cached;
+			}
+		}
+
+		const result = await this.findFromProviders(title, year, type, preferredProviderName);
+
+		if (result && this.cache) {
+			await this.cache.set(title, type, year, result);
+		}
+
+		return result;
+	}
+
+	private async findFromProviders(
 		title: string,
 		year: number | null,
 		type: MediaType,
