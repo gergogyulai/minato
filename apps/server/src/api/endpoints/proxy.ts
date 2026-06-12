@@ -1,9 +1,8 @@
 import { Hono } from "hono";
 import { XMLParser } from "fast-xml-parser";
+import { env } from "@project-minato/env/server";
 import { processTorrents } from "@/lib/ingest/process-torrents";
 import type { IngestInput } from "@/api/features/torrents/schemas";
-
-const REAL_PROWLARR_URL = process.env.PROWLARR_URL || "http://localhost:9696/";
 
 const xmlParser = new XMLParser({
 	ignoreAttributes: false,
@@ -13,13 +12,23 @@ const xmlParser = new XMLParser({
 export const proxy = new Hono();
 
 proxy.all("/prowlarr/*", async (c) => {
+	const prowlarrUrl = env.PROWLARR_URL ?? "http://localhost:9696/";
+	const prowlarrApiKey = env.PROWLARR_API_KEY;
+
+	if (prowlarrApiKey) {
+		const requestApiKey = c.req.query("apikey");
+		if (requestApiKey !== prowlarrApiKey) {
+			return c.text("Unauthorized", 401);
+		}
+	}
+
 	try {
 		const url = new URL(c.req.url);
 		const targetPath = url.pathname.replace(/^\/api\/v1\/proxy\/prowlarr/, "");
-		const targetUrl = `${REAL_PROWLARR_URL}${targetPath}${url.search}`;
+		const targetUrl = `${prowlarrUrl}${targetPath}${url.search}`;
 
 		const proxyHeaders = new Headers(c.req.header());
-		proxyHeaders.set("host", new URL(REAL_PROWLARR_URL).host);
+		proxyHeaders.set("host", new URL(prowlarrUrl).host);
 
 		const proxyResponse = await fetch(targetUrl, {
 			method: c.req.method,
