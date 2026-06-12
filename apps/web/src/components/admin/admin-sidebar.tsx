@@ -11,7 +11,6 @@ import {
 	Menu,
 	Settings,
 	ShieldCheck,
-	SlidersHorizontal,
 	Users,
 } from "lucide-react";
 import { useState } from "react";
@@ -43,17 +42,12 @@ const NAV: NavItem[] = [
 
 function Wordmark() {
 	return (
-		<Link to="/dashboard" className="flex items-center gap-2.5">
-			<span className="flex size-7 items-center justify-center rounded-md bg-primary/15 ring-1 ring-primary/30 ring-inset">
-				<SlidersHorizontal className="size-3.5 text-primary" />
+		<Link to="/dashboard" className="flex items-baseline gap-2">
+			<span className="font-display font-bold text-lg text-foreground tracking-tight">
+				Minato
 			</span>
-			<span className="flex items-baseline gap-1.5">
-				<span className="font-semibold text-base text-foreground tracking-tight">
-					Minato
-				</span>
-				<span className="font-medium text-[10px] text-muted-foreground uppercase tracking-[0.18em]">
-					Admin
-				</span>
+			<span className="font-mono text-[10px] text-muted-foreground/60 uppercase tracking-[0.2em]">
+				admin
 			</span>
 		</Link>
 	);

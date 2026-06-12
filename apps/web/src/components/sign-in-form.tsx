@@ -72,7 +72,7 @@ export default function SignInForm() {
 						<div className="space-y-1.5">
 							<Label
 								htmlFor={field.name}
-								className="font-medium text-muted-foreground text-xs uppercase tracking-wider"
+								className="font-mono font-medium text-[10px] text-muted-foreground/60 uppercase tracking-widest"
 							>
 								Email
 							</Label>
@@ -102,7 +102,7 @@ export default function SignInForm() {
 						<div className="space-y-1.5">
 							<Label
 								htmlFor={field.name}
-								className="font-medium text-muted-foreground text-xs uppercase tracking-wider"
+								className="font-mono font-medium text-[10px] text-muted-foreground/60 uppercase tracking-widest"
 							>
 								Password
 							</Label>

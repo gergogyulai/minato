@@ -67,6 +67,7 @@ function UsersPage() {
 	return (
 		<div>
 			<PageHeader
+				eyebrow="dashboard // users"
 				title="Users"
 				description="Manage accounts that can sign in to Minato, their roles, and access."
 			/>
@@ -76,7 +77,7 @@ function UsersPage() {
 			)}
 
 			{users.data && (
-				<div className="overflow-hidden rounded-xl border border-border bg-card">
+				<div className="overflow-hidden rounded-xl border border-border/60 bg-card">
 					<Table>
 						<TableHeader>
 							<TableRow className="hover:bg-transparent">

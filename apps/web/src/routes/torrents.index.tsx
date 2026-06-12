@@ -786,11 +786,11 @@ function TorrentBrowseComponent() {
 					/>
 					<div className="minato-shell-container">
 						<div className="relative z-10 flex min-h-[calc(100dvh-var(--minato-header-height)-1rem)] items-start gap-3">
-							<aside className="sticky top-[calc(var(--minato-header-height)+0.875rem)] z-10 hidden h-[calc(100dvh-var(--minato-header-height)-1.125rem)] w-72 shrink-0 self-start flex-col overflow-y-auto rounded-[calc(var(--radius)+6px)] border border-border/50 bg-background/92 backdrop-blur-sm md:flex sm:top-[calc(var(--minato-header-height)+1rem)] sm:h-[calc(100dvh-var(--minato-header-height)-1.25rem)]">
+							<aside className="sticky top-[calc(var(--minato-header-height)+0.875rem)] z-10 hidden h-[calc(100dvh-var(--minato-header-height)-1.125rem)] w-72 shrink-0 self-start flex-col overflow-y-auto rounded-xl border border-border/50 bg-background/92 backdrop-blur-sm md:flex sm:top-[calc(var(--minato-header-height)+1rem)] sm:h-[calc(100dvh-var(--minato-header-height)-1.25rem)]">
 								<FiltersPanel {...filterProps} includeWordmark />
 							</aside>
 
-							<main className="relative z-10 flex min-h-[calc(100dvh-var(--minato-header-height)-1rem)] min-w-0 flex-1 flex-col overflow-hidden rounded-[calc(var(--radius)+6px)] border border-border/50 bg-background/92 backdrop-blur-sm">
+							<main className="relative z-10 flex min-h-[calc(100dvh-var(--minato-header-height)-1rem)] min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-border/50 bg-background/92 backdrop-blur-sm">
 								{activeChips.length > 0 && (
 									<div className="border-border/45 border-b bg-background/88 px-5 py-2 backdrop-blur-sm">
 										<div className="flex flex-wrap items-center gap-1.5">
@@ -801,7 +801,7 @@ function TorrentBrowseComponent() {
 													variant="ghost"
 													size="xs"
 													onClick={chip.onRemove}
-													className="h-6 rounded-none border border-border/45 px-2 font-mono text-[11px] text-muted-foreground/75 hover:border-border/60 hover:text-foreground"
+													className="h-6 rounded-md border border-border/45 px-2 font-mono text-[11px] text-muted-foreground/75 hover:border-border/60 hover:text-foreground"
 												>
 													<span className="max-w-40 truncate">{chip.label}</span>
 													<X className="size-2.5" />
@@ -812,7 +812,7 @@ function TorrentBrowseComponent() {
 												variant="ghost"
 												size="xs"
 												onClick={clearAllFilters}
-												className="h-6 rounded-none px-2 font-mono text-[11px] text-muted-foreground/65 hover:text-destructive"
+												className="h-6 rounded-md px-2 font-mono text-[11px] text-muted-foreground/65 hover:text-destructive"
 											>
 												clear all
 											</Button>
@@ -851,7 +851,7 @@ function TorrentBrowseComponent() {
 										type="button"
 										variant="ghost"
 										size="sm"
-										className="h-7 rounded-none border border-border/50 px-2 font-mono text-xs text-muted-foreground/60 hover:border-border/60 hover:text-foreground md:hidden"
+										className="h-7 rounded-md border border-border/50 px-2 font-mono text-xs text-muted-foreground/60 hover:border-border/60 hover:text-foreground md:hidden"
 									>
 										<PanelLeft className="size-3.5" />
 										filters
@@ -877,16 +877,16 @@ function TorrentBrowseComponent() {
 								>
 									<SelectTrigger
 										size="sm"
-										className="h-7 min-w-[138px] rounded-none border border-border/50 bg-background px-2 font-mono text-xs text-muted-foreground/65 shadow-none hover:border-border/60 focus-visible:ring-0"
+										className="h-7 min-w-[138px] rounded-md border border-border/50 bg-background px-2 font-mono text-xs text-muted-foreground/65 shadow-none hover:border-border/60 focus-visible:ring-0"
 									>
 										<SelectValue />
 									</SelectTrigger>
-									<SelectContent className="rounded-none font-mono">
+									<SelectContent className="rounded-md font-mono">
 										{SORT_OPTIONS.map((option) => (
 											<SelectItem
 												key={option.value}
 												value={option.value}
-												className="rounded-none font-mono text-xs"
+												className="rounded-md font-mono text-xs"
 											>
 												{option.label}
 											</SelectItem>
@@ -951,27 +951,27 @@ function TorrentBrowseComponent() {
 										>
 											<TableCell className="px-5 py-3">
 												<Skeleton
-													className="h-2.5 rounded-none bg-muted/35"
+													className="h-2.5 rounded-md bg-muted/35"
 													style={{ width: `${55 + ((i * 17) % 35)}%` }}
 												/>
 											</TableCell>
 											<TableCell className="px-4 py-3">
-												<Skeleton className="h-2.5 w-12 rounded-none bg-muted/25" />
+												<Skeleton className="h-2.5 w-12 rounded-md bg-muted/25" />
 											</TableCell>
 											<TableCell className="px-4 py-3">
-												<Skeleton className="h-2.5 w-10 rounded-none bg-muted/25" />
+												<Skeleton className="h-2.5 w-10 rounded-md bg-muted/25" />
 											</TableCell>
 											<TableCell className="px-4 py-3">
-												<Skeleton className="ml-auto h-2.5 w-14 rounded-none bg-muted/25" />
+												<Skeleton className="ml-auto h-2.5 w-14 rounded-md bg-muted/25" />
 											</TableCell>
 											<TableCell className="px-4 py-3">
-												<Skeleton className="ml-auto h-2.5 w-8 rounded-none bg-muted/25" />
+												<Skeleton className="ml-auto h-2.5 w-8 rounded-md bg-muted/25" />
 											</TableCell>
 											<TableCell className="hidden px-4 py-3 lg:table-cell">
-												<Skeleton className="ml-auto h-2.5 w-8 rounded-none bg-muted/20" />
+												<Skeleton className="ml-auto h-2.5 w-8 rounded-md bg-muted/20" />
 											</TableCell>
 											<TableCell className="hidden px-4 py-3 xl:table-cell">
-												<Skeleton className="ml-auto h-2.5 w-20 rounded-none bg-muted/20" />
+												<Skeleton className="ml-auto h-2.5 w-20 rounded-md bg-muted/20" />
 											</TableCell>
 										</TableRow>
 									))}
@@ -981,7 +981,7 @@ function TorrentBrowseComponent() {
 										<TableCell colSpan={7} className="px-5 py-12">
 											<Alert
 												variant="destructive"
-												className="rounded-none border-destructive/25 bg-transparent px-4 py-3"
+												className="rounded-md border-destructive/25 bg-transparent px-4 py-3"
 											>
 												<CircleAlert className="size-4" />
 												<AlertTitle className="font-mono text-xs">
@@ -995,7 +995,7 @@ function TorrentBrowseComponent() {
 															variant="ghost"
 															size="xs"
 															onClick={() => void results.refetch()}
-															className="h-6 rounded-none border border-destructive/25 px-2 font-mono text-[11px]"
+															className="h-6 rounded-md border border-destructive/25 px-2 font-mono text-[11px]"
 														>
 															retry
 														</Button>
@@ -1009,7 +1009,7 @@ function TorrentBrowseComponent() {
 								{results.isSuccess && !hasResults && (
 									<TableRow className="hover:bg-transparent">
 										<TableCell colSpan={7} className="px-5 py-16">
-											<Empty className="gap-2 rounded-none border border-border/45 bg-transparent p-8">
+											<Empty className="gap-2 rounded-md border border-border/45 bg-transparent p-8">
 												<EmptyHeader className="items-center gap-1">
 													<EmptyTitle className="font-mono text-muted-foreground/75 text-sm">
 														<span className="text-primary/60">0</span> results
@@ -1033,7 +1033,7 @@ function TorrentBrowseComponent() {
 														variant="ghost"
 														size="xs"
 														onClick={clearAllFilters}
-														className="h-7 rounded-none border border-border/45 px-3 font-mono text-[11px]"
+														className="h-7 rounded-md border border-border/45 px-3 font-mono text-[11px]"
 													>
 														clear filters
 													</Button>
@@ -1105,7 +1105,7 @@ function TorrentBrowseComponent() {
 												href="#prev"
 												text="prev"
 												className={cn(
-													"h-7 rounded-none border border-border/45 font-mono text-xs text-muted-foreground/75 hover:border-border/60 hover:text-foreground",
+													"h-7 rounded-md border border-border/45 font-mono text-xs text-muted-foreground/75 hover:border-border/60 hover:text-foreground",
 													currentPage === 0 && "pointer-events-none opacity-25",
 												)}
 												onClick={(event) => {
@@ -1128,7 +1128,7 @@ function TorrentBrowseComponent() {
 												href="#next"
 												text="next"
 												className={cn(
-													"h-7 rounded-none border border-border/45 font-mono text-xs text-muted-foreground/75 hover:border-border/60 hover:text-foreground",
+													"h-7 rounded-md border border-border/45 font-mono text-xs text-muted-foreground/75 hover:border-border/60 hover:text-foreground",
 													currentPage >= totalPages - 1 &&
 														"pointer-events-none opacity-25",
 												)}
@@ -1153,7 +1153,7 @@ function TorrentBrowseComponent() {
 				className="w-[92vw] border-border/50 bg-background/95 p-0 sm:max-w-sm"
 			>
 				<SheetHeader className="border-border/50 border-b px-4 py-4">
-					<SheetTitle className="font-mono text-sm tracking-tight">
+					<SheetTitle className="font-display font-bold text-sm tracking-tight">
 						Minato
 					</SheetTitle>
 					<SheetDescription className="font-mono text-xs text-muted-foreground/65">
@@ -1174,7 +1174,7 @@ function TorrentBrowseComponent() {
 						size="sm"
 						onClick={clearAllFilters}
 						disabled={activeFilterCount === 0}
-						className="h-8 rounded-none border border-border/45 px-3 font-mono text-xs"
+						className="h-8 rounded-md border border-border/45 px-3 font-mono text-xs"
 					>
 						clear
 					</Button>
@@ -1183,7 +1183,7 @@ function TorrentBrowseComponent() {
 							type="button"
 							variant="ghost"
 							size="sm"
-							className="h-8 rounded-none border border-border/45 px-3 font-mono text-xs"
+							className="h-8 rounded-md border border-border/45 px-3 font-mono text-xs"
 						>
 							close
 						</Button>
@@ -1205,7 +1205,7 @@ function FiltersPanel({
 				<div className="flex items-center justify-between border-border/50 border-b px-5 py-4">
 					<Link
 						to="/"
-						className="font-black font-mono text-base text-foreground tracking-tighter transition-colors hover:text-primary"
+						className="font-display font-bold text-base text-foreground tracking-tight transition-colors hover:text-primary"
 					>
 						Minato
 					</Link>
@@ -1278,7 +1278,7 @@ function SearchBox({
 				onChange={(event) => setLocalQ(event.target.value)}
 				placeholder={placeholder}
 				className={cn(
-					"rounded-none border-border/50 bg-transparent transition-colors hover:border-border/60 focus-visible:border-primary/50 focus-visible:ring-0",
+					"rounded-md border-border/50 bg-transparent transition-colors hover:border-border/60 focus-visible:border-primary/50 focus-visible:ring-0",
 					compact
 						? "h-9 pl-7 font-mono text-xs placeholder:text-muted-foreground/65"
 						: "h-9 pr-7 pl-7 font-mono text-xs placeholder:text-muted-foreground/70",
@@ -1422,7 +1422,7 @@ function FilterSections({
 						value={localYearMin}
 						onChange={(event) => setLocalYearMin(event.target.value)}
 						placeholder="1900"
-						className="h-7 rounded-none border-border/50 bg-transparent font-mono text-xs transition-colors placeholder:text-muted-foreground/65 hover:border-border/60 focus-visible:border-primary/50 focus-visible:ring-0"
+						className="h-7 rounded-md border-border/50 bg-transparent font-mono text-xs transition-colors placeholder:text-muted-foreground/65 hover:border-border/60 focus-visible:border-primary/50 focus-visible:ring-0"
 					/>
 					<span className="shrink-0 font-mono text-muted-foreground/70 text-xs">
 						—
@@ -1432,7 +1432,7 @@ function FilterSections({
 						value={localYearMax}
 						onChange={(event) => setLocalYearMax(event.target.value)}
 						placeholder="2026"
-						className="h-7 rounded-none border-border/50 bg-transparent font-mono text-xs transition-colors placeholder:text-muted-foreground/65 hover:border-border/60 focus-visible:border-primary/50 focus-visible:ring-0"
+						className="h-7 rounded-md border-border/50 bg-transparent font-mono text-xs transition-colors placeholder:text-muted-foreground/65 hover:border-border/60 focus-visible:border-primary/50 focus-visible:ring-0"
 					/>
 				</div>
 			</FilterSection>
@@ -1444,7 +1444,7 @@ function FilterSections({
 						value={localSizeMinGb}
 						onChange={(event) => setLocalSizeMinGb(event.target.value)}
 						placeholder="0"
-						className="h-7 rounded-none border-border/50 bg-transparent font-mono text-xs transition-colors placeholder:text-muted-foreground/65 hover:border-border/60 focus-visible:border-primary/50 focus-visible:ring-0"
+						className="h-7 rounded-md border-border/50 bg-transparent font-mono text-xs transition-colors placeholder:text-muted-foreground/65 hover:border-border/60 focus-visible:border-primary/50 focus-visible:ring-0"
 					/>
 					<span className="shrink-0 font-mono text-muted-foreground/70 text-xs">
 						—
@@ -1454,7 +1454,7 @@ function FilterSections({
 						value={localSizeMaxGb}
 						onChange={(event) => setLocalSizeMaxGb(event.target.value)}
 						placeholder="∞"
-						className="h-7 rounded-none border-border/50 bg-transparent font-mono text-xs transition-colors placeholder:text-muted-foreground/65 hover:border-border/60 focus-visible:border-primary/50 focus-visible:ring-0"
+						className="h-7 rounded-md border-border/50 bg-transparent font-mono text-xs transition-colors placeholder:text-muted-foreground/65 hover:border-border/60 focus-visible:border-primary/50 focus-visible:ring-0"
 					/>
 				</div>
 			</FilterSection>
@@ -1466,7 +1466,7 @@ function FilterSections({
 					value={localSeeders}
 					onChange={(event) => setLocalSeeders(event.target.value)}
 					placeholder="0"
-					className="h-7 max-w-28 rounded-none border-border/50 bg-transparent font-mono text-xs transition-colors placeholder:text-muted-foreground/65 hover:border-border/60 focus-visible:border-primary/50 focus-visible:ring-0"
+					className="h-7 max-w-28 rounded-md border-border/50 bg-transparent font-mono text-xs transition-colors placeholder:text-muted-foreground/65 hover:border-border/60 focus-visible:border-primary/50 focus-visible:ring-0"
 				/>
 			</FilterSection>
 		</>
@@ -1565,7 +1565,7 @@ function FilterCheckbox({
 				id={id}
 				checked={checked}
 				onCheckedChange={onCheckedChange}
-				className="size-3 shrink-0 rounded-none border-border/50 data-[state=checked]:border-primary data-[state=checked]:bg-primary"
+				className="size-3 shrink-0 rounded-sm border-border/50 data-[state=checked]:border-primary data-[state=checked]:bg-primary"
 			/>
 			<span
 				className={cn(

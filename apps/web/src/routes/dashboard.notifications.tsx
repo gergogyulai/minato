@@ -172,6 +172,7 @@ function NotificationsPage() {
 	return (
 		<div>
 			<PageHeader
+				eyebrow="dashboard // notifications"
 				title="Notifications"
 				description="Configure Telegram, ntfy, or Discord channels to receive alerts for scraper events."
 				actions={

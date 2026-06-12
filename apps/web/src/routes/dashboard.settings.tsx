@@ -66,7 +66,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-xl border border-border bg-card">
+    <section className="rounded-xl border border-border/60 bg-card">
       <div className="border-border border-b px-5 py-4">
         <h2 className="font-semibold text-foreground text-sm">{title}</h2>
         {description && (
@@ -284,6 +284,7 @@ function SettingsPage() {
   return (
     <div>
       <PageHeader
+        eyebrow="dashboard // settings"
         title="Settings"
         description="Instance configuration for search ranking, the worker pipeline, and scraping."
         actions={

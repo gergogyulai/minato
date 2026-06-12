@@ -24,7 +24,7 @@ function Section({
 	children: React.ReactNode;
 }) {
 	return (
-		<section className="rounded-xl border border-border bg-card">
+		<section className="rounded-xl border border-border/60 bg-card">
 			<div className="flex items-center justify-between border-border border-b px-5 py-4">
 				<div>
 					<h2 className="font-semibold text-foreground text-sm">{title}</h2>
@@ -68,6 +68,7 @@ function SecurityPage() {
 	return (
 		<div>
 			<PageHeader
+				eyebrow="dashboard // security"
 				title="Security"
 				description="Manage passkeys for passwordless sign-in."
 			/>

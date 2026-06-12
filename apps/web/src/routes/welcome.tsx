@@ -155,7 +155,7 @@ function ReadyScreen({ reducedMotion }: { reducedMotion: boolean }) {
 
 			{/* Wordmark — letters cascade in */}
 			<h1
-				className="mt-2 text-[clamp(3.5rem,12vw,6.5rem)] font-black leading-none tracking-[-0.04em] text-foreground"
+				className="mt-2 font-display font-bold text-[clamp(3.5rem,12vw,6.5rem)] text-foreground leading-none tracking-tight"
 				aria-label="Minato"
 			>
 				{letters.map((letter, i) => (
@@ -206,7 +206,7 @@ function ReadyScreen({ reducedMotion }: { reducedMotion: boolean }) {
 				<Button
 					asChild
 					size="lg"
-					className="group h-12 gap-2.5 rounded-none px-7 font-mono text-sm"
+					className="group h-12 gap-2.5 rounded-md px-7 font-mono text-sm"
 				>
 					<Link to="/setup">
 						Setup your Minato

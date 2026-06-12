@@ -74,7 +74,7 @@ function Panel({
 	className?: string;
 }) {
 	return (
-		<section className={`rounded-xl border border-border bg-card p-5 ${className}`}>
+		<section className={`rounded-xl border border-border/60 bg-card p-5 ${className}`}>
 			<div className="mb-4 space-y-0.5">
 				<h2 className="font-semibold text-foreground text-sm">{title}</h2>
 				{description && (
@@ -257,6 +257,7 @@ function ScraperDetail({
 				}
 			>
 				<PageHeader
+					eyebrow="dashboard // scraper"
 					title={sc.manifest.title ?? sc.name}
 					description={`${sc.id} · v${sc.installedVersion}`}
 					actions={

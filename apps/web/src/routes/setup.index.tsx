@@ -291,7 +291,7 @@ function SetupComponent() {
 						<p className="font-mono text-[11px] tracking-[0.25em] text-muted-foreground/60 uppercase select-none">
 							first run // setup
 						</p>
-						<h1 className="font-black text-3xl text-foreground tracking-tighter">
+						<h1 className="bg-clip-text font-display font-bold text-3xl text-transparent tracking-tight [background-image:var(--web-heading-gradient)]">
 							Minato
 						</h1>
 					</motion.div>
@@ -316,7 +316,7 @@ function SetupComponent() {
 
 					{/* Step panel */}
 					<motion.div
-						className="relative overflow-hidden border border-border/90 bg-card/70 p-6 backdrop-blur-sm before:pointer-events-none before:absolute before:inset-0 before:bg-[linear-gradient(115deg,transparent_0%,oklch(1_0_0/3%)_40%,transparent_65%)]"
+						className="relative overflow-hidden rounded-xl border border-border/90 bg-card/70 p-6 backdrop-blur-sm before:pointer-events-none before:absolute before:inset-0 before:bg-[linear-gradient(115deg,transparent_0%,oklch(1_0_0/3%)_40%,transparent_65%)]"
 						variants={{
 							hidden: { opacity: 0, y: 14 },
 							visible: {
@@ -407,7 +407,7 @@ function CompletionOverlay() {
 
 			<div className="relative flex flex-col items-center gap-6">
 				<motion.div
-					className="flex size-20 items-center justify-center border border-border/90 bg-card/70 backdrop-blur-sm"
+					className="flex size-20 items-center justify-center rounded-2xl border border-border/90 bg-card/70 backdrop-blur-sm"
 					initial={{ scale: 0.6, opacity: 0 }}
 					animate={{ scale: 1, opacity: 1 }}
 					transition={{ type: "spring", stiffness: 320, damping: 22 }}
@@ -580,7 +580,7 @@ function AccountForm({ onCreated }: { onCreated: () => void }) {
 									onChange={(e) => field.handleChange(e.target.value)}
 									placeholder="Your name"
 									disabled={form.state.isSubmitting}
-									className="h-10 rounded-none transition-colors focus-visible:border-primary/50 focus-visible:ring-0"
+									className="h-10 rounded-md transition-colors focus-visible:border-primary/50 focus-visible:ring-0"
 								/>
 							</div>
 						)}
@@ -605,7 +605,7 @@ function AccountForm({ onCreated }: { onCreated: () => void }) {
 									onChange={(e) => field.handleChange(e.target.value)}
 									placeholder="admin@example.com"
 									disabled={form.state.isSubmitting}
-									className="h-10 rounded-none transition-colors focus-visible:border-primary/50 focus-visible:ring-0"
+									className="h-10 rounded-md transition-colors focus-visible:border-primary/50 focus-visible:ring-0"
 								/>
 							</div>
 						)}
@@ -631,7 +631,7 @@ function AccountForm({ onCreated }: { onCreated: () => void }) {
 										onChange={(e) => field.handleChange(e.target.value)}
 										placeholder="••••••••"
 										disabled={form.state.isSubmitting}
-										className="h-10 rounded-none transition-colors focus-visible:border-primary/50 focus-visible:ring-0"
+										className="h-10 rounded-md transition-colors focus-visible:border-primary/50 focus-visible:ring-0"
 									/>
 								</div>
 							)}
@@ -654,7 +654,7 @@ function AccountForm({ onCreated }: { onCreated: () => void }) {
 										onChange={(e) => field.handleChange(e.target.value)}
 										placeholder="••••••••"
 										disabled={form.state.isSubmitting}
-										className="h-10 rounded-none transition-colors focus-visible:border-primary/50 focus-visible:ring-0"
+										className="h-10 rounded-md transition-colors focus-visible:border-primary/50 focus-visible:ring-0"
 									/>
 								</div>
 							)}
@@ -667,7 +667,7 @@ function AccountForm({ onCreated }: { onCreated: () => void }) {
 						{(state) => (
 							<Button
 								type="submit"
-								className="group h-10 w-full gap-2 rounded-none font-mono text-sm transition-transform active:scale-[0.98]"
+								className="group h-10 w-full gap-2 rounded-md font-mono text-sm transition-transform active:scale-[0.98]"
 								disabled={!state.canSubmit || state.isSubmitting}
 							>
 								{state.isSubmitting ? (
@@ -724,7 +724,7 @@ function PasskeySubstep({ onDone }: { onDone: () => void }) {
 				{registered ? (
 					<motion.div
 						key="registered"
-						className="flex items-center gap-3 border border-emerald-500/20 bg-emerald-500/5 px-4 py-3"
+						className="flex items-center gap-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-4 py-3"
 						initial={{ opacity: 0, scale: 0.97 }}
 						animate={{ opacity: 1, scale: 1 }}
 						transition={{ type: "spring", stiffness: 380, damping: 26 }}
@@ -756,7 +756,7 @@ function PasskeySubstep({ onDone }: { onDone: () => void }) {
 								type="button"
 								onClick={registerPasskey}
 								disabled={pending}
-								className="group relative flex w-full flex-col items-center gap-3 border border-border/60 bg-background/40 px-6 py-8 transition-colors hover:border-primary/40 disabled:pointer-events-none disabled:opacity-60"
+								className="group relative flex w-full flex-col items-center gap-3 rounded-xl border border-border/60 bg-background/40 px-6 py-8 transition-colors hover:border-primary/40 disabled:pointer-events-none disabled:opacity-60"
 							>
 								<span className="relative flex size-12 items-center justify-center">
 									{/* Idle pulse rings */}
@@ -797,7 +797,7 @@ function PasskeySubstep({ onDone }: { onDone: () => void }) {
 							size="sm"
 							onClick={onDone}
 							disabled={pending}
-							className="rounded-none font-mono text-muted-foreground text-xs"
+							className="rounded-md font-mono text-muted-foreground text-xs"
 						>
 							Skip for now
 						</Button>
@@ -806,7 +806,7 @@ function PasskeySubstep({ onDone }: { onDone: () => void }) {
 						<Button
 							size="sm"
 							onClick={onDone}
-							className="group min-w-24 gap-1.5 rounded-none font-mono text-xs transition-transform active:scale-[0.98]"
+							className="group min-w-24 gap-1.5 rounded-md font-mono text-xs transition-transform active:scale-[0.98]"
 						>
 							Continue
 							<ArrowRight className="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
@@ -940,7 +940,7 @@ function ScrapersStep({
 						variant="ghost"
 						size="sm"
 						onClick={onSkip}
-						className="rounded-none font-mono text-muted-foreground text-xs"
+						className="rounded-md font-mono text-muted-foreground text-xs"
 					>
 						Skip
 					</Button>
@@ -948,7 +948,7 @@ function ScrapersStep({
 						onClick={() => updateScrapersMutation.mutate({ enabledScrapers })}
 						size="sm"
 						disabled={updateScrapersMutation.isPending}
-						className="group min-w-24 gap-1.5 rounded-none font-mono text-xs transition-transform active:scale-[0.98]"
+						className="group min-w-24 gap-1.5 rounded-md font-mono text-xs transition-transform active:scale-[0.98]"
 					>
 						{updateScrapersMutation.isPending ? (
 							<Loader2 className="h-4 w-4 animate-spin" />
@@ -1054,7 +1054,7 @@ function FlareSolverrStep({
 								}}
 								placeholder="http://localhost:8191"
 								disabled={busy}
-								className="h-10 rounded-none font-mono text-sm transition-colors focus-visible:border-primary/50 focus-visible:ring-0"
+								className="h-10 rounded-md font-mono text-sm transition-colors focus-visible:border-primary/50 focus-visible:ring-0"
 							/>
 							{/* Test button doubles as the connection status indicator */}
 							<TooltipProvider>
@@ -1072,7 +1072,7 @@ function FlareSolverrStep({
 											}
 											transition={{ duration: 0.4, ease: easeOut }}
 											whileTap={{ scale: 0.96 }}
-											className={`group relative h-10 min-w-24 shrink-0 cursor-pointer border px-3 font-mono text-xs transition-colors disabled:pointer-events-none disabled:opacity-60 ${
+											className={`group relative h-10 min-w-24 shrink-0 cursor-pointer rounded-md border px-3 font-mono text-xs transition-colors disabled:pointer-events-none disabled:opacity-60 ${
 												testState === "online"
 													? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
 													: testState === "offline"
@@ -1125,7 +1125,7 @@ function FlareSolverrStep({
 											<AnimatePresence>
 												{testState === "online" && (
 													<motion.span
-														className="pointer-events-none absolute inset-0 border border-emerald-500/70"
+														className="pointer-events-none absolute inset-0 rounded-md border border-emerald-500/70"
 														initial={{ opacity: 1, scale: 1 }}
 														animate={{ opacity: 0, scale: 1.3 }}
 														exit={{ opacity: 0 }}
@@ -1160,7 +1160,7 @@ function FlareSolverrStep({
 						size="sm"
 						onClick={onBack}
 						disabled={busy}
-						className="rounded-none font-mono text-muted-foreground text-xs"
+						className="rounded-md font-mono text-muted-foreground text-xs"
 					>
 						Back
 					</Button>
@@ -1170,7 +1170,7 @@ function FlareSolverrStep({
 						size="sm"
 						onClick={onSkip}
 						disabled={busy}
-						className="rounded-none font-mono text-muted-foreground text-xs"
+						className="rounded-md font-mono text-muted-foreground text-xs"
 					>
 						Skip
 					</Button>
@@ -1178,7 +1178,7 @@ function FlareSolverrStep({
 						onClick={() => updateMutation.mutate(url)}
 						size="sm"
 						disabled={busy}
-						className="min-w-24 rounded-none font-mono text-xs transition-transform active:scale-[0.98]"
+						className="min-w-24 rounded-md font-mono text-xs transition-transform active:scale-[0.98]"
 					>
 						{updateMutation.isPending || isFinishing ? (
 							<Loader2 className="h-4 w-4 animate-spin" />

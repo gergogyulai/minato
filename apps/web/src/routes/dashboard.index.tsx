@@ -47,15 +47,20 @@ function Panel({
 }) {
 	return (
 		<section
-			className={`rounded-xl border border-border bg-card p-5 ${className}`}
+			className={`relative overflow-hidden rounded-xl border border-border/60 bg-card ${className}`}
 		>
-			<div className="mb-4 space-y-0.5">
-				<h2 className="font-semibold text-foreground text-sm">{title}</h2>
+			<div className="pointer-events-none absolute inset-x-0 top-0 h-px opacity-50 [background:linear-gradient(to_right,transparent,var(--primary),transparent)]" />
+			<div className="border-border/50 border-b px-5 py-3.5">
+				<h2 className="font-mono text-[11px] text-foreground/80 uppercase tracking-[0.2em]">
+					{title}
+				</h2>
 				{description && (
-					<p className="text-muted-foreground text-xs">{description}</p>
+					<p className="mt-0.5 font-mono text-[11px] text-muted-foreground/50">
+						{description}
+					</p>
 				)}
 			</div>
-			{children}
+			<div className="p-5">{children}</div>
 		</section>
 	);
 }
@@ -78,6 +83,7 @@ function OverviewPage() {
 	return (
 		<div>
 			<PageHeader
+				eyebrow="dashboard // overview"
 				title="Overview"
 				description="A live snapshot of your Minato instance — ingest health, indexing pipeline, and sources."
 			/>
@@ -167,7 +173,7 @@ function OverviewPage() {
 										contentStyle={{
 											background: "var(--popover)",
 											border: "1px solid var(--border)",
-											borderRadius: "0.625rem",
+											borderRadius: "0.5rem",
 											fontSize: "12px",
 											color: "var(--popover-foreground)",
 										}}

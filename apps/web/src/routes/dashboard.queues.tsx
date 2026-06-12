@@ -392,6 +392,7 @@ function QueuesPage() {
 	return (
 		<div>
 			<PageHeader
+				eyebrow="dashboard // queues"
 				title="Queues"
 				description="Inspect waiting, active, delayed, and failed jobs in each BullMQ queue."
 			/>

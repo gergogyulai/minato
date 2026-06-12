@@ -108,6 +108,7 @@ function WantedPage() {
 	return (
 		<div>
 			<PageHeader
+				eyebrow="dashboard // watchlist"
 				title="Watchlist"
 				description="Monitor for new torrents matching specific content and quality criteria. Notifications are sent via your configured channels."
 				actions={

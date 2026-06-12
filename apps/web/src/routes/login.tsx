@@ -1,6 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { Boxes, Database, ShieldCheck, SlidersHorizontal } from "lucide-react";
+import { Boxes, Database, ShieldCheck } from "lucide-react";
 
+import { GradientText } from "@/components/landing-kit";
 import SignInForm from "@/components/sign-in-form";
 import { authClient } from "@/lib/auth-client";
 
@@ -24,46 +25,44 @@ function LoginPage() {
 	return (
 		<div className="grid min-h-screen lg:grid-cols-2">
 			{/* Brand panel */}
-			<div className="relative hidden overflow-hidden border-border border-r bg-sidebar lg:flex lg:flex-col lg:justify-between lg:p-12">
+			<div className="relative hidden overflow-hidden border-border/60 border-r bg-card/40 lg:flex lg:flex-col lg:justify-between lg:p-12">
 				<div
 					aria-hidden
-					className="pointer-events-none absolute inset-0 opacity-70 [background:radial-gradient(40rem_30rem_at_20%_0%,color-mix(in_oklch,var(--primary)_22%,transparent),transparent_70%)]"
+					className="pointer-events-none absolute right-[-80px] top-[-80px] h-[480px] w-[480px] rounded-full [background:radial-gradient(circle,color-mix(in_oklch,var(--primary)_18%,transparent),transparent_65%)]"
 				/>
 				<div
 					aria-hidden
-					className="pointer-events-none absolute inset-0 opacity-[0.04] [background-image:linear-gradient(var(--foreground)_1px,transparent_1px),linear-gradient(90deg,var(--foreground)_1px,transparent_1px)] [background-size:38px_38px]"
+					className="pointer-events-none absolute inset-0 opacity-[0.5] [background-image:linear-gradient(to_right,var(--minato-grid-color)_1px,transparent_1px),linear-gradient(to_bottom,var(--minato-grid-color)_1px,transparent_1px)] [background-size:32px_32px] [mask-image:radial-gradient(ellipse_80%_60%_at_50%_0%,black_40%,transparent_100%)]"
 				/>
 
-				<div className="relative flex items-center gap-2.5">
-					<span className="flex size-8 items-center justify-center rounded-md bg-primary/15 ring-1 ring-primary/30 ring-inset">
-						<SlidersHorizontal className="size-4 text-primary" />
+				<div className="relative flex items-baseline gap-2">
+					<span className="font-display font-bold text-foreground text-xl tracking-tight">
+						Minato
 					</span>
-					<span className="flex items-baseline gap-1.5">
-						<span className="font-semibold text-foreground text-lg tracking-tight">
-							Minato
-						</span>
-						<span className="font-medium text-[10px] text-muted-foreground uppercase tracking-[0.18em]">
-							Admin
-						</span>
+					<span className="font-mono text-[10px] text-muted-foreground/60 uppercase tracking-[0.2em]">
+						admin
 					</span>
 				</div>
 
-				<div className="relative max-w-md space-y-6">
-					<h1 className="font-semibold text-3xl text-foreground leading-tight tracking-tight">
+				<div className="relative max-w-md space-y-7">
+					<h1
+						className="font-display font-bold text-foreground leading-[0.95] tracking-tight"
+						style={{ fontSize: "clamp(2.5rem,4vw,3.5rem)" }}
+					>
 						The control room for your{" "}
-						<span className="text-primary">torrent index</span>.
+						<GradientText>torrent index.</GradientText>
 					</h1>
 					<p className="text-muted-foreground text-sm leading-relaxed">
 						Monitor ingest pipelines, orchestrate scrapers, and manage access —
 						all from one place.
 					</p>
-					<ul className="space-y-3">
+					<ul className="space-y-3 border-border/60 border-t pt-6">
 						{HIGHLIGHTS.map((h) => (
 							<li
 								key={h.label}
-								className="flex items-center gap-3 text-muted-foreground text-sm"
+								className="flex items-center gap-3 font-mono text-muted-foreground text-[13px]"
 							>
-								<span className="flex size-7 items-center justify-center rounded-md border border-border bg-background/40">
+								<span className="flex size-7 items-center justify-center rounded-lg border border-border/60 bg-primary/5">
 									<h.icon className="size-3.5 text-primary" />
 								</span>
 								{h.label}
@@ -72,8 +71,9 @@ function LoginPage() {
 					</ul>
 				</div>
 
-				<div className="relative text-muted-foreground text-xs">
-					Restricted to administrators.
+				<div className="relative font-mono text-[11px] text-muted-foreground/40 tracking-wider">
+					<span className="text-primary/70">港</span> restricted to
+					administrators
 				</div>
 			</div>
 
@@ -85,17 +85,20 @@ function LoginPage() {
 				/>
 				<div className="relative w-full max-w-sm space-y-8">
 					{/* Mobile wordmark */}
-					<div className="flex items-center gap-2.5 lg:hidden">
-						<span className="flex size-8 items-center justify-center rounded-md bg-primary/15 ring-1 ring-primary/30 ring-inset">
-							<SlidersHorizontal className="size-4 text-primary" />
-						</span>
-						<span className="font-semibold text-foreground text-lg tracking-tight">
+					<div className="flex items-baseline gap-2 lg:hidden">
+						<span className="font-display font-bold text-foreground text-xl tracking-tight">
 							Minato
+						</span>
+						<span className="font-mono text-[10px] text-muted-foreground/60 uppercase tracking-[0.2em]">
+							admin
 						</span>
 					</div>
 
-					<div className="space-y-1.5">
-						<h2 className="font-semibold text-2xl text-foreground tracking-tight">
+					<div className="space-y-2">
+						<p className="select-none font-mono text-[11px] text-muted-foreground/45 uppercase tracking-[0.25em]">
+							admin access
+						</p>
+						<h2 className="font-display font-bold text-3xl text-foreground tracking-tight">
 							Sign in
 						</h2>
 						<p className="text-muted-foreground text-sm">

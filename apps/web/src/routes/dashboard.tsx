@@ -25,10 +25,14 @@ export const Route = createFileRoute("/dashboard")({
 function DashboardLayout() {
 	return (
 		<div className="relative min-h-screen bg-background">
-			{/* Ambient backdrop — a subtle teal glow anchored top-left. */}
+			{/* Ambient backdrop — signature dot-grid under a soft primary glow. */}
 			<div
 				aria-hidden
-				className="pointer-events-none fixed inset-0 -z-10 opacity-60 [background:radial-gradient(60rem_40rem_at_-10%_-10%,color-mix(in_oklch,var(--primary)_14%,transparent),transparent_70%)]"
+				className="pointer-events-none fixed inset-0 -z-10 opacity-60 [background:radial-gradient(60rem_40rem_at_-10%_-10%,color-mix(in_oklch,var(--primary)_12%,transparent),transparent_70%)]"
+			/>
+			<div
+				aria-hidden
+				className="pointer-events-none fixed inset-0 -z-10 [background-image:radial-gradient(circle,var(--minato-grid-color)_1px,transparent_1px)] [background-size:28px_28px]"
 			/>
 			<AdminSidebar />
 			<AdminMobileBar />

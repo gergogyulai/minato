@@ -49,6 +49,7 @@ function ScrapersPage() {
 	return (
 		<div>
 			<PageHeader
+				eyebrow="dashboard // scrapers"
 				title="Scrapers"
 				description="Control the indexers feeding your library — schedules, runtime state, and configuration."
 				actions={
@@ -133,7 +134,7 @@ function ScraperCard({
 	}
 
 	return (
-		<div className="flex flex-col overflow-hidden rounded-xl border border-border bg-card transition-shadow hover:shadow-md">
+		<div className="flex flex-col overflow-hidden rounded-xl border border-border/60 bg-card transition-shadow hover:shadow-md">
 			{/* Clickable body */}
 			<Link
 				to="/dashboard/scrapers/$id"

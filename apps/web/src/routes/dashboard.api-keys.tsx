@@ -82,6 +82,7 @@ function ApiKeysPage() {
 	return (
 		<div>
 			<PageHeader
+				eyebrow="dashboard // api keys"
 				title="API Keys"
 				description="Machine-to-machine keys for Torznab clients (Sonarr/Radarr) and custom integrations."
 				actions={
@@ -111,7 +112,7 @@ function ApiKeysPage() {
 			)}
 
 			{keys.data && keys.data.apiKeys.length > 0 && (
-				<div className="overflow-hidden rounded-xl border border-border bg-card">
+				<div className="overflow-hidden rounded-xl border border-border/60 bg-card">
 					<Table>
 						<TableHeader>
 							<TableRow className="hover:bg-transparent">
