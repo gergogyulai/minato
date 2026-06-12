@@ -191,18 +191,7 @@ export default function HomePage() {
   return (
     <>
       {/* <TorrentHeader /> */}
-
-      {/* Dot-grid background */}
-      <div
-        className="fixed inset-0 pointer-events-none"
-        style={{
-          backgroundImage:
-            "radial-gradient(circle, var(--minato-grid-color) 1px, transparent 1px)",
-          backgroundSize: "28px 28px",
-        }}
-      />
-
-      <div className="minato-console relative min-h-screen pt-[calc(var(--minato-header-height)+0.5rem)]">
+      <div className="relative min-h-screen pt-[calc(var(--minato-header-height)+0.5rem)]">
         {/* Main content — fixed top anchor so results expanding downward never shift the wordmark */}
         <div className="flex flex-col items-center px-5 sm:px-8 pt-[18vh] pb-24">
           <div className="w-full max-w-2xl space-y-8">
@@ -236,7 +225,7 @@ export default function HomePage() {
             </div>
 
             {/* Search */}
-            <form onSubmit={handleSearch} className="minato-panel minato-sheen space-y-3 p-4 sm:p-5">
+            <form onSubmit={handleSearch} className="space-y-3 p-4 sm:p-5">
               <div className="relative group">
                 {/* Prompt glyph */}
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 font-mono text-base text-primary/60 pointer-events-none select-none z-10 transition-colors group-focus-within:text-primary">

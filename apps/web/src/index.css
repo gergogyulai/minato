@@ -54,6 +54,8 @@
 :root {
 	--font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, sans-serif;
 	--font-geist-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+	--minato-header-height: 3.5rem;
+	--minato-grid-color: oklch(0.141 0.005 285.823 / 7%);
 	--background: oklch(1 0 0);
 	--foreground: oklch(0.141 0.005 285.823);
 	--card: oklch(1 0 0);
@@ -89,6 +91,7 @@
 }
 
 .dark {
+	--minato-grid-color: oklch(1 0 0 / 6%);
 	--background: oklch(0.141 0.005 285.823);
 	--foreground: oklch(0.985 0 0);
 	--card: oklch(0.21 0.006 285.885);
