@@ -11,6 +11,8 @@ export const env = createEnv({
 		...tmdbAccessTokenSchema,
 		BETTER_AUTH_SECRET: z.string().min(1),
 		PASSKEY_RP_ID: z.string().optional(),
+		PROWLARR_URL: z.string().url().optional(),
+		PROWLARR_API_KEY: z.string().min(1).optional(),
 	},
 	runtimeEnv: process.env,
 	emptyStringAsUndefined: true,
