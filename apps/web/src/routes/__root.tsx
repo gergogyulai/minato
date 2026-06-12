@@ -9,6 +9,7 @@ import {
 	isRedirect,
 	Outlet,
 	redirect,
+	useRouterState,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { useState } from "react";
@@ -18,7 +19,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { link, type orpc } from "@/utils/orpc";
 
 import "../index.css";
-import { RaycastMenu } from "@/components/minato-command-menu";
+import { CommandMenu } from "@/components/command-menu";
 
 export interface RouterAppContext {
 	orpc: typeof orpc;
@@ -28,7 +29,10 @@ export interface RouterAppContext {
 export const Route = createRootRouteWithContext<RouterAppContext>()({
 	component: RootComponent,
 	beforeLoad: async ({ location, context }) => {
-		if (location.pathname.startsWith("/setup")) {
+		if (
+			location.pathname.startsWith("/setup") ||
+			location.pathname.startsWith("/welcome")
+		) {
 			return;
 		}
 
@@ -38,7 +42,7 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
 			);
 
 			if (!setupStatus.setupCompleted) {
-				throw redirect({ to: "/setup" });
+				throw redirect({ to: "/welcome" });
 			}
 		} catch (error) {
 			if (isRedirect(error)) throw error;
@@ -65,9 +69,16 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
 	}),
 });
 
+const commandMenuHiddenPaths = ["/setup", "/welcome"];
+
 function RootComponent() {
 	const [client] = useState<AppRouterClient>(() => createORPCClient(link));
 	const [orpcUtils] = useState(() => createTanstackQueryUtils(client));
+	const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+	const showCommandMenu = !commandMenuHiddenPaths.some((p) =>
+		pathname.startsWith(p),
+	);
 
 	return (
 		<>
@@ -81,7 +92,7 @@ function RootComponent() {
 				<div className="min-h-screen">
 					<main>
 						<Outlet />
-						<RaycastMenu />
+						{showCommandMenu && <CommandMenu />}
 					</main>
 				</div>
 				<Toaster richColors />
