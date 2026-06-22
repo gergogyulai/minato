@@ -17,7 +17,6 @@
 	},
 	"dependencies": {
 		"@project-minato/env": "workspace:*",
-		"dotenv": "catalog:",
 		"bullmq": "catalog:",
 		"ioredis": "catalog:"
 	},

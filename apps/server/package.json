@@ -13,11 +13,11 @@
 		"./routers": "./src/api/app.ts"
 	},
 	"dependencies": {
-		"@hono/zod-validator": "^0.7.6",
-		"@orpc/client": "^1.13.4",
-		"@orpc/openapi": "^1.13.4",
-		"@orpc/server": "^1.13.4",
-		"@orpc/zod": "^1.13.4",
+		"@hono/zod-validator": "^0.8.0",
+		"@orpc/client": "catalog:",
+		"@orpc/openapi": "catalog:",
+		"@orpc/server": "catalog:",
+		"@orpc/zod": "catalog:",
 		"@project-minato/auth": "workspace:*",
 		"@project-minato/config": "workspace:*",
 		"@project-minato/db": "workspace:*",
@@ -25,20 +25,19 @@
 		"@project-minato/meilisearch": "workspace:*",
 		"@project-minato/queue": "workspace:*",
 		"@project-minato/utils": "workspace:*",
-		"@scalar/hono-api-reference": "^0.9.37",
+		"@scalar/hono-api-reference": "^0.11.4",
 		"better-auth": "catalog:",
-		"cron-parser": "^5.5.0",
-		"dotenv": "catalog:",
+		"cron-parser": "catalog:",
 		"drizzle-orm": "catalog:",
-		"fast-xml-parser": "^5.8.0",
-		"hono": "^4.8.2",
+		"fast-xml-parser": "^5.9.3",
+		"hono": "^4.12.26",
 		"xmlbuilder2": "^4.0.3",
 		"zod": "catalog:"
 	},
 	"devDependencies": {
 		"@project-minato/typescript": "workspace:*",
 		"@types/bun": "catalog:",
-		"tsdown": "^0.16.5",
+		"tsdown": "catalog:",
 		"typescript": "catalog:"
 	}
 }

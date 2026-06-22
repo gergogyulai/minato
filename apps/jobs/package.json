@@ -9,7 +9,7 @@
 		"start": "bun run dist/index.mjs"
 	},
 	"dependencies": {
-		"@openrouter/ai-sdk-provider": "^2.9.0",
+		"@openrouter/ai-sdk-provider": "^2.9.1",
 		"@project-minato/config": "workspace:*",
 		"@project-minato/db": "workspace:*",
 		"@project-minato/env": "workspace:*",
@@ -18,25 +18,26 @@
 		"@project-minato/skit": "workspace:*",
 		"@project-minato/utils": "workspace:*",
 		"drizzle-orm": "catalog:",
-		"ai": "^6.0.193",
+		"ai": "^6.0.208",
 		"bullmq": "catalog:",
-		"cron-parser": "^5.5.0",
+		"cron-parser": "catalog:",
 		"diswhook": "1.0.1",
 		"graphql": "^16.12.0",
 		"graphql-request": "^7.4.0",
+		"limiter": "^3.0.0",
 		"musicbrainz-api": "^1.2.1",
-		"natural": "^8.1.0",
-		"ollama-ai-provider-v2": "^3.5.1",
+		"natural": "^8.1.1",
+		"ollama-ai-provider-v2": "^3.6.0",
 		"pg-query-stream": "^4.12.0",
 		"postinstall-postinstall": "^2.1.0",
 		"release-parser": "1.5.3",
-		"sharp": "^0.34.5",
-		"tmdb-ts": "^2.2.0"
+		"sharp": "^0.35.2",
+		"tmdb-ts": "^2.3.0"
 	},
 	"devDependencies": {
 		"@project-minato/typescript": "workspace:*",
 		"@types/bun": "catalog:",
-		"tsdown": "^0.20.3",
+		"tsdown": "catalog:",
 		"typescript": "catalog:"
 	}
 }

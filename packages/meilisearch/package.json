@@ -14,10 +14,8 @@
 	"dependencies": {
 		"@project-minato/env": "workspace:*",
 		"@project-minato/db": "workspace:*",
-		"@elastic/elasticsearch": "^9.2.1",
-		"dotenv": "catalog:",
 		"drizzle-orm": "catalog:",
-		"meilisearch": "^0.55.0"
+		"meilisearch": "^0.58.0"
 	},
 	"devDependencies": {
 		"@project-minato/typescript": "workspace:*",
